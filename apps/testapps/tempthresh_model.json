@@ -1,0 +1,14 @@
+{
+	winsize:1,
+	materialize:false,
+	func:function(buffer){
+		var newdat = new Object();
+		var d1 = buffer[0];
+		if(d1.Reading > 40) {
+			newdat.state=1;
+		} else {
+			newdat.state=0;
+		}
+		return newdat;
+	}
+}

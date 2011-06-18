@@ -1,0 +1,471 @@
+Electronics	Audio	Amplifier	Amplifier to drive audio speakers
+Electronics	Audio	Audio_minisystem	Compact audio system w/detacheable speakers
+Electronics	Audio	Cassette_deck	Sold as separate component
+Electronics	Audio	CD_player	Includes CD player sold as sep. component or part of a Rack system
+Electronics	Audio	portable_CD_player	
+Electronics	Audio	digital_music_player_Charger	MP3 players
+Electronics	Audio	Drum_set	
+Electronics	Audio	Equalizer_audio	
+Electronics	Audio	Home_theatre_system	Bought as a box set
+Electronics	Audio	Jukebox	
+Electronics	Audio	Karaoke_machine	
+Electronics	Audio	Microphone	
+Electronics	Audio	Musical_keyboard	
+Electronics	Audio	Public_address_system	Amplifier for PA system
+Electronics	Audio	CB_Radio	
+Electronics	Audio	table_Radio	Small radio
+Electronics	Audio	audio_Receiver	Audio receiver, component audio system sold seperately or part of Rack audio system
+Electronics	Audio	radio_Scanner	
+Electronics	Audio	powered_Speakers	Separate from sub-woofer, sold as sep. componenet or sold as part of Rack system
+Electronics	Audio	wireless_base_station_Speakers	
+Electronics	Audio	wireless_speakers_Speakers	
+Electronics	Audio	portable_Stereo	One unit with speakers not detacheable ("boom box")
+Electronics	Audio	Subwoofer	Speaker specializing in lower bass frequency
+Electronics	Audio	Tuner	
+Electronics	Audio	audio_Turntable	Sold as sep. component
+Electronics	Audio	Wireless_headphones	
+Electronics	Audio	Other_audio	
+Electronics	Cash_exchange	Automated_teller_machine	ATM
+Electronics	Cash_exchange	Bar_code_scanner	Scan bar codes
+Electronics	Cash_exchange	Bill_changer	
+Electronics	Cash_exchange	Cash_register	
+Electronics	Cash_exchange	Change_box	For copier, etc.
+Electronics	Cash_exchange	Credit_card_reader	
+Electronics	Cash_exchange	Point-of-sale_terminal	Cash register
+Electronics	Cash_exchange	self-checkout_Point-of-sale_terminal	Cash register
+Electronics	Cash_exchange	Other_cash_exchange	
+Electronics	Computer	desktop_Computer	
+Electronics	Computer	integrated-CRT_Computer	Comp & monitor=1 unit
+Electronics	Computer	integrated-LCD_Computer	Comp & monitor=1 unit
+Electronics	Computer	notebook_Computer	
+Electronics	Computer	server_Computer	
+Electronics	Computer	notebook_Dock	Docking station
+Electronics	Computer	tablet_Dock	Docking station, charger plus connectivity to computer
+Electronics	Computer	Pen_tablet	Input board/digitizer
+Electronics	Computer	Other_computer	
+Electronics	Display	CRT_Computer_display	
+Electronics	Display	LCD_Computer_display	
+Electronics	Display	plasma_screen_Computer_display	
+Electronics	Display	LED_Display	
+Electronics	Display	portable_Game_console	Not including ones that connect to TV (e.g. Gameboy)
+Electronics	Display	Photo_frame	
+Electronics	Display	projector_Screen	Mechanical screen for viewing images
+Electronics	Display	slide_Projector	Projector for viewing 35 mm slides
+Electronics	Display	video_Projector	Projects video images from either TV or computer source to separate screen
+Electronics	Display	Scan_converter	Converts PC images for view on TV
+Electronics	Display	large_CRT_Television	>= 36 inches
+Electronics	Display	LCD_Television	All sizes
+Electronics	Display	plasma_Television	All sizes
+Electronics	Display	rear_projection_Television	All sizes
+Electronics	Display	standard_CRT_Television	< 36 inches
+Electronics	Display	Television_VCR	TV/VCR combo units
+Electronics	Display	Other_display	
+Electronics	Imaging	Copier	
+		film_Digitizer	
+Electronics	Imaging	x-ray_Duplicator	Also called duplicator/subtractor (D/S)
+Electronics	Imaging	inkjet_Fax	
+Electronics	Imaging	laser_Fax	
+Electronics	Imaging	thermal_Fax	
+Electronics	Imaging	inkjet_Multi-function_device	This is different from the MFD in the commercial taxonomy
+Electronics	Imaging	laser_Multi-function_device	
+Electronics	Imaging	Print_controller_DFE	Digital Front End
+Electronics	Imaging	impact_Printer	
+Electronics	Imaging	inkjet_Printer	
+Electronics	Imaging	large_format_Printer	
+Electronics	Imaging	laser_Printer	
+Electronics	Imaging	photo_Printer	
+Electronics	Imaging	solid_ink_Printer	
+Electronics	Imaging	thermal_Printer	
+Electronics	Imaging	x-ray_Printer	
+Electronics	Imaging	other_Printer	
+Electronics	Imaging	flatbed_Scanner	non-medical
+Electronics	Imaging	multisheet_Scanner	non-medical
+Electronics	Imaging	Scanner_slide	
+Electronics	Imaging	Other_imaging	
+Electronics	Networking	Amplifier_network	E.g, broadband
+Electronics	Networking	Hub_ethernet	
+Electronics	Networking	Hub_USB	
+Electronics	Networking	Modem_cable	
+Electronics	Networking	Modem_DSL	
+Electronics	Networking	Modem_POTS	
+Electronics	Networking	Monitoring_system	Phonetics Sensaphone
+Electronics	Networking	Router_ethernet	
+Electronics	Networking	Switch	Ethernet, fiberoptic
+Electronics	Networking	Tape_drive	
+Electronics	Networking	Wireless_access_point	Wireless router eg.
+Electronics	Networking	Other_networking	
+Electronics	Peripherals	CD_recorder	
+Electronics	Peripherals	Disk_storage	
+Electronics	Peripherals	Dock_PDA	Charge or connectivity to computer
+Electronics	Peripherals	External_drive	CD drive, zip drive, hard drive, etc.
+Electronics	Peripherals	Keyboard-video-mouse_switch	KVM
+Electronics	Peripherals	Speakers_computer	
+Electronics	Peripherals	Whiteboard_digital	eg. Smartboard
+Electronics	Peripherals	Other_peripherals	
+Electronics	Security	Book_demagnetizer	
+Electronics	Security	Card_reader	
+Electronics	Security	Closed_circuit_camera	
+Electronics	Security	Infant_monitor_receiver	
+Electronics	Security	Infant_monitor_transmitter	
+Electronics	Security	Intercom	
+Electronics	Security	Security_system	Home security system
+Electronics	Security	Surveillance_system	
+Electronics	Security	Video_surveillance_console	
+Electronics	Security	Other_security	
+Electronics	Set-top	Set-top_box_analog_cable	
+Electronics	Set-top	Set-top_box_digital_cable	
+Electronics	Set-top	Set-top_box_digital_cable_with_PVR	
+Electronics	Set-top	Set-top_box_game_console_with_internet_connectivity	
+Electronics	Set-top	Set-top_box_internet	E.g. Web TV
+Electronics	Set-top	Set-top_box_satellite	
+Electronics	Set-top	Set-top_box_satellite_with_PVR	
+Electronics	Set-top	Other_set-top	
+Electronics	Telephony	Amplifier_telephone	
+Electronics	Telephony	Answering_machine	No integral cordless phone
+Electronics	Telephony	Caller_ID_unit	
+Electronics	Telephony	Charger_mobile_phone	Empty vs. full
+Electronics	Telephony	Dictation_equipment	
+Electronics	Telephony	Integrated_voice_server	
+Electronics	Telephony	PBX_system	Private branch exchange
+Electronics	Telephony	Phone	May include headset
+Electronics	Telephony	Phone_switchboard	
+Electronics	Telephony	Phone_conference	Includes teleconference capabilities and has speaker
+Electronics	Telephony	Phone_corded	
+Electronics	Telephony	Phone_cordless	
+Electronics	Telephony	Phone_cordless_with_answering_machine	
+Electronics	Telephony	Transcription_system	
+Electronics	Telephony	Other_telephony	
+Electronics	Video	Charger_still_camera	Digital camera, connectivity to PC
+Electronics	Video	Charger_video_camera	Digital camera, connectivity to television
+Electronics	Video	DVD_player	
+Electronics	Video	DVD_recorder	
+Electronics	Video	Game_console	No internet connectivity
+Electronics	Video	VCR	Includes non-recording units
+Electronics	Video	VCR-DVD	May have recording capability
+Electronics	Video	Video_PVR_no_multifunctionality	Stand-alone box (e.g. Tivo)
+Electronics	Video	Videocassette_rewinder	VCR rewinders
+Electronics	Video	Other_video	
+Miscellaneous	Appliance	Fan_rangehood	
+Miscellaneous	Appliance	Garbage_disposal	
+Miscellaneous	Appliance	Refrigerator_wine_cooler	
+Miscellaneous	Appliance	Trash_compactor	
+Miscellaneous	Appliance	Other_miscellaneous_appliance	
+Miscellaneous	Business_equipment	Adding_machine	
+Miscellaneous	Business_equipment	Binding_machine	
+Miscellaneous	Business_equipment	Hole_punch_industrial	
+Miscellaneous	Business_equipment	Hole_punch_standard	
+Miscellaneous	Business_equipment	Laminator	
+Miscellaneous	Business_equipment	Mail-shipping_equipment	Postage machine, meter or scale
+Miscellaneous	Business_equipment	Microfich_reader	Also microfilm viewer
+Miscellaneous	Business_equipment	Pointer	usu laser
+Miscellaneous	Business_equipment	Projector_film	
+Miscellaneous	Business_equipment	Projector_overhead	
+Miscellaneous	Business_equipment	Projector_other	
+Miscellaneous	Business_equipment	Pencil_sharpener	
+Miscellaneous	Business_equipment	Shredder	All sizes
+Miscellaneous	Business_equipment	Stapler	
+Miscellaneous	Business_equipment	Time_stamper	
+Miscellaneous	Business_equipment	Typewriter	
+Miscellaneous	Business_equipment	Other_miscellaneous_business_equipment	
+Miscellaneous	Commercial_kitchen_equipment	Coffee_maker_commercial	
+Miscellaneous	Commercial_kitchen_equipment	Espresso_maker_commercial	
+Miscellaneous	Commercial_kitchen_equipment	Freezer_reach-down	e.g. in ice cream store
+Miscellaneous	Commercial_kitchen_equipment	Freezer_reach-in	Solid door commercial 
+Miscellaneous	Commercial_kitchen_equipment	Fryer_commercial	All fuel types
+Miscellaneous	Commercial_kitchen_equipment	Hot_food_holding_cabinet	Hot food holding cabinet for food service
+Miscellaneous	Commercial_kitchen_equipment	Ice_maker	Commercial or undercounter
+Miscellaneous	Commercial_kitchen_equipment	Microwave_oven_commercial	
+Miscellaneous	Commercial_kitchen_equipment	Oven-range-cooktop_commercial	
+Miscellaneous	Commercial_kitchen_equipment	Refrigerator_reach-in	Solid door commercial 
+Miscellaneous	Commercial_kitchen_equipment	Refrigerator_visi-cooler	See-through glass, cooled units
+Miscellaneous	Commercial_kitchen_equipment	Scale_food	
+Miscellaneous	Commercial_kitchen_equipment	Soft_serve_machine	
+Miscellaneous	Commercial_kitchen_equipment	Slush_machine	
+Miscellaneous	Commercial_kitchen_equipment	Steamer_commercial	All fuel types
+Miscellaneous	Commercial_kitchen_equipment	Vending_machine_freezer	
+Miscellaneous	Commercial_kitchen_equipment	Vending_machine_non-refrigerated	Snack
+Miscellaneous	Commercial_kitchen_equipment	Vending_machine_other	Hot drink, milk, ice cream
+Miscellaneous	Commercial_kitchen_equipment	Vending_machine_refrigerated	Cold beverage
+Miscellaneous	Commercial_kitchen_equipment	Water_cooler	
+Miscellaneous	Commercial_kitchen_equipment	Other_miscellaneous_commercial_kitchen_equipment	
+Miscellaneous	Electric_housewares	Automatic_griddles	
+Miscellaneous	Electric_housewares	Blanket	
+Miscellaneous	Electric_housewares	Blender	
+Miscellaneous	Electric_housewares	Bread_maker	
+Miscellaneous	Electric_housewares	Bread_slicer	
+Miscellaneous	Electric_housewares	Broiler	
+Miscellaneous	Electric_housewares	Can_opener	
+Miscellaneous	Electric_housewares	Clock	
+Miscellaneous	Electric_housewares	Clock_radio	With radio and/or alarm
+Miscellaneous	Electric_housewares	Coffee_grinder	
+Miscellaneous	Electric_housewares	Coffee_maker_residential	
+Miscellaneous	Electric_housewares	Corn_popper_air	
+Miscellaneous	Electric_housewares	Corn_popper_hot_oil	
+Miscellaneous	Electric_housewares	Deep_fryer_residential	
+Miscellaneous	Electric_housewares	Dish_dryer	
+Miscellaneous	Electric_housewares	Espresso_maker_residential	
+Miscellaneous	Electric_housewares	Fondue_maker	
+Miscellaneous	Electric_housewares	Food_processor	
+Miscellaneous	Electric_housewares	Food_sealer_vacuum	
+Miscellaneous	Electric_housewares	Food_slicer	
+Miscellaneous	Electric_housewares	Frying_pan	
+Miscellaneous	Electric_housewares	Grill	Electric grill, indoor
+Miscellaneous	Electric_housewares	Hand_mixer	
+Miscellaneous	Electric_housewares	Heating_pad	
+Miscellaneous	Electric_housewares	Hot_plate_kitchen	
+Miscellaneous	Electric_housewares	Ice_cream_maker	
+Miscellaneous	Electric_housewares	Iron	
+Miscellaneous	Electric_housewares	Juicer	
+Miscellaneous	Electric_housewares	Kettle	
+Miscellaneous	Electric_housewares	Knife	
+Miscellaneous	Electric_housewares	Mug_warmer	
+Miscellaneous	Electric_housewares	Oven_microwave	
+Miscellaneous	Electric_housewares	Pasta_maker	
+Miscellaneous	Electric_housewares	Rice_maker	
+		Press_laundry	
+Miscellaneous	Electric_housewares	Roaster	
+Miscellaneous	Electric_housewares	Sewing_machine_computerized	incl. serger
+Miscellaneous	Electric_housewares	Sewing_machine	
+Miscellaneous	Electric_housewares	Slow_cooker	
+Miscellaneous	Electric_housewares	Soda_fountain_pump	
+Miscellaneous	Electric_housewares	Stand_mixer	
+Miscellaneous	Electric_housewares	Steamer_clothes	
+Miscellaneous	Electric_housewares	Toaster	
+Miscellaneous	Electric_housewares	Toaster_oven	
+Miscellaneous	Electric_housewares	Vacuum_central	
+Miscellaneous	Electric_housewares	Vacuum_rechargeable	
+Miscellaneous	Electric_housewares	Vacuum_robot	
+Miscellaneous	Electric_housewares	Vacuum_standard	Canister or upright
+Miscellaneous	Electric_housewares	Yogurt_maker	
+Miscellaneous	Electric_housewares	Waffle_iron	
+Miscellaneous	Electric_housewares	Water_dispenser_bottled	
+Miscellaneous	Electric_housewares	Other_miscellaneous_electric_housewares	
+Miscellaneous	Gaming-Arcade	Air_hockey_table	
+Miscellaneous	Gaming-Arcade	Arcade_game	
+Miscellaneous	Gaming-Arcade	Descending_claw_machine	for plush toys
+Miscellaneous	Gaming-Arcade	Photo_booth	
+Miscellaneous	Gaming-Arcade	Pinball	
+Miscellaneous	Gaming-Arcade	Slot_machine	
+Miscellaneous	Gaming-Arcade	Stationary_kiddie_ride	
+Miscellaneous	Gaming-Arcade	Other	
+Miscellaneous	Hobby-leisure	Aquarium	Covers heat, light and pump
+Miscellaneous	Hobby-leisure	Treadmill	
+Miscellaneous	Hobby-leisure	Stairmaster	
+Miscellaneous	Hobby-leisure	Exercise_machine_arms_and_shoulder	seated or standing
+Miscellaneous	Hobby-leisure	Exercise_machine_isokinetic	
+Miscellaneous	Hobby-leisure	Exercise_machine_legs	other than treadmill and stairmaster, seated or standing
+Miscellaneous	Hobby-leisure	Exercise_machine_whole_body	
+Miscellaneous	Hobby-leisure	Kiln	
+Miscellaneous	Hobby-leisure	Pool	Covers heat, light and pump
+Miscellaneous	Hobby-leisure	pottery_wheel	
+Miscellaneous	Hobby-leisure	Ride-on_toy_car	
+Miscellaneous	Hobby-leisure	Sauna_electric	
+Miscellaneous	Hobby-leisure	Spa-hot_tub	Covers heat, light and pump
+Miscellaneous	Hobby-leisure	Other_miscellaneous_hobby-leisure	
+Miscellaneous	HVAC	Air_cleaner_mounted	Air cleaners mounted to hvac systems
+Miscellaneous	HVAC	Air_cleaner_portable	Portable air cleaners
+Miscellaneous	HVAC	Air_conditioning_evaporative_cooler	Evaporative (swamp) coolers,  portable and non-portable 
+Miscellaneous	HVAC	Ceiling_fan	Fans with and without lights
+Miscellaneous	HVAC	Controls_HVAC	
+Miscellaneous	HVAC	Dehumidifier	Portable dehumidifiers
+Miscellaneous	HVAC	Exhaust_fan	Intermittent exhaust ventilation (e.g. bathroom, kitchen), not integrated with HVAC system
+Miscellaneous	HVAC	Fan_exhaust_industrial	
+Miscellaneous	HVAC	Fan_portable	Desk fans, stand fans (oscillating fans)
+Miscellaneous	HVAC	Fan_whole_house	Includes attic fans
+Miscellaneous	HVAC	Fan_window	Window units
+Miscellaneous	HVAC	Foot_rest	With fan and/or heat
+Miscellaneous	HVAC	Furnace_fan_other_heating	Non-electric heating sources
+Miscellaneous	HVAC	Heating_fireplace_electric	
+Miscellaneous	HVAC	Heating_fireplace_gas	Includes energy from remote control related standby losses
+Miscellaneous	HVAC	Heat_pump	
+Miscellaneous	HVAC	Humidifier	Portable 
+Miscellaneous	HVAC	Space_heater_portable_electric	
+Miscellaneous	HVAC	Space_heater_portable_non-electric	Other fuel types
+Miscellaneous	HVAC	Other_miscellaneous_HVAC	
+Miscellaneous	Infrastructure	Breaker_AFI	Arc fault interruptor
+Miscellaneous	Infrastructure	Breaker_GFCI	
+Miscellaneous	Infrastructure	Detector_carbon_monoxide	
+Miscellaneous	Infrastructure	Detector_smoke	
+Miscellaneous	Infrastructure	Door_activator	ADA, pushplate
+Miscellaneous	Infrastructure	Door_revolving	
+Miscellaneous	Infrastructure	Door_sliding	
+Miscellaneous	Infrastructure	Door_swinging	
+Miscellaneous	Infrastructure	Doorbell	
+Miscellaneous	Infrastructure	Elevator_stairlift	Glider style
+Miscellaneous	Infrastructure	Elevator_freight_electric	
+Miscellaneous	Infrastructure	Elevator_freight_hydraulic	
+Miscellaneous	Infrastructure	Elevator_passenger_electric	
+Miscellaneous	Infrastructure	Elevator_passenger_hydraulic	
+Miscellaneous	Infrastructure	Elevator_platform	Usually for wheelchairs,  <5' vertical travel distance
+Miscellaneous	Infrastructure	Elevator_other	
+Miscellaneous	Infrastructure	Escalator	
+Miscellaneous	Infrastructure	Lift_automobile	For vertical stack carparking
+Miscellaneous	Infrastructure	Moving_sidewalk	horizontal and incline conveyer belt for people
+Miscellaneous	Infrastructure	Garage_door_opener	
+Miscellaneous	Infrastructure	GFCI_outlet	
+Miscellaneous	Infrastructure	Utility_meter	
+Miscellaneous	Infrastructure	Wire_losses	Downstream of utility meter
+Miscellaneous	Infrastructure	Other_miscellaneous_infrastructure	
+Miscellaneous	Laboratory	Accelerator_linear	
+Miscellaneous	Laboratory	Autoclave	
+Miscellaneous	Laboratory	Autoclave_portable	
+Miscellaneous	Laboratory	Bath	water, parafin, chemicals, others
+Miscellaneous	Laboratory	Blood_culture_instrument	
+Miscellaneous	Laboratory	Centrifuge	
+Miscellaneous	Laboratory	Compounder	
+Miscellaneous	Laboratory	Counter_cell	
+Miscellaneous	Laboratory	Counter_gamma	
+Miscellaneous	Laboratory	Counter_platelet	
+Miscellaneous	Laboratory	Counter_radioisotope_well	aka liquid scintillation counter or liquid scintillation spectrometer
+Miscellaneous	Laboratory	Counter_tablet	pharmacy
+Miscellaneous	Laboratory	Counter_other	
+Miscellaneous	Laboratory	Cryostat	deep freeze, below -150 deg C
+Miscellaneous	Laboratory	Curing_unit	dental
+Miscellaneous	Laboratory	Distiller	
+Miscellaneous	Laboratory	Dose_calibrator	
+Miscellaneous	Laboratory	Dryer	gloves, glassware, instruments
+Miscellaneous	Laboratory	Embedding_center_tissue	
+Miscellaneous	Laboratory	Freeze_dryer	
+Miscellaneous	Laboratory	Freezer	between  0 and -150 deg C
+Miscellaneous	Laboratory	Gel_processor_system_electrophoresis	
+Miscellaneous	Laboratory	Glove_inspector_wrapper	
+Miscellaneous	Laboratory	Glove_powderer	
+Miscellaneous	Laboratory	Heating_block	sometimes combined with dry bath
+Miscellaneous	Laboratory	Hood	biological, fume, histology, laminar flow, or radioactive
+Miscellaneous	Laboratory	Hot_plate_medical	
+Miscellaneous	Laboratory	Incinerator	
+Miscellaneous	Laboratory	Incubator	non-humans
+Miscellaneous	Laboratory	Microplate_automation	aka microplate stacker
+Miscellaneous	Laboratory	Microscope	
+Miscellaneous	Laboratory	Microtome	
+Miscellaneous	Laboratory	Microtome_knife	
+Miscellaneous	Laboratory	Microtome_knife_sharpener	
+Miscellaneous	Laboratory	Mixer_chemicals	multi chamber, including photo chemical processing
+Miscellaneous	Laboratory	Mixer_other	
+Miscellaneous	Laboratory	Oven_drying	
+Miscellaneous	Laboratory	Pan_splints	pan that heats up for making splints
+Miscellaneous	Laboratory	Pasteurizer	
+Miscellaneous	Laboratory	Radioisotope_-_dose_calibrator	
+Miscellaneous	Laboratory	Refrigerator_body	
+Miscellaneous	Laboratory	Rotator	includes vibrator, stirrer, and shaker
+Miscellaneous	Laboratory	Sandblaster	sand or shell, usually dental
+Miscellaneous	Laboratory	Scale	not for humans
+Miscellaneous	Laboratory	Separator	blood cell
+Miscellaneous	Laboratory	Silver_recovery_unit	dental
+Miscellaneous	Laboratory	Sink	infrared sensor or timer control
+Miscellaneous	Laboratory	Slide_stainer	
+Miscellaneous	Laboratory	Smoke_evacuator	
+Miscellaneous	Laboratory	Sputter_coater	includes sample coater, turbo sputter coater, and carbon coater
+Miscellaneous	Laboratory	Test_tube_agglutination_viewer	
+Miscellaneous	Laboratory	Timer_coagulation	
+Miscellaneous	Laboratory	Tissue_processor	
+Miscellaneous	Laboratory	Unit_dose_packer	pharmacy
+Miscellaneous	Laboratory	Vaccum_spatulator	
+Miscellaneous	Laboratory	Vaccum_trap	
+Miscellaneous	Laboratory	Vacuum_infiltrator_and_paraffin_dispenser	aka just "paraffin dispenser"
+Miscellaneous	Laboratory	Warmer_blood_gel_slides	
+Miscellaneous	Laboratory	Warmer_other	non-humans
+Miscellaneous	Laboratory	Washer_sonic_or_ultrasonic	with water
+Miscellaneous	Laboratory	Washer-Disinfector-Decontaminator-Sterilizer-Cleaner_built_in	using chemicals, light, ultra or sonic, and/or pressure
+Miscellaneous	Laboratory	Washer-Disinfector-Decontaminator-Sterilizer-Cleaner_portable	using chemicals, light, ultra or sonic, and/or pressure
+Miscellaneous	Laboratory	Washer-Disinfector-Decontaminator-Sterilizer-Cleaner_with_high_heat_and_dry_built_in	using chemicals, light, ultra or sonic, and/or pressure + hight heating element and then drying
+Miscellaneous	Laboratory	Washer-Disinfector-Decontaminator-Sterilizer-Cleaner_with_high_heat_and_dry_portable	using chemicals, light, ultra or sonic, and/or pressure + hight heating element and then drying
+Miscellaneous	Laboratory	Washer_other	
+Miscellaneous	Laboratory	Work_bench_-_workstation	pathology, grossing
+Miscellaneous	Lighting	Dimming_switch	
+Miscellaneous	Lighting	Emergency_light_interior_commercial	LED sign, commercial
+Miscellaneous	Lighting	Emergency_light_interior_residential	Plug in, auto recharge
+Miscellaneous	Lighting	Grow_lamps	
+Miscellaneous	Lighting	Lamp_decorative	Includes lava
+Miscellaneous	Lighting	Lamp_fluorescent	Undercabinet and task lighting
+Miscellaneous	Lighting	Lamp_halogen	Undercabinet and task lighting
+Miscellaneous	Lighting	Lamp_incandescent	Undercabinet and task lighting
+Miscellaneous	Lighting	Lights_holiday	
+Miscellaneous	Lighting	Light_compact_fluorescent	
+Miscellaneous	Lighting	Light_compact_fluorescent_dimmable	
+Miscellaneous	Lighting	Light_fiberoptic	
+Miscellaneous	Lighting	Light_fluorescent	
+Miscellaneous	Lighting	Light_fluorescent_dimmable	
+Miscellaneous	Lighting	Light_halogen	
+Miscellaneous	Lighting	Light_halogen_dimmable	
+Miscellaneous	Lighting	Light_HID_high_pressure_sodium	orange
+Miscellaneous	Lighting	Light_HID_low_pressure_sodium	very orange-yellow
+Miscellaneous	Lighting	Light_HID_mercury	greenish glow
+Miscellaneous	Lighting	Light_HID_metal_halide	
+Miscellaneous	Lighting	Light_HID_other	
+Miscellaneous	Lighting	Light_HID_unknown	
+Miscellaneous	Lighting	Light_incandescent	
+Miscellaneous	Lighting	Light_incandescent_dimmable	
+Miscellaneous	Lighting	Light_LED	
+Miscellaneous	Lighting	Light_OLED	
+Miscellaneous	Lighting	Light_ultraviolet	
+Miscellaneous	Lighting	Light_other	
+Miscellaneous	Lighting	Low_voltage_landscape	
+Miscellaneous	Lighting	Motion_sensor_exterior	
+Miscellaneous	Lighting	Motion_sensor_interior	Usually for lighting control
+Miscellaneous	Lighting	Night_light_interior	Plug in night lights
+Miscellaneous	Lighting	Photosensors_exterior	
+Miscellaneous	Lighting	Sign_lighted	Usually fluorescent
+Miscellaneous	Lighting	Timer_exterior	Timers manufactured of materials suitable for outdoor use.  Category only applies to timers used to control lighting appliations.
+Miscellaneous	Lighting	Timer_interior	Timers manufactured of materials suitable for indoor use and not suitable for outdoor use.  Category only applies to timers used to control lighting appliations.
+Miscellaneous	Lighting	Track_light	
+Miscellaneous	Lighting	Other_miscellaneous_lighting	
+Miscellaneous	Personal_Care	Air_freshener	
+Miscellaneous	Personal_Care	Aromatherapy_burner	
+Miscellaneous	Personal_Care	Bidet	
+Miscellaneous	Personal_Care	Curling_iron	
+Miscellaneous	Personal_Care	Dental_irrigation	water jets
+Miscellaneous	Personal_Care	Faucet	
+Miscellaneous	Personal_Care	Hair_dryer	
+Miscellaneous	Personal_Care	Hand_dryer	
+Miscellaneous	Personal_Care	Heat_lamp	
+Miscellaneous	Personal_Care	Home_medical_equipment	Home medical care such as respirators, beds, oxygen, diagnostic equipment
+Miscellaneous	Personal_Care	Massage_chair	
+Miscellaneous	Personal_Care	Massager	
+Miscellaneous	Personal_Care	Shaver_mens	
+Miscellaneous	Personal_Care	Shaver_womens	
+Miscellaneous	Personal_Care	Shower_head	
+Miscellaneous	Personal_Care	Toilet	
+Miscellaneous	Personal_Care	Toothbrush	
+Miscellaneous	Personal_Care	Towel_warmer	
+Miscellaneous	Personal_Care	Urinal	
+Miscellaneous	Personal_Care	Water_softener_	
+Miscellaneous	Personal_Care	Other_miscellaneous_personal_care	
+Miscellaneous	Power	External_power_supply	If not known what product it is for
+Miscellaneous	Power	Plug-in_transformer	not connected
+Miscellaneous	Power	Power_line_conditioner	
+Miscellaneous	Power	Power_strip	
+Miscellaneous	Power	Power_supply	
+Miscellaneous	Power	Surge_protector	
+Miscellaneous	Power	Timer	For all non-light products
+Miscellaneous	Power	Uninterruptible_power_supply	UPS, may include surge protection
+Miscellaneous	Power	Other_miscellaneous_power	
+Traditional	Appliance	Clothes_dryer_electric	
+Traditional	Appliance	Clothes_dryer_gas	
+Traditional	Appliance	Clothes_washer_horizontal_axis	
+Traditional	Appliance	Clothes_washer_standard	
+Traditional	Appliance	Clothes_washer_and_dryer_combo	
+Traditional	Appliance	Cooktop_electric	
+Traditional	Appliance	Cooktop_gas	
+Traditional	Appliance	Dishwasher	
+Traditional	Appliance	Freezer	
+Traditional	Appliance	Oven_electric	
+Traditional	Appliance	Oven_gas	
+Traditional	Appliance	Refrigerator	
+Traditional	Appliance	Other_miscellaneous_traditional_appliance	
+Traditional	HVAC	Air_conditioning_central	
+Traditional	HVAC	Air_conditioning_heat_pump	
+Traditional	HVAC	Air_conditioning_room-wall	
+Traditional	HVAC	Heating_boiler	
+Traditional	HVAC	Heating_furnace_baseboard_floor_or_wall_unit	Any fuel
+Traditional	HVAC	Heating_furnace_central	Any fuel
+Traditional	HVAC	Heating_heat_pump	
+Traditional	HVAC	Other_miscellaneous_traditional_HVAC	
+Traditional	Lighting	Lighting_commercial	Includes energy consumption of lighting products not attributable to those covered in the miscellaneous lighting category such as undercabinet lighting and portable desk lamps and emergency lighting and neon signs.
+Traditional	Lighting	Lighting_residential	Includes energy consumption of lighting products not attributable to those covered in the miscellaneous lighting category such as timers, landscaping, motion sensors, night lights, emergency lights, grow lamps, etc.
+Traditional	Lighting	Other_miscellaneous_traditional_lighting	
+Traditional	Water_heating	Water_heating_electric	Tank
+Traditional	Water_heating	Water_heating_gas	Tank
+Traditional	Water_heating	Water_heating_heat_pump	
+Traditional	Water_heating	Water_heating_other	E.g. LPG 
+Traditional	Water_heating	Other_miscellaneous_traditional_water_heating

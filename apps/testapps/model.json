@@ -1,0 +1,12 @@
+{
+	winsize:2,
+	materialize:false,
+	timeout:2000,
+	func:function(buffer){
+		var newdat = new Object();
+		var d1 = buffer[0];
+		var d2 = buffer[1];
+		newdat.reading = d1.Data.val + d2.Data.val;
+		return newdat;
+	}
+}

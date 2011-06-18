@@ -1,0 +1,20 @@
+{
+    "status": "success",
+    "pubid": "1fe42f3e-1ea6-471d-9a7a-003d0070dedb",
+    "smap_url": "http://local.cs.berkeley.edu:8006/MCL/elt-F/data/C/sensor/apparent_power/reading/",
+    "smap_report_id": "1bcFZ70W",
+    "properties": {
+        "type": "properties",
+        "head": {
+            "ReadingTime": 1.292832397011751E9,
+            "$schema": {
+                "$ref": "http://webs.cs.berkeley.edu/schema/sensor/reading"
+            },
+            "Version": 1,
+            "Reading": 190,
+            "timestamp": 1292832383,
+            "PubId": "1fe42f3e-1ea6-471d-9a7a-003d0070dedb",
+            "is4_uri": "/is4/feeds/Dent_MCL_elt-F_CHWS_55_West/C_sensor_apparent_power/"
+        }
+    }
+}

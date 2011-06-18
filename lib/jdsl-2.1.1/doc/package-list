@@ -1,0 +1,8 @@
+jdsl.core.algo.sorts
+jdsl.core.algo.traversals
+jdsl.core.api
+jdsl.core.ref
+jdsl.core.util
+jdsl.graph.algo
+jdsl.graph.api
+jdsl.graph.ref

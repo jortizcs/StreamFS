@@ -1,0 +1,18 @@
+{
+	"operation":"create_model",
+	"name":"temp_thresh_101",
+	"script":{
+		"winsize":1,
+		"materialize":false,
+		"func":"function(buffer){
+			var newdat = new Object();
+			var d1 = buffer[0];
+			if(d1.Reading > 40) {
+				newdat.state=0;
+			} else {
+				newdat.state=1;
+			}
+			return newdat;
+		}"
+	}
+}
