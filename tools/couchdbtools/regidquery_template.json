@@ -1,0 +1,1 @@
+{"map": "function(doc){ if(doc.RegID==731748952) { emit(null,doc);}}"}

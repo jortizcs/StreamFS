@@ -1,0 +1,7 @@
+{
+	"ReportResource" : "/data/*/meter/0/reading",
+	"ReportDeliveryLocation" : "http://smote.cs.berkeley.edu:8081/",
+	"Period" : 60,
+	"Minimum" : 60,
+	"Maximum" : 60
+}
