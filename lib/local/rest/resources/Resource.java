@@ -388,7 +388,12 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				
 				sendResponse(exchange, 200, null, internalCall, internalResp);
 			} else {
-				sendResponse(exchange, 409, null, internalCall, internalResp);
+				JSONObject response = new JSONObject();
+				JSONArray errors = new JSONArray();
+				response.put("status", "fail");
+				errors.add("Cannot delete resource with children");
+				response.put("errors", errors);
+				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
 			} 
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);

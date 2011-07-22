@@ -655,7 +655,7 @@ public class MongoDBDriver implements Is4Database {
 			String map = "function() { emit(this.is4_uri, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
-			String mrResults = null;
+			String mrResults = "mrtemp";
 			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());
@@ -823,7 +823,7 @@ public class MongoDBDriver implements Is4Database {
 			String map = "function() { emit(this.is4_uri, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
-			String mrResults = null;
+			String mrResults = "mrtemp";
 			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());

@@ -72,7 +72,7 @@ export JAVAHOME=java
 #export IS4_HOSTNAME="is4server.com"
 #export IS4_PORT=8080
 #export IS4_HOSTNAME="localhost"
-export IS4_HOSTNAME="192.168.1.106"
+export IS4_HOSTNAME="192.168.1.123"
 export IS4_PORT=8081
 export IS4_SUB_BUFFER="http://$IS4_HOSTNAME/buffer.php"
 
