@@ -267,8 +267,8 @@ public class Registrar implements Serializable{
 	 */
 	public synchronized String registerDevice(String name) throws NameRegisteredException, NoMoreRegistrantsException{
 
-		if(regTable.containsKey(name))
-			throw new NameRegisteredException();
+		/*if(regTable.containsKey(name))
+			throw new NameRegisteredException();*/
 
 		UUID newId = UUID.randomUUID();
 
@@ -292,7 +292,7 @@ public class Registrar implements Serializable{
 		logger.fine("adding " + name + ":" + jit.toString());
 
 		//save object state 
-		saveState();
+		//saveState();
 
 		return newId.toString();
 	}
