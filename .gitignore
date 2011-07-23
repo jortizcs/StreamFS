@@ -3,3 +3,5 @@ runis4
 start_mongo
 mongo
 is4app.jar
+*.tmp
+*.log
