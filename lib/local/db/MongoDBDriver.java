@@ -53,6 +53,9 @@ public class MongoDBDriver implements Is4Database {
 
 	//The hierarchy snapshot whenever any structural changes are made to the hierarchy (r/s nodes added/deleted)
 	private static String snapshotCollection = "is4_hier_snapshots_coll";
+
+	//Compressed timeseries collection
+	private static String tsCollection = "sfs_timeseries_coll";
 	
 	//Models scripts collection
 	private static String modelsCollection  = "is4_models_coll";
@@ -66,6 +69,7 @@ public class MongoDBDriver implements Is4Database {
 	private static DBCollection propsCollection = null;
 	private static DBCollection hierCollection = null;
 	private static DBCollection mCollection=null;
+	private static DBCollection tsDataCollection = null;
 
 	protected static boolean inited = false;
 
@@ -84,6 +88,7 @@ public class MongoDBDriver implements Is4Database {
 				propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 				hierCollection = dataRepos.getCollection(snapshotCollection);
 				mCollection  = dataRepos.getCollection(modelsCollection);
+				tsDataCollection  = dataRepos.getCollection(tsCollection);
 				logger.info("(1) New Mongo instance created: server= "+serverAddress + "; port= " + port);
 			}
 			//todo: add more setup code
@@ -100,6 +105,16 @@ public class MongoDBDriver implements Is4Database {
 			indicesObj.append("PubId", new Integer(1));
 			indicesObj.append("timestamp", new Integer(1));
 			dataCollection.ensureIndex(indicesObj);
+
+			//Setup timeseries data collection
+			BasicDBObject tsIndicesObj = new BasicDBObject();
+			tsIndicesObj.append("pubid", new Integer(1));
+			tsIndicesObj.append("ts", new Integer(1));
+			/*BasicDBObject secondIndexObj = new BasicDBObject();
+			secondIndexObj.append("ReadingTime", new Integer(1));
+			BasicDBObject thirdIndexObj = new BasicDBObject();
+			thirdIndexObj.append("value", new Integer(1));*/
+			tsDataCollection.ensureIndex(indicesObj);
 
 			//setup props indices
 			/*DBCollection propsCollection = database.getCollection(rsrcPropsCollection);*/
@@ -151,6 +166,7 @@ public class MongoDBDriver implements Is4Database {
 				propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 				hierCollection = dataRepos.getCollection(snapshotCollection);
 				mCollection  = dataRepos.getCollection(modelsCollection);
+				tsDataCollection  = dataRepos.getCollection(tsCollection);
 				logger.info("(2) New Mongo instance created: server= "+serverAddress + "; port= " + port);
 			}
 
@@ -302,6 +318,52 @@ public class MongoDBDriver implements Is4Database {
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
 		}
+	}
+
+	public void putTsEntry(JSONObject entry){
+		WriteResult result = null;
+		try {
+			JSONObject strippedEntry = stripEntry(entry);
+			if(!strippedEntry.toString().equals("{}")){
+				BasicDBObject dataObj = new BasicDBObject((Map)entry);
+				if(m != null){
+					dataRepos.requestStart();
+					result = tsDataCollection.save(dataObj);
+					dataRepos.requestDone();
+					dataObj = null;
+					logger.info("Inserted mongo entry in main data collection: " + entry.toString());
+				} else {
+					logger.warning("Mongo connection came back NULL");
+				}
+			}
+		} catch (Exception e){
+			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
+			if(e instanceof MongoException && result!=null)
+				logger.info("Error? " + result.getError());
+		}
+	}
+
+	private JSONObject stripEntry(JSONObject entry){
+		JSONObject s = new JSONObject();
+		if(entry.containsKey("value") && !Double.isNaN(entry.optDouble("value"))){
+			s.put("value",entry.optDouble("value"));
+		} else {
+			s.put("value", entry.optInt("value"));
+		}
+
+		if(entry.containsKey("ReadingTime")){
+			s.put("ReadingTime", entry.optInt("ReadingTime"));
+		} else if(entry.containsKey("timestamp")){
+			s.put("timestamp", entry.optInt("timestamp"));
+		}
+
+		try{
+			s.put("pubid", entry.getString("pubid"));
+			s.put("ts", entry.getInt("ts"));
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+		return s;
 	}
 
 	public JSONObject getEntry(String name){
@@ -655,7 +717,7 @@ public class MongoDBDriver implements Is4Database {
 			String map = "function() { emit(this.is4_uri, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
-			String mrResults = "mrtemp";
+			String mrResults = "mrTemp";
 			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());
@@ -823,7 +885,7 @@ public class MongoDBDriver implements Is4Database {
 			String map = "function() { emit(this.is4_uri, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
-			String mrResults = "mrtemp";
+			String mrResults = "mrResults";
 			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());
