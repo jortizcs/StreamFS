@@ -325,13 +325,13 @@ public class MongoDBDriver implements Is4Database {
 		try {
 			JSONObject strippedEntry = stripEntry(entry);
 			if(!strippedEntry.toString().equals("{}")){
-				BasicDBObject dataObj = new BasicDBObject((Map)entry);
+				BasicDBObject dataObj = new BasicDBObject((Map)strippedEntry);
 				if(m != null){
 					dataRepos.requestStart();
 					result = tsDataCollection.save(dataObj);
 					dataRepos.requestDone();
 					dataObj = null;
-					logger.info("Inserted mongo entry in main data collection: " + entry.toString());
+					logger.info("Inserted mongo entry in Ts data collection: " + strippedEntry.toString());
 				} else {
 					logger.warning("Mongo connection came back NULL");
 				}
@@ -345,7 +345,9 @@ public class MongoDBDriver implements Is4Database {
 
 	private JSONObject stripEntry(JSONObject entry){
 		JSONObject s = new JSONObject();
-		if(entry.containsKey("value") && !Double.isNaN(entry.optDouble("value"))){
+		if(entry.containsKey("Reading")){
+			s.put("value", entry.get("Reading"));
+		} else if(entry.containsKey("value") && !Double.isNaN(entry.optDouble("value"))){
 			s.put("value",entry.optDouble("value"));
 		} else {
 			s.put("value", entry.optInt("value"));
@@ -442,6 +444,47 @@ public class MongoDBDriver implements Is4Database {
 				queryResults.put("results", results);
 				//closeConn(m);
 				return queryResults;
+			}
+			
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+			closeConn(m);
+		} finally {
+			if(dbCursorOpen)
+				dbCursor.close();
+			if(dataReposOpen)
+				dataRepos.requestDone();
+		}
+		
+		return null;
+	}
+
+	public JSONArray queryTsColl(String query, String keys){
+		JSONObject queryResults = new JSONObject();
+		JSONArray results = new JSONArray();
+		//Mongo m = openConn();
+		boolean dbCursorOpen=false;
+		boolean dataReposOpen=false;
+		DBCursor dbCursor=null;
+		try {
+			if(query != null && keys!=null && m!= null){
+				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(query);
+				JSONObject keysObj = (JSONObject) JSONSerializer.toJSON(keys);
+				BasicDBObject queryDBObj  = new BasicDBObject((Map)queryObj);
+				BasicDBObject keysDBObj = new BasicDBObject((Map)keysObj);
+			
+				keysDBObj.put("_id", new Integer(0));	
+				dataRepos.requestStart();
+				dataReposOpen=true;
+				dbCursor = tsDataCollection.find(queryDBObj,keysDBObj);
+				dbCursorOpen=true;
+				results = new JSONArray();
+				while(dbCursor.hasNext()){
+					JSONObject thisJSONObj = (JSONObject) JSONSerializer.toJSON(dbCursor.next());
+					//thisJSONObj.remove("_id");
+					results.add(thisJSONObj);
+				}
+				return results;
 			}
 			
 		} catch(Exception e){

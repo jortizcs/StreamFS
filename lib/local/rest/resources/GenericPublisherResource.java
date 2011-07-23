@@ -101,7 +101,7 @@ public class GenericPublisherResource extends Resource{
 				queryJSON.put("timestamp", new Long(last_data_ts));
 				JSONObject sortByJSON = new JSONObject();
 				sortByJSON.put("timestamp",1);
-				MongoDBDriver mongoDriver = new MongoDBDriver();
+				//MongoDBDriver mongoDriver = new MongoDBDriver();
 				JSONObject lastValuesReceived = mongoDriver.queryWithLimit(
 									queryJSON.toString(), 
 									sortByJSON.toString(), 
@@ -214,6 +214,51 @@ public class GenericPublisherResource extends Resource{
 	}
 
 	protected void handleIncomingData(JSONObject data){
+
+		//add timestamp
+		Date date = new Date();
+		long timestamp = date.getTime()/1000;
+		data.put("ts", timestamp);
+		data.put("pubid", publisherId.toString());
+
+		//Forward to subscribers
+		String dataStr = data.toString();
+		dataStr = dataStr.replace("$","d_");
+		JSONObject dataCopy = (JSONObject)JSONSerializer.toJSON(dataStr);
+	
+		dataCopy.put("timestamp", timestamp);
+		dataCopy.put("PubId", publisherId.toString());
+		dataCopy.put("is4_uri", this.URI.toString());
+		SubMngr submngr = SubMngr.getSubMngrInstance();
+		logger.info("SubMngr Copy: " + dataCopy.toString());
+		submngr.dataReceived(dataCopy);
+
+		//get the alias associated with this publisher
+		String alias = null;
+		if(URI.endsWith(publisherId.toString() + "/") ||
+				URI.endsWith(publisherId.toString())){
+			alias = publisherId.toString();
+		} else {
+			String thisuri = URI;
+			if(thisuri.endsWith("/"))
+				thisuri = thisuri.substring(0, thisuri.length()-1);
+			alias = thisuri.substring(thisuri.lastIndexOf("/"), thisuri.length());
+		}
+
+		logger.info("Publsher PUTTING in data repository");
+
+		//put the data entry in the database
+		//database.putInDataRepository(data, publisherId, alias);
+		database.updateLastRecvTs(URI, timestamp);
+
+		//store in the mongodb repos
+		//MongoDBDriver mongod = new MongoDBDriver();
+		//mongod.putEntry(dataCopy);
+		mongoDriver.putTsEntry(data);
+		last_data_ts = timestamp;
+	}
+
+	/*protected void handleIncomingData(JSONObject data){
 		Registrar registrar = Registrar.registrarInstance();
 
 		//add timestamp
@@ -225,6 +270,7 @@ public class GenericPublisherResource extends Resource{
 		String dataStr = data.toString();
 		dataStr = dataStr.replace("$","d_");
 		JSONObject dataCopy = (JSONObject)JSONSerializer.toJSON(dataStr);
+		
 		dataCopy.put("PubId", publisherId.toString());
 		dataCopy.put("is4_uri", this.URI.toString());
 		SubMngr submngr = SubMngr.getSubMngrInstance();
@@ -253,16 +299,14 @@ public class GenericPublisherResource extends Resource{
 		MongoDBDriver mongod = new MongoDBDriver();
 		mongod.putEntry(dataCopy);
 		last_data_ts = timestamp;
-	}
+	}*/
 
 	public JSONObject queryTimeseriesRepos(JSONObject queryJson){
 		JSONObject queryResults = new JSONObject();
 		try{
-			MongoDBDriver mongoDriver = new MongoDBDriver();
-
 			//only run the query for this publisher
 			queryJson.put("PubId", publisherId.toString());
-
+			
 			//remove the PubId key from the results
 			JSONObject keys = new JSONObject();
 			keys.put("PubId",0);
@@ -278,18 +322,40 @@ public class GenericPublisherResource extends Resource{
 		return queryResults;
 	}
 
+	public JSONArray queryTimeseriesRepos2(JSONObject queryJson){
+		JSONArray queryResults = new JSONArray();
+		try{
+
+			//only run the query for this publisher
+			queryJson.put("pubid", publisherId.toString());
+
+			//remove the PubId key from the results
+			JSONObject keys = new JSONObject();
+			keys.put("pubid",0);
+
+			logger.info("QUERY: " + queryJson.toString() + "\nKEYS:  " + keys.toString());
+
+			return mongoDriver.queryTsColl(queryJson.toString(), keys.toString());
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+		return queryResults;
+	}
+
 	public void query(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		resp.put("path", URI);
 		try{
-			JSONObject tsQueryObj = new JSONObject();
+			//JSONObject tsQueryObj = new JSONObject();
+			JSONObject tsQueryObj2 = new JSONObject();
 		
 			//get query object from input data
 			if(data != null && !data.equals("")){	
 				JSONObject dataJsonObj = (JSONObject) JSONSerializer.toJSON(data);
 				JSONObject dataTsQuery = dataJsonObj.optJSONObject("ts_query");
-				tsQueryObj.putAll(dataTsQuery);
+				//tsQueryObj.putAll(dataTsQuery);
+				tsQueryObj2.putAll(dataTsQuery);
 			}
 
 			Iterator keys = exchangeJSON.keys();
@@ -308,13 +374,19 @@ public class GenericPublisherResource extends Resource{
 					JSONObject conditions = Resource.genJSONClause(queryValue);
 					logger.info("Conditions: " + conditions);
 					if(conditions!=null){
-						tsQueryObj.put(queryKey, conditions);
+						//tsQueryObj.put(queryKey, conditions);
+						if(queryKey.equalsIgnoreCase("timestamp"))
+							tsQueryObj2.put("ts", conditions);
 					} else{
 						if(isNumber(queryValue)){
 							long val = Long.parseLong(queryValue);
-							tsQueryObj.put(queryKey, val);
+							//tsQueryObj.put(queryKey, val);
+							if(queryKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", val);
 						} else {
-							tsQueryObj.put(queryKey, queryValue);
+							//tsQueryObj.put(queryKey, queryValue);
+							if(queryKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", queryValue);
 						}
 					}
 
@@ -323,11 +395,16 @@ public class GenericPublisherResource extends Resource{
 
 					JSONObject conditions = Resource.genJSONClause(queryValue);
 					if(conditions!=null){
-						tsQueryObj.putAll(conditions);
+						//tsQueryObj.putAll(conditions);
+						tsQueryObj2.putAll(conditions);
 					} else{
 						if(isNumber(queryValue)){
 							long val = Long.parseLong(queryValue);
-							tsQueryObj.put(thisKey, val);
+							//tsQueryObj.put(thisKey, val);
+							if(thisKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", queryValue);
+							else
+								tsQueryObj2.put(thisKey, val);
 						} else {
 							logger.warning("Invalid conditions set for generic props query");
 						}
@@ -336,16 +413,19 @@ public class GenericPublisherResource extends Resource{
 				}
 			}
 
-			logger.fine("Timeseries Query: " + tsQueryObj.toString());
+			//logger.fine("Timeseries Query: " + tsQueryObj.toString());
+			logger.fine("Timeseries Query2: " + tsQueryObj2.toString());
 
-			if(!tsQueryObj.toString().equals("{}")){
-				tsQueryObj.put("is4_uri", URI);
+			if(!tsQueryObj2.toString().equals("{}")){
+				//tsQueryObj.put("is4_uri", URI);
 				/*if(last_props_ts>0)
 					tsQueryObj.put("timestamp", last_props_ts);*/
 
-				JSONObject mqResp = queryTimeseriesRepos(tsQueryObj);
-				logger.fine("mqResp: " + mqResp.toString());
-				resp.put("ts_query_results", mqResp);
+				//JSONObject mqResp = queryTimeseriesRepos(tsQueryObj);
+				JSONArray mqResp2 = queryTimeseriesRepos2(tsQueryObj2);
+				//logger.fine("mqResp: " + mqResp.toString());
+				logger.fine("mqResp2: " + mqResp2.toString());
+				resp.put("ts_query_results", mqResp2);
 			} else {
 				errors.add("TS Query Error: Empty or invalid query");
 				logger.warning(errors.toString());
