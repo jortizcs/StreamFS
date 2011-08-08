@@ -158,7 +158,7 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 	public void saveData(JSONObject data){
 		logger.info(URI + " saving data: " + data.toString());
 		if(materialize){
-			super.handleIncomingData(data);
+			super.handleIncomingData(data, true);
 		} else {
 			//Forward to subscribers
 			JSONObject dataCopy = (JSONObject)JSONSerializer.toJSON(data);

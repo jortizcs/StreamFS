@@ -476,7 +476,8 @@ public class MongoDBDriver implements Is4Database {
 				keysDBObj.put("_id", new Integer(0));	
 				dataRepos.requestStart();
 				dataReposOpen=true;
-				dbCursor = tsDataCollection.find(queryDBObj,keysDBObj);
+				BasicDBObject sortByObj = new BasicDBObject("ts", "1");
+				dbCursor = tsDataCollection.find(queryDBObj,keysDBObj).sort(sortByObj);
 				dbCursorOpen=true;
 				results = new JSONArray();
 				while(dbCursor.hasNext()){

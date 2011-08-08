@@ -144,6 +144,7 @@ public class GenericPublisherResource extends Resource{
 				}else {
 					String type = (String) exchange.getAttribute("type");
 					UUID pubid = UUID.fromString((String) exchange.getAttribute("pubid"));
+					String addts = (String) exchange.getAttribute("addts");
 
 					logger.info("type: " + type +"; pubid: " + pubid.toString());
 
@@ -156,7 +157,10 @@ public class GenericPublisherResource extends Resource{
 							type.equalsIgnoreCase("generic") && pubid.compareTo(publisherId)==0){
 
 						//store and send success
-						handleIncomingData(dataObject);
+						if(addts != null && !addts.equals("") && addts.equalsIgnoreCase("false"))
+							handleIncomingData(dataObject, false);
+						else
+							handleIncomingData(dataObject, true);
 						resp.put("status", "success");
 						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
 					} else {
@@ -213,12 +217,22 @@ public class GenericPublisherResource extends Resource{
 		
 	}
 
-	protected void handleIncomingData(JSONObject data){
+	protected void handleIncomingData(JSONObject data, boolean addTimestamp){
 
-		//add timestamp
-		Date date = new Date();
-		long timestamp = date.getTime()/1000;
-		data.put("ts", timestamp);
+		long timestamp;
+		if(addTimestamp || !data.containsKey("ts")){
+			//add timestamp
+			Date date = new Date();
+			timestamp = date.getTime()/1000;
+			data.put("ts", timestamp);
+		} else {
+			try {
+				timestamp = data.getLong("ts");
+			} catch(Exception e){
+				logger.log(Level.WARNING, "", e);
+				timestamp = 0L;
+			}
+		}
 		data.put("pubid", publisherId.toString());
 
 		//Forward to subscribers
@@ -257,49 +271,6 @@ public class GenericPublisherResource extends Resource{
 		mongoDriver.putTsEntry(data);
 		last_data_ts = timestamp;
 	}
-
-	/*protected void handleIncomingData(JSONObject data){
-		Registrar registrar = Registrar.registrarInstance();
-
-		//add timestamp
-		Date date = new Date();
-		long timestamp = date.getTime()/1000;
-		data.put("timestamp", timestamp);
-
-		//Forward to subscribers
-		String dataStr = data.toString();
-		dataStr = dataStr.replace("$","d_");
-		JSONObject dataCopy = (JSONObject)JSONSerializer.toJSON(dataStr);
-		
-		dataCopy.put("PubId", publisherId.toString());
-		dataCopy.put("is4_uri", this.URI.toString());
-		SubMngr submngr = SubMngr.getSubMngrInstance();
-		logger.info("SubMngr Copy: " + dataCopy.toString());
-		submngr.dataReceived(dataCopy);
-
-		//get the alias associated with this publisher
-		String alias = null;
-		if(URI.endsWith(publisherId.toString() + "/") ||
-				URI.endsWith(publisherId.toString())){
-			alias = publisherId.toString();
-		} else {
-			String thisuri = URI;
-			if(thisuri.endsWith("/"))
-				thisuri = thisuri.substring(0, thisuri.length()-1);
-			alias = thisuri.substring(thisuri.lastIndexOf("/"), thisuri.length());
-		}
-
-		logger.info("Publsher PUTTING in data repository");
-
-		//put the data entry in the database
-		//database.putInDataRepository(data, publisherId, alias);
-		database.updateLastRecvTs(URI, timestamp);
-
-		//store in the mongodb repos
-		MongoDBDriver mongod = new MongoDBDriver();
-		mongod.putEntry(dataCopy);
-		last_data_ts = timestamp;
-	}*/
 
 	public JSONObject queryTimeseriesRepos(JSONObject queryJson){
 		JSONObject queryResults = new JSONObject();
