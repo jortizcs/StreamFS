@@ -511,13 +511,39 @@ public class SubMngr {
 
 							//subscription target is an external url
 							if(thisSubUrlStr != null && thisSubUrlStr.length()>0) {
-								thisSubUrl = new URL(thisSubUrlStr);
+								String urlStr = thisSubUrlStr;
+								String urlParamsStr = null;
+								if(thisSubUrlStr.contains("?")){
+									//strip out url params
+									urlStr = thisSubUrlStr.substring(0, thisSubUrlStr.indexOf("?"));
+									urlParamsStr = thisSubUrlStr.substring(thisSubUrlStr.indexOf("?")+1, 
+															thisSubUrlStr.length());
+									StringTokenizer tk = new StringTokenizer(urlParamsStr, "&");
+									logger.fine("URL_only: " + urlStr + "; params: " + urlParamsStr);
+									JSONObject urlParamsObj = new JSONObject();
+									while(tk.hasMoreTokens()){
+										StringTokenizer tk2 = new StringTokenizer(tk.nextToken(),"=");
+										String attr =null, value=null;
+										while(tk2.hasMoreTokens()){
+											attr = tk2.nextToken();
+											value = tk2.nextToken();
+											urlParamsObj.put(attr,value);
+										}
+									}
+									dataObject.put("urlparams", urlParamsObj);
+								}
+								thisSubUrl = new URL(urlStr);
 								logger.info("Pushing data to URL: " + thisSubUrl.toString() + " " + dataObject.toString());
 								if(thisSubUrl != null){
 									URLConnection urlConn = thisSubUrl.openConnection();
+									/*urlConn.setRequestProperty("Accept-Charset", "UTF-8");
+									urlConn.setRequestProperty("Content-Type", 
+											"application/x-www-form-urlencoded;charset=UTF-8");*/
 									urlConn.setRequestProperty("Content-Type", "application/json");
 									urlConn.setDoOutput(true);
 									OutputStreamWriter wr = new OutputStreamWriter(urlConn.getOutputStream());
+									/*if(urlParamsStr != null)
+										wr.write(urlParamsStr);*/
 									wr.write(dataObject.toString());
 									wr.flush();
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));

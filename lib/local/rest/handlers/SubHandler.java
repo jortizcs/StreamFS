@@ -83,6 +83,7 @@ public class SubHandler extends Resource {
 			String pidStr = jsonReq.optString("pubid");
 			String sNodePathStr = jsonReq.optString("s_uri");
 			String mNodePathStr = jsonReq.optString("m_uri");
+			logger.fine("sNodePathStr: " + sNodePathStr + "; mNodePathStr: " + mNodePathStr);
 			if(!pidStr.equals("") && sNodePathStr.equals("") && mNodePathStr.equals("") ){
 				errors.add("Must include one of [pubid | s_uri | m_uri] string");
 				resp.put("status", "fail");
