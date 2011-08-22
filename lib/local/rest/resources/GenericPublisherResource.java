@@ -414,8 +414,8 @@ public class GenericPublisherResource extends Resource{
 		JSONObject propsQueryResultsBuffer = new JSONObject();
 		super.query(exchange, data, true, propsQueryResultsBuffer);
 		resp.put("props_query_results", propsQueryResultsBuffer);
-		exchangeJSON.clear();
 		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		exchangeJSON.clear();
 	}
 
 }

@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
+import java.util.zip.GZIPOutputStream;
 
 import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
@@ -447,7 +448,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						return;
 					}
 				}
-				//This address the HttpContext switch bug in the library
+				//This addresses the HttpContext switch bug in the library
 				//The filter must be called BEFORE the handler
 				if (exchange.getHttpContext() != thisContext && exchange.getHttpContext().getFilters().size()==0) {
 					this.parseParams(exchange);
@@ -530,6 +531,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	protected synchronized boolean parseParams(HttpExchange exchange) {
 		logger.info("Request URI: " + exchange.getRequestURI().toString());
 		exchangeJSON.clear();
+		exchangeJSON.put("header", exchange.getRequestHeaders());
 		StringTokenizer tokenizer = new StringTokenizer(exchange.getRequestURI().toString(), "?");
 		if(tokenizer != null && tokenizer.hasMoreTokens()){
 			String thisResourcePath = tokenizer.nextToken();
@@ -553,6 +555,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				logger.fine("Not enough tokens");
 			}
 		}
+		logger.finer("ExchangeJSON:  \n\t" + exchangeJSON.toString());
 		return true;
 	}
 
@@ -578,6 +581,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 
 	public void sendResponse(HttpExchange exchange, int errorCode, String response, boolean internalCall, JSONObject internalResp){
 		OutputStream responseBody=null;
+		GZIPOutputStream gzipos = null; 
 		try{
 			if(internalCall){
 				copyResponse(response, internalResp);
@@ -585,15 +589,28 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 
 			logger.info("Sending Response: " + response);
+			JSONObject header = exchangeJSON.getJSONObject("header");
+			boolean gzipResp = header.containsKey("Accept-encoding") && 
+						header.getJSONArray("Accept-encoding").getString(0).contains("gzip");
 			Headers responseHeaders = exchange.getResponseHeaders();
-			responseHeaders.set("Content-Type", "application/json");
 			responseHeaders.set("Connection", "close");
+			responseHeaders.set("Content-Type", "application/json");
+			if(gzipResp)
+				responseHeaders.set("Content-Encoding", "gzip");
+			
 			exchange.sendResponseHeaders(errorCode, 0);
-
 			responseBody = exchange.getResponseBody();
-			if(response!=null)
-				responseBody.write(response.getBytes());
-			responseBody.close();
+			if(response!=null){
+				if(gzipResp){
+					gzipos = new GZIPOutputStream(responseBody);
+					gzipos.write(response.getBytes());
+					gzipos.close();
+				} else {
+					responseBody.write(response.getBytes());
+					responseBody.close();
+				}
+			}
+
 			sfsStats.docSent(response);
 		}catch(Exception e){
 			logger.log(Level.WARNING, "Exception thrown while sending response, closing exchange object",e);
