@@ -161,6 +161,10 @@ public class RESTServer {
 			//Smap Message Demultiplexer for smap reports
 			DemuxResource demuxResource = new DemuxResource();
 			RESTServer.addResource(demuxResource);
+
+			//Smap2 Message Demultiplexer for smap reports
+			DemuxResource2 demuxResource2 = new DemuxResource2();
+			RESTServer.addResource(demuxResource2);
 			
 			//Model manager
 			ModelManagerResource mmr = new ModelManagerResource();
@@ -197,6 +201,7 @@ public class RESTServer {
 			httpServer.setExecutor(Executors.newCachedThreadPool());
 			//httpServer.setExecutor(Executors.newFixedThreadPool(1));
 
+			logger.info("Binding to port: " + port);
 			InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(bindAddress), port);
 			httpServer.bind(addr,0);
 			httpServer.start();

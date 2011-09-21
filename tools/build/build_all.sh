@@ -48,6 +48,7 @@ javac lib/local/rest/resources/DevicesResource.java
 javac lib/local/rest/resources/DeviceInstanceResource.java
 javac lib/local/rest/resources/PublisherResource.java
 javac lib/local/rest/resources/DemuxResource.java
+javac lib/local/rest/resources/DemuxResource2.java
 javac lib/local/rest/resources/GenericPublisherResource.java
 javac lib/local/rest/resources/SubscriptionResource.java
 javac lib/local/rest/resources/SymlinkResource.java

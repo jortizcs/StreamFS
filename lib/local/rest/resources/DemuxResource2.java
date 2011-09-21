@@ -17,12 +17,12 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import javax.naming.InvalidNameException;
 
-public class DemuxResource extends Resource {
+public class DemuxResource2 extends Resource {
 	private static transient final Logger logger = Logger.getLogger(DemuxResource.class.getPackage().getName());
 	private static ExecutorService executorService = null;
 
-	public DemuxResource() throws Exception, InvalidNameException{
-		super("/pub/smap/demux/");
+	public DemuxResource2() throws Exception, InvalidNameException{
+		super("/pub/smap2/demux/");
 		executorService = Executors.newCachedThreadPool();
 	}
 
@@ -31,12 +31,12 @@ public class DemuxResource extends Resource {
 	}
 
 	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		logger.info("PUT/POST Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
+		logger.info("PUT/POST Smap2 Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
 					exchange.getRemoteAddress() + ":" + exchange.getRemoteAddress().getPort());
 		JSONArray errors =  new JSONArray();
 		JSONObject response = new JSONObject();
 
-		String typeParam = null;
+		/*String typeParam = null;
 		String smapurlParam = null;
 		try {
 			typeParam = (String) exchange.getAttribute("type");
@@ -60,7 +60,7 @@ public class DemuxResource extends Resource {
 				errors.add("Invalid url format for smapurl parameter");
 			if(e instanceof JSONException)
 				errors.add("Invalid JSON format for posted data");
-		}
+		}*/
 
 		try {
 			if(errors.size()>0){
