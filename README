@@ -22,7 +22,9 @@ as IS4 URIs.  The MongoDB storage layer is used as the main publisher-data repos
 3.  Type 'chmod 777 tools/build/make_.sh; tools/build/make_.sh'
 4.  Type 'chmod 777 tools/build/is4daemon.sh'
 5.  Create a database in MySql and update $IS4HOME/lib/local/db/db_config/db_info.json to point to your mysql server
-6.  Update $IS4HOME/lib/local/db/db_config/db_archive_info.json to point to the address where mongodb server is hosted
+6.  Update $IS4HOME/lib/local/db/db_config/db_archive_info.json to point to the address where mongodb server is hosted,
+	you can also add a "port" attribute with the port of the mongodb instance for times when it's not on the default
+	27017 port.
 7.  Type 'mysql -u <username> -p -h localhost <dbname> < $IS4HOME/lib/local/db/db_tables/is4LocalTables.sql'
 8.  Type 'mysql -u <username> -p -h <mysqlserver> <dbname> < $IS4HOME/lib/local/db/db_tables/is4_remote_repos.sql
 9.  Type 'is4daemon.sh &'
