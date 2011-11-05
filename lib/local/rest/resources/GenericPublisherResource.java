@@ -97,8 +97,10 @@ public class GenericPublisherResource extends Resource{
 				//get last few values received
 				//db.is4_main_coll.find().sort({timestamp:1}).limit(5);
 				JSONObject queryJSON = new JSONObject();
-				queryJSON.put("PubId", publisherId.toString());
-				queryJSON.put("timestamp", new Long(last_data_ts));
+				//queryJSON.put("PubId", publisherId.toString());
+				//queryJSON.put("timestamp", new Long(last_data_ts));
+				queryJSON.put("pubid", publisherId.toString());
+				queryJSON.put("ts", new Long(last_data_ts));
 				JSONObject sortByJSON = new JSONObject();
 				sortByJSON.put("timestamp",1);
 				//MongoDBDriver mongoDriver = new MongoDBDriver();
@@ -178,6 +180,7 @@ public class GenericPublisherResource extends Resource{
 					}
 				}
 			} catch(Exception e){
+				e.printStackTrace();
 				if(e instanceof JSONException){
 					errors.add("Invalid JSON");
 				}
@@ -225,6 +228,7 @@ public class GenericPublisherResource extends Resource{
 			Date date = new Date();
 			timestamp = date.getTime()/1000;
 			data.put("ts", timestamp);
+			logger.info("adding ts: " + timestamp);
 		} else {
 			try {
 				timestamp = data.getLong("ts");

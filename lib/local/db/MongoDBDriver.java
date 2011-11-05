@@ -248,7 +248,7 @@ public class MongoDBDriver implements Is4Database {
 			if(m != null){
 				DB database = m.getDB(dataRepository);
 				DBCollection thisCollection = database.getCollection(collectionName);
-				List<DBObject> indexes = dataCollection.getIndexInfo();
+				List<DBObject> indexes = tsDataCollection.getIndexInfo();
 				for(int i=0; i<indexes.size(); i++){
 					DBObject thisIndex = indexes.get(i);
 					JSONObject thisIndexJObj = new JSONObject();
@@ -306,7 +306,7 @@ public class MongoDBDriver implements Is4Database {
 				//DB database = m.getDB(dataRepository);
 				dataRepos.requestStart();
 				//result = dataCollection.insert(dataObj);
-				result = dataCollection.save(dataObj);
+				result = tsDataCollection.save(dataObj);
 				dataRepos.requestDone();
 				dataObj = null;
 				logger.info("Inserted mongo entry in main data collection: " + entry.toString());
@@ -388,7 +388,7 @@ public class MongoDBDriver implements Is4Database {
 				//DBCollection dbCollection = database.getCollection(mainCollection);
 				dataRepos.requestStart();
 				dataReposOpen=true;
-				dbCursor = dataCollection.find(dataObj);
+				dbCursor = tsDataCollection.find(dataObj);
 				dbCursorOpen=true;
 				results = new JSONArray();
 				while(dbCursor.hasNext()){
@@ -433,7 +433,7 @@ public class MongoDBDriver implements Is4Database {
 				//DBCollection dbCollection = database.getCollection(mainCollection);
 				dataRepos.requestStart();
 				dataReposOpen=true;
-				dbCursor = dataCollection.find(queryDBObj,keysDBObj);
+				dbCursor = tsDataCollection.find(queryDBObj,keysDBObj);
 				dbCursorOpen=true;
 				results = new JSONArray();
 				while(dbCursor.hasNext()){
@@ -520,7 +520,7 @@ public class MongoDBDriver implements Is4Database {
 				long startTime = System.currentTimeMillis();
 				dataRepos.requestStart();
 				dataReposOpen=true;
-				dbCursor = dataCollection.find(queryDBObj);
+				dbCursor = tsDataCollection.find(queryDBObj);
 				dbCursorOpen=true;
 				long endTime = System.currentTimeMillis();
         			float seconds = (endTime - startTime) / 1000F;
