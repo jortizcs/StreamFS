@@ -57,7 +57,9 @@ jar ufv ../is4app.jar local/rest/resources/PublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/util/ResourceUtils.class
 jar ufv ../is4app.jar local/rest/resources/GenericPublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/DemuxResource.class
+jar ufv ../is4app.jar local/rest/resources/DemuxResource\$PostBulkDataTask.class
 jar ufv ../is4app.jar local/rest/resources/DemuxResource2.class
+jar ufv ../is4app.jar local/rest/resources/DemuxResource2\$PostBulkDataTask.class
 jar ufv ../is4app.jar local/rest/resources/SubscriptionResource.class
 jar ufv ../is4app.jar local/rest/resources/SymlinkResource.class
 jar ufv ../is4app.jar local/rest/resources/TimeResource.class

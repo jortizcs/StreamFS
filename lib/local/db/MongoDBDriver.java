@@ -1,5 +1,5 @@
 /*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
+ * "Copyright (c) 2010-13 The Regents of the University  of California. 
  * All rights reserved.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -19,7 +19,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 1.1
+ * StreamFS release version 2.3
  */
 package local.db;
 
@@ -343,6 +343,37 @@ public class MongoDBDriver implements Is4Database {
 		}
 	}
 
+	public void putTsEntries(ArrayList<JSONObject> entries){
+		ArrayList<DBObject> bulkEntry=new ArrayList<DBObject>();
+		WriteResult result = null;
+		int bulkBytes = 0;
+		try {
+			for(int i=0; i<entries.size(); ++i){
+				JSONObject entry = entries.get(i);
+				logger.info("ThisEntry: " + entry.toString());
+				JSONObject strippedEntry = stripEntry(entry);
+				if(!strippedEntry.toString().equals("{}")){
+					BasicDBObject dataObj = new BasicDBObject((Map)strippedEntry);
+					bulkEntry.add(dataObj);
+					bulkBytes += strippedEntry.toString().getBytes().length;
+				}
+			}
+			if(m != null){
+				dataRepos.requestStart();
+				result = tsDataCollection.insert(bulkEntry);
+				dataRepos.requestDone();
+				logger.info("Inserted bulk Ts entry in Ts data collection: " + bulkBytes + " bytes");
+			} else {
+				logger.warning("Mongo connection came back NULL");
+			}
+			
+		} catch (Exception e){
+			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
+			if(e instanceof MongoException && result!=null)
+				logger.info("Error? " + result.getError());
+		}
+	}
+
 	private JSONObject stripEntry(JSONObject entry){
 		JSONObject s = new JSONObject();
 		if(entry.containsKey("Reading")){
@@ -361,7 +392,7 @@ public class MongoDBDriver implements Is4Database {
 
 		try{
 			s.put("pubid", entry.getString("pubid"));
-			s.put("ts", entry.getInt("ts"));
+			s.put("ts", entry.getLong("ts"));
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		}
@@ -555,6 +586,7 @@ public class MongoDBDriver implements Is4Database {
 					long startTime2 = System.currentTimeMillis();
 					JSONObject thisJSONObj = (JSONObject) JSONSerializer.toJSON(dbCursor.next());
 					thisJSONObj.remove("_id");
+					thisJSONObj.remove("pubid");
 					results.add(thisJSONObj);
 					thisCount+=1;
 					long endTime2 = System.currentTimeMillis();

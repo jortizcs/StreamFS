@@ -60,7 +60,9 @@ rm -f local/rest/resources/DeviceInstanceResource.class
 rm -f local/rest/resources/PublisherResource.class
 rm -f local/rest/resources/GenericPublisherResource.class
 rm -f local/rest/resources/DemuxResource.class
+rm -f local/rest/resources/DemuxResource\$PostBulkDataTask.class
 rm -f local/rest/resources/DemuxResource2.class
+rm -f local/rest/resources/DemuxResource2\$PostBulkDataTask.class
 rm -f local/rest/resources/SubscriptionResource.class
 rm -f local/rest/resources/SymlinkResource.class
 rm -f local/rest/resources/TimeResource.class
