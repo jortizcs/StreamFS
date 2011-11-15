@@ -353,7 +353,12 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					exchange.getRequestURI().toString().contains("props_")){
 				logger.info("Handling PROPERTIES query");
 				query(exchange, data, internalCall, internalResp);
-			} else {
+			}
+			else if(exchangeJSON.containsKey("query")  && 
+					exchangeJSON.getString("query").equalsIgnoreCase("true")) {
+				query(exchange, data, internalCall, internalResp);
+			}  
+			else {
 				handlePropsReq(exchange, data, internalCall, internalResp);
 				//sendResponse(exchange, 200, null, internalCall, internalResp);
 			}
@@ -908,6 +913,12 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				propsQueryObj.put("is4_uri", URI);
 				if(last_props_ts>0)
 					propsQueryObj.put("timestamp", last_props_ts);
+				
+				//check for any regex expressions
+				/*Iterator keys = propsQueryObj.keys();
+				while(keys.hasNext()){
+					String thisKey =keys.next();
+				}*/
 
 				logger.info("Props Query: " + propsQueryObj.toString());
 				JSONObject mqResp = mongoDriver.queryProps(propsQueryObj.toString());
@@ -917,8 +928,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					JSONObject propsRespObj = (JSONObject) propsRespObjArray.get(0);
 					propsRespObj.remove("is4_uri");
 					propsRespObj.remove("timestamp");
-					mqResp.put("results", propsRespObj);
-					resp.putAll(mqResp);
+					/*mqResp.put("results", propsRespObj);
+					resp.putAll(mqResp);*/
+					resp.putAll(propsRespObj);
 				}
 			} else {
 				errors.add("Empty or invalid query");
