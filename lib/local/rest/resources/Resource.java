@@ -846,6 +846,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			while(keys.hasNext()){
 				String thisKey = (String) keys.next();
 				logger.fine("Keys found!; thisKey=" + thisKey);
+				exchange.setAttribute(thisKey, "");
 				if(thisKey.startsWith("props_")){
 					String str = "props_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
@@ -968,6 +969,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		else{
 			requestUri =  exchange.getRequestURI().toString();
 		}
+		exchange.setAttribute("query","");
 
 		logger.info("FSQuery:: requestUri=" + requestUri + " internalCall: " + internalCall);
 
