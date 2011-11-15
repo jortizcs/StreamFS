@@ -43,6 +43,7 @@ import java.util.zip.GZIPOutputStream;
 import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
+import java.util.regex.Pattern;
 
 public class Resource extends Filter implements HttpHandler, Serializable, Is4Resource{
 
@@ -138,8 +139,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	//////////////// REST-accessible functions ////////////////
 	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
 		try {
-			if(exchange.getAttribute("query") != null && 
-				((String)exchange.getAttribute("query")).equalsIgnoreCase("true") &&
+			if(exchangeJSON.containsKey("query") && 
+				((String)exchangeJSON.getString("query")).equalsIgnoreCase("true") &&
 				exchange.getRequestURI().toString().contains("props_")){
 				logger.info("Handling PROPERTIES query");
 				query(exchange, null, internalCall, internalResp);
@@ -157,9 +158,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Error while responding to GET request",e);
-		} finally {
+		} /*finally {
 			try {
-				if(exchange !=null){
+				if(exchange !=null && !internalCall){
 					exchange.getRequestBody().close();
 					exchange.getResponseBody().close();
 					exchange.close();
@@ -167,7 +168,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
 			}
-		}
+		}*/
 	}
 
 	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
@@ -347,8 +348,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
 		logger.info("POST called: " + exchange.getRequestURI().toString());
 		try {
-			if(exchange.getAttribute("query") != null && 
-					((String)exchange.getAttribute("query")).equalsIgnoreCase("true") &&
+			if(exchangeJSON.containsKey("query")  && 
+					exchangeJSON.getString("query").equalsIgnoreCase("true") &&
 					exchange.getRequestURI().toString().contains("props_")){
 				logger.info("Handling PROPERTIES query");
 				query(exchange, data, internalCall, internalResp);
@@ -358,7 +359,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-		} finally {
+		} /*finally {
 			try {
 				if(exchange != null){
 					exchange.getRequestBody().close();
@@ -368,7 +369,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
 			}
-		}
+		}*/
 
 	}
 
@@ -671,16 +672,19 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		String clause2 = "or:[smap:true|timestamp:gt:12]";
 		String clause3 = "gt:now,lt:now+2,gte:now-10";
 		String clause4 = "and:[smap:true|timestamp:12345]";
+		String clause5 = "like:jo_ge,J__ge";
 
 		JSONObject gen1 = genJSONClause(clause1);
 		JSONObject gen2 = genJSONClause(clause2);
 		JSONObject gen3 = genJSONClause(clause3);
 		JSONObject gen4 = genJSONClause(clause4);
+		//JSONObject gen5 = genJSONClause(clause5);
 		
 		System.out.println("clause1: " + clause1 + "\tclause1JSON: " + gen1.toString());
 		System.out.println("clause2: " + clause2 + "\tclause2JSON: " + gen2.toString());
 		System.out.println("clause3: " + clause3 + "\tclause3JSON: " + gen3.toString());
 		System.out.println("clause4: " + clause4 + "\tclause4JSON: " + gen4.toString());
+		//System.out.println("clause5: " + clause5 + "\tclause5JSON: " + gen5.toString());
 	}
 
 	public static boolean isNumber(String val){
@@ -771,6 +775,17 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				return clauseJSON;
 			}
 
+			//case: ..&props__keywords=like:jo_ge,J__ge
+			/*else if(clause.startsWith("like:") {
+				StringTokenizer tokenizer = new StringTokenizer(clause,",");
+				Vector<String> tokens = new Vector<String>();
+				while(tokenizer.hasMoreTokens())
+					tokens.addElement(tokenizer.nextToken());
+				for(int i=0; i<tokens.size(); ++i){
+					
+				}
+			}*/
+
 			//case: ..&props_timestamp=gt:12345,lt:23456
 			else if(clause.startsWith("gt:") || clause.startsWith("lt:") ||
 					clause.startsWith("gte:") || clause.startsWith("lte:") ||
@@ -841,13 +856,28 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 
 			Iterator keys = exchangeJSON.keys();
+			logger.fine("REQUEST_KEYS::" + keys.toString());
 			Vector<String> attributes = new Vector<String>();
 			Vector<String> values = new Vector<String>();
 			while(keys.hasNext()){
 				String thisKey = (String) keys.next();
 				logger.fine("Keys found!; thisKey=" + thisKey);
 				exchange.setAttribute(thisKey, "");
-				if(thisKey.startsWith("props_")){
+				/*if(thisKey.startsWith("props_like_")){
+					String str = "props_like_";
+					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
+					String queryValue = exchangeJSON.optString(thisKey);
+
+					logger.info("Query Value: " + queryValue);
+
+					JSONObject conditions = Resource.genJSONClause(queryValue);
+
+					logger.info("Conditions: " + conditions);
+					if(conditions!=null)
+						propsQueryObj.put(queryKey, conditions);
+					else
+						propsQueryObj.put(queryKey, queryValue);
+				} else*/ if(thisKey.startsWith("props_")){
 					String str = "props_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
 					String queryValue = exchangeJSON.optString(thisKey);
@@ -1135,6 +1165,32 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	public void updateProperties(JSONObject propsObj){
 		
 		MongoDBDriver mongoDriver = new MongoDBDriver();
+
+		//add an array to support fulltxt search
+		HashMap<String, String> uniqueKeys = new HashMap<String, String>();
+		JSONArray keywords = new JSONArray();
+		Iterator pKeys = propsObj.keys();
+		while(pKeys.hasNext()){
+			String thisKey = (String)pKeys.next();
+			if(!uniqueKeys.containsKey(thisKey.trim())){
+				keywords.add(thisKey.trim());
+				uniqueKeys.put(thisKey.trim(),"y");
+			}
+			String val = propsObj.get(thisKey).toString();
+			val.replace("[","");val.replace("]","");val.replace("{","");val.replace("}","");
+			val.replace(",","");val.replace(";","");
+			String delims = "[ ]+";
+			String[] tokens = val.split(delims);
+			for(int i=0;i<tokens.length; ++i){
+				if(!uniqueKeys.containsKey(tokens[i].trim())){
+					keywords.add(tokens[i].trim());
+					uniqueKeys.put(tokens[i].trim(),"y");
+				}
+			}
+		}
+		logger.fine(uniqueKeys.toString());
+		logger.fine("_keywords:" + keywords.toString());
+		propsObj.put("_keywords", keywords);
 
 		//add is4_uri
 		propsObj.put("is4_uri", URI.toString());

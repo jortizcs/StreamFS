@@ -121,13 +121,14 @@ public class MongoDBDriver implements Is4Database {
 			BasicDBObject propsIndicesObj = new BasicDBObject();
 			propsIndicesObj.append("is4_uri", new Integer(1));
 			propsIndicesObj.append("timestamp", new Integer(1));
+			propsIndicesObj.append("_keywords", new Integer(1));
 			propsCollection.ensureIndex(propsIndicesObj);
 
 			//setup models collection indices
 			BasicDBObject modelsIndicesObj = new BasicDBObject();
-			propsIndicesObj.append("is4_uri", new Integer(1));
-			propsIndicesObj.append("timestamp", new Integer(1));
-			propsCollection.ensureIndex(propsIndicesObj);
+			modelsIndicesObj.append("is4_uri", new Integer(1));
+			modelsIndicesObj.append("timestamp", new Integer(1));
+			mCollection.ensureIndex(propsIndicesObj);
 			inited = true;
 		}
 	}
@@ -248,12 +249,15 @@ public class MongoDBDriver implements Is4Database {
 			if(m != null){
 				DB database = m.getDB(dataRepository);
 				DBCollection thisCollection = database.getCollection(collectionName);
-				List<DBObject> indexes = tsDataCollection.getIndexInfo();
-				for(int i=0; i<indexes.size(); i++){
-					DBObject thisIndex = indexes.get(i);
-					JSONObject thisIndexJObj = new JSONObject();
-					thisIndexJObj.putAll(thisIndex.toMap());
-					indexesArray.add(thisIndexJObj);
+				logger.info("Getting index information from " + dataRepository + " for collection " + collectionName);
+				if(thisCollection!=null){
+					List<DBObject> indexes = thisCollection.getIndexInfo();
+					for(int i=0; i<indexes.size(); i++){
+						DBObject thisIndex = indexes.get(i);
+						JSONObject thisIndexJObj = new JSONObject();
+						thisIndexJObj.putAll(thisIndex.toMap());
+						indexesArray.add(thisIndexJObj);
+					}
 				}
 			}
 		} catch(Exception e){
@@ -641,6 +645,7 @@ public class MongoDBDriver implements Is4Database {
 				while(dbCursor.hasNext()){
 					JSONObject thisJSONObj = (JSONObject) JSONSerializer.toJSON(dbCursor.next());
 					thisJSONObj.remove("_id");
+					thisJSONObj.remove("_keywords");
 					results.add(thisJSONObj);
 				}
 				queryResults.put("results", results);
@@ -714,6 +719,7 @@ public class MongoDBDriver implements Is4Database {
 					long startTime2 = System.currentTimeMillis();
 					JSONObject thisJSONObj = (JSONObject) JSONSerializer.toJSON(dbCursor.next());
 					thisJSONObj.remove("_id");
+					thisJSONObj.remove("_keywords");
 					results.add(thisJSONObj);
 					thisCount+=1;
 					long endTime2 = System.currentTimeMillis();
