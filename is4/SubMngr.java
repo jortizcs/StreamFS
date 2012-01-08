@@ -500,7 +500,7 @@ public class SubMngr {
 			
 				if(subids != null && subids.size()>0){
 
-					//forward this data object to every publisher
+					//forward this data object to every subscriber
 					for(int i=0; i<subids.size(); ++i){
 						try{
 							UUID usid = UUID.fromString((String)subids.get(i));

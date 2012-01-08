@@ -71,6 +71,15 @@ jar ufv ../is4app.jar local/rest/resources/ModelGenericPublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/ModelManagerResource.class
 jar ufv ../is4app.jar local/rest/resources/ResyncSmapStreams.class
 jar ufv ../is4app.jar local/rest/resources/InfoBusResource.class
+jar ufv ../is4app.jar local/analytics/Node\$1.class
+jar ufv ../is4app.jar local/analytics/Node\$AggTask.class
+jar ufv ../is4app.jar local/analytics/Node.class
+jar ufv ../is4app.jar local/analytics/ProcType.class
+jar ufv ../is4app.jar local/analytics/Router.class
+jar ufv ../is4app.jar local/analytics/Router\$1.class
+jar ufv ../is4app.jar local/analytics/Router\$PathFinder.class
+jar ufv ../is4app.jar local/analytics/RouterCommand\$CommandType.class
+jar ufv ../is4app.jar local/analytics/RouterCommand.class
 
 cd ../
 jar tf is4app.jar

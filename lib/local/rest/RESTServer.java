@@ -29,6 +29,7 @@ import local.rest.handlers.*;
 import local.db.*;
 import local.rest.resources.*;
 import local.rest.resources.util.*;
+import local.analytics.*;
 
 import java.io.*;
 import java.net.*;
@@ -59,7 +60,15 @@ public class RESTServer {
 	
 	private static MongoDBDriver mdriver = new MongoDBDriver();
 
+    private static InputStream routerInput = null;
+    private static OutputStream routerOutput = null;
+    private static Router router =null;
 	private static MetadataGraph metadataGraph = null;
+    public static boolean tellRouter = true;
+
+    PipedInputStream myEnd_pipedInput = null;
+    PipedOutputStream myEnd_pipedOut = null;
+
 
 	public RESTServer(){}
 
@@ -194,9 +203,36 @@ public class RESTServer {
 			//load saved resources
 			loadResources();
 
+            //Start aggregation thread
+            /*logger.info("STARTING ROUTER THREAD");
+            myEnd_pipedInput = new PipedInputStream();
+            PipedOutputStream yourEnd_pipedOut = new PipedOutputStream();
+            myEnd_pipedInput.connect(yourEnd_pipedOut);
+
+            PipedInputStream yourEnd_pipedInput = new PipedInputStream();
+            myEnd_pipedOut = new PipedOutputStream();
+            yourEnd_pipedInput.connect(myEnd_pipedOut);
+
+            router = new Router(yourEnd_pipedInput, yourEnd_pipedOut);*/
+            router = new Router();
+            logger.info("Router instantiated!");
+
 			//load into in-memory metadata graph
+            logger.info("LOADING METADATA GRAPH");
 			metadataGraph = MetadataGraph.getInstance();
 			Resource.setMetadataGraph(metadataGraph);
+
+            Thread routerThread = new Thread(router);
+            logger.info("BERORE HERE");
+            routerThread.start();
+            logger.info("HERE!");
+            //Thread.sleep(1000);
+
+            //metadataGraph.setRouterCommInfo(myEnd_pipedInput, myEnd_pipedOut);
+            //metadataGraph.setRouterCommInfo("localhost", 9999);
+            logger.info("POPULATING INTERNAL");
+            metadataGraph.populateInternalGraph(tellRouter);
+            logger.info("DONE POP");
 			
 			httpServer.setExecutor(Executors.newCachedThreadPool());
 			//httpServer.setExecutor(Executors.newFixedThreadPool(1));

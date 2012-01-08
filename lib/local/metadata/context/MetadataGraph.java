@@ -37,10 +37,12 @@ import jdsl.core.api.ObjectIterator;
 //import com.sun.net.httpserver.*;
 //import java.util.concurrent.Executors;
 import java.util.*;
-//import java.io.*;
-//import java.net.*;
+import java.io.*;
+import java.net.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
+
+import local.analytics.*;
 
 public class MetadataGraph{
 
@@ -51,6 +53,13 @@ public class MetadataGraph{
 	private Hashtable<String, Vertex> externalNodes = null;
 	private IncidenceListGraph internalGraph = null;
 
+    //link to router for aggregation
+    //private PipedInputStream pipedIn = null;
+    //private PipedOutpuStream pipedOut =null;
+    private ObjectInputStream routerIn = null;
+    private ObjectOutputStream routerOut = null;
+    private static boolean tellRouter = false;
+
 	protected static transient final Logger logger = Logger.getLogger(MetadataGraph.class.getPackage().getName());
 	protected static MySqlDriver database = (MySqlDriver) DBAbstractionLayer.database;
 
@@ -60,7 +69,7 @@ public class MetadataGraph{
 		nonpubNodes = new Hashtable<String, Vertex>();
 		externalNodes = new Hashtable<String, Vertex>();
 		symlinkNodes = new Hashtable<String, Vertex>();
-		populateInternalGraph();
+		//populateInternalGraph();
 	}
 
 	public static MetadataGraph getInstance(){
@@ -69,7 +78,59 @@ public class MetadataGraph{
 		return metadataGraph;
 	}
 
-	private synchronized void populateInternalGraph(){
+    public void setRouterCommInfo(PipedInputStream rIn, PipedOutputStream rOut){
+        try {
+            if(routerOut == null){
+                routerOut = new ObjectOutputStream(rOut);
+                routerOut.flush();
+            }
+            if(routerIn == null)
+                routerIn = new ObjectInputStream(rIn);
+        } catch(Exception e) {
+            logger.log(Level.SEVERE, "", e);
+            System.exit(1);
+        }
+    }
+
+    public void setRouterCommInfo(String routerHost, int routerPort){
+        try {
+            Socket s = new Socket(InetAddress.getByName(routerHost), routerPort);
+            routerOut = new ObjectOutputStream(s.getOutputStream());
+            routerOut.flush();
+            routerIn = new ObjectInputStream(s.getInputStream());
+        } catch(Exception e) {
+            logger.log(Level.SEVERE, "", e);
+            System.exit(1);
+        }
+    }
+
+    /**
+     * Turns the node with the given pathname as an in/active aggregation point for 
+     * the specified units.
+     *
+     * @param pathname the path of the node.
+     * @param units the units of data to un/aggregate.
+     * @param state true sets the aggregation point on, false turns it off.
+     * @return void.
+     */
+    public void setAggPoint(String pathname, String units, boolean state){
+        try{
+            RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.CREATE_AGG_PNT);
+            rcmd.setSrcVertex(pathname);
+            rcmd.setUnits(units);
+            rcmd.setAggState(state);
+
+            routerOut.writeObject(rcmd);
+            routerOut.flush();
+
+            rcmd = (RouterCommand)routerIn.readObject();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+        }
+    }
+
+	public synchronized void populateInternalGraph(boolean tRouter){
+        tellRouter = tRouter;
 		JSONArray hardlinks = database.getAllHardLinks();
 		for(int i=0; i<hardlinks.size(); i++){
 			String thisPath = (String)hardlinks.get(i);
@@ -78,6 +139,9 @@ public class MetadataGraph{
 				thisPath = thisResource.getURI();
 				Vertex v = internalGraph.insertVertex(thisPath);
 				v.set("path", thisPath);
+
+                routerAddNode(thisPath);
+
 				if(RESTServer.getResource(thisPath).getType()==ResourceUtils.PUBLISHER_RSRC ||
 					RESTServer.getResource(thisPath).getType()==ResourceUtils.GENERIC_PUBLISHER_RSRC)
 					pubNodes.put(thisPath,v);
@@ -94,8 +158,11 @@ public class MetadataGraph{
 			if(!thisPath.equals("/")){
 				String parentPath = getParentPath(thisPath);
 				Vertex parentNode = getVertex(parentPath);
-				if(parentNode != null && thisNode != null)
+				if(parentNode != null && thisNode != null){
 					internalGraph.insertDirectedEdge(parentNode, thisNode, "hardlink");
+
+                    routerAddLink(parentPath, thisPath);
+                }
 			}
 		}
 
@@ -109,6 +176,8 @@ public class MetadataGraph{
 				Vertex v = internalGraph.insertVertex(thisPath);
 				v.set("path", thisPath);
 				symlinkNodes.put(thisPath, v);
+
+                routerAddNode(thisPath);
 			}
 		}
 
@@ -134,6 +203,8 @@ public class MetadataGraph{
 				if(linksToPath.startsWith("/")){
 					Vertex linksToNode =getVertex(linksToPath);
 					internalGraph.insertDirectedEdge(symlinkNode, linksToNode, "linksto");
+                   
+                    routerAddLink(thisPath, linksToPath);
 				}
 
 				//create a link between this resource and its parent
@@ -141,6 +212,8 @@ public class MetadataGraph{
 				symlinkParentPath = RESTServer.getResource(symlinkParentPath).getURI();
 				Vertex parentVertex = getVertex(symlinkParentPath);
 				internalGraph.insertDirectedEdge(parentVertex, symlinkNode, "symlink");
+
+                routerAddLink(symlinkParentPath, thisPath);
 			} else {
 				logger.fine("Could not get: " + (String)symlinks.get(i));
 			}
@@ -202,6 +275,84 @@ public class MetadataGraph{
 		return parentPathBuf.toString();
 	}
 
+    private void routerAddNode(String nodePath){
+        if(tellRouter){
+            try {
+                setRouterCommInfo("localhost", 9999);
+                //Thread.sleep(500);
+                //tell the router about it
+                RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.ADD_NODE);
+                rcmd.setSrcVertex(nodePath);
+                routerOut.writeObject(rcmd);
+                routerOut.flush();
+
+                rcmd = (RouterCommand)routerIn.readObject();
+                logger.info("Heard reply");
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        }
+    }
+
+    private void routerRemoveNode(String nodePath){
+        if(tellRouter){
+            try {
+                setRouterCommInfo("localhost", 9999);
+                //Thread.sleep(500);
+                //tell the router about it
+                RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.REMOVE_NODE);
+                rcmd.setSrcVertex(nodePath);
+                routerOut.writeObject(rcmd);
+                routerOut.flush();
+
+                rcmd = (RouterCommand)routerIn.readObject();
+                logger.info("Heard reply");
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        }
+    }
+
+    private void routerAddLink(String parentPath, String childPath){
+        if(tellRouter){
+            try {
+                setRouterCommInfo("localhost", 9999);
+                //tell the router about it
+                RouterCommand rcmd = new RouterCommand(RouterCommand.
+                                                        CommandType.ADD_LINK);
+                rcmd.setSrcVertex(parentPath);
+                rcmd.setDstVertex(childPath);
+                routerOut.writeObject(rcmd);
+                routerOut.flush();
+
+                rcmd = (RouterCommand)routerIn.readObject();
+                logger.info("Heard reply");
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        }
+    }
+
+    private void routerRemoveLink(String parentPath, String childPath){
+        if(tellRouter){
+            try {
+                setRouterCommInfo("localhost", 9999);
+                //tell the router about it
+                RouterCommand rcmd = new RouterCommand(RouterCommand.
+                                                        CommandType.REMOVE_LINK);
+                rcmd.setSrcVertex(parentPath);
+                rcmd.setDstVertex(childPath);
+                routerOut.writeObject(rcmd);
+                routerOut.flush();
+
+                rcmd = (RouterCommand)routerIn.readObject();
+                logger.info("Heard reply");
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        }
+    }
+
 	public synchronized boolean addNode(String resourcePath){
 		logger.info("Attempting to add: " + resourcePath);
 		if(resourcePath !=null){
@@ -230,6 +381,8 @@ public class MetadataGraph{
 					}
 					internalGraph.insertDirectedEdge(thisVertex, linksToNode, "linksto");
 					symlink=true;
+
+                    routerAddLink(resourcePath, linksToStr);
 				} else {
 					nonpubNodes.put(resource.getURI(), thisVertex);
 					String parent = getParentPath(resource.getURI());
@@ -240,17 +393,23 @@ public class MetadataGraph{
 				Vertex parentVertex = getVertex(parent);
 				if(symlink){
 					internalGraph.insertDirectedEdge(parentVertex, thisVertex, "symlink");
+                    routerAddLink(parent, resourcePath);
 					if(hasCycle()){
 						//there is a cycle introduced by this symlink, backtrack the change and return false
 						removeNode((String)thisVertex.get("path"));
 						Vertex linksToVertex = getVertex(linksToStr);
 						removeNode((String)linksToVertex.get("path"));
+
+                        routerRemoveNode((String)thisVertex.get("path"));
+                        routerRemoveNode((String)linksToVertex.get("path"));
 						return false;
 					} else {
 						logger.fine("NO CYCLE DETECTED");
 					}
 				} else{
 					internalGraph.insertDirectedEdge(parentVertex, thisVertex, "hardlink");
+
+                    routerAddLink(parent, resourcePath);
 				}
 				
 				return true;
@@ -264,6 +423,8 @@ public class MetadataGraph{
 		if(thisVertex!=null){
 			internalGraph.removeVertex(thisVertex);
 			removeVertex(resourcePath);
+
+            routerRemoveNode(resourcePath);
 		}
 
 		return false;

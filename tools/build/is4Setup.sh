@@ -63,6 +63,11 @@ export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/rhino_js/js.jar"
 ############################
 export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/jdsl-2.1.1/lib/jdsl.jar"
 
+############################
+# Analytics
+############################
+export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/local/analytics"
+
 ###########################
 # IS4 environment variables
 ###########################
@@ -72,8 +77,8 @@ export JAVAHOME=java
 #export IS4_HOSTNAME="is4server.com"
 #export IS4_PORT=8080
 #export IS4_HOSTNAME="localhost"
-export IS4_HOSTNAME="192.168.1.123"
-export IS4_PORT=8081
+export IS4_HOSTNAME="127.0.0.1"
+export IS4_PORT=8080
 export IS4_SUB_BUFFER="http://$IS4_HOSTNAME/buffer.php"
 
 # Set up is4 tools

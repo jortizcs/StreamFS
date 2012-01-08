@@ -23,6 +23,7 @@
  */
 package local.rest.resources;
 
+import local.analytics.*;
 import is4.*;
 import local.db.*;
 import local.rest.*;
@@ -40,6 +41,7 @@ import java.lang.StringBuffer;
 import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*;
+import java.net.*;
 
 /**
  *  Resource object for a device.
@@ -52,6 +54,9 @@ public class GenericPublisherResource extends Resource{
 
 	//public static int TYPE = ResourceUtils.GENERIC_PUBLISHER_RSRC;
 	protected long last_data_ts = 0;
+
+    private ObjectInputStream routerIn = null;
+    private ObjectOutputStream routerOut = null;
 
 	public GenericPublisherResource(String uri, UUID pubId) throws Exception, InvalidNameException{
 		super(uri);
@@ -239,6 +244,8 @@ public class GenericPublisherResource extends Resource{
 		}
 		data.put("pubid", publisherId.toString());
 
+        
+
 		//Forward to subscribers
 		String dataStr = data.toString();
 		dataStr = dataStr.replace("$","d_");
@@ -263,6 +270,25 @@ public class GenericPublisherResource extends Resource{
 			alias = thisuri.substring(thisuri.lastIndexOf("/"), thisuri.length());
 		}
 
+        //tell router for dynamic aggregation
+        if(RESTServer.tellRouter){
+            try {
+                setRouterCommInfo("localhost", 9999);
+                //tell the router about it
+                RouterCommand rcmd = new RouterCommand(RouterCommand.
+                                                        CommandType.PUSH);
+                rcmd.setSrcVertex(this.URI.toString());
+                rcmd.setData(dataStr);
+                routerOut.writeObject(rcmd);
+                routerOut.flush();
+
+                rcmd = (RouterCommand)routerIn.readObject();
+                logger.info("Heard reply");
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        }
+
 		logger.info("Publsher PUTTING in data repository");
 
 		//put the data entry in the database
@@ -275,6 +301,18 @@ public class GenericPublisherResource extends Resource{
 		mongoDriver.putTsEntry(data);
 		last_data_ts = timestamp;
 	}
+
+    public void setRouterCommInfo(String routerHost, int routerPort){
+        try {
+            Socket s = new Socket(InetAddress.getByName(routerHost), routerPort);
+            routerOut = new ObjectOutputStream(s.getOutputStream());
+            routerOut.flush();
+            routerIn = new ObjectInputStream(s.getInputStream());
+        } catch(Exception e) {
+            logger.log(Level.SEVERE, "", e);
+            System.exit(1);
+        }
+    }
 
 	public JSONObject queryTimeseriesRepos(JSONObject queryJson){
 		JSONObject queryResults = new JSONObject();

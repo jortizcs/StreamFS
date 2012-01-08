@@ -78,6 +78,14 @@ rm -f local/rest/util/ResourceUtils.class
 rm -f local/rest/smap/SmapConnector.class
 rm -f local/rest/interfaces/Is4Resource.class
 rm -f local/rest/resources/util/ResourceUtils.class
+rm -f local/analytics/Node\$1.class
+rm -f local/analytics/Node\$AggTask.class
+rm -f local/analytics/Node.class
+rm -f local/analytics/ProcType.class
+rm -f local/analytics/Router\$1.class
+rm -f local/analytics/Router\$PathFinder.class
+rm -f local/analytics/RouterCommand\$CommandType.class
+rm -f local/analytics/RouterCommand.class
 
 cd ../
 

@@ -357,7 +357,20 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			else if(exchangeJSON.containsKey("query")  && 
 					exchangeJSON.getString("query").equalsIgnoreCase("true")) {
 				query(exchange, data, internalCall, internalResp);
-			}  
+			} 
+            else if(exchangeJSON.containsKey("set_agg") && exchangeJSON.containsKey("units")){
+                String setAggStr = exchangeJSON.getString("set_agg");
+                String unitsStr = exchangeJSON.getString("units");
+                boolean setAggBool = false;
+                if(setAggStr.equalsIgnoreCase("true"))
+                    setAggBool = true;
+                if(!unitsStr.equals("")){
+                    metadataGraph.setAggPoint(URI, unitsStr, true);
+                    logger.info("Set aggregation point: [pathname=" + URI + 
+                            ", set_agg=" + setAggStr + ", units=" + unitsStr + "]"); 
+                }
+                sendResponse(exchange, 200, null, internalCall, internalResp);
+            } 
 			else {
 				handlePropsReq(exchange, data, internalCall, internalResp);
 				//sendResponse(exchange, 200, null, internalCall, internalResp);

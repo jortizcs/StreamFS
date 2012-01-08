@@ -64,3 +64,7 @@ javac lib/local/rest/resources/InfoBusResource.java
 javac lib/local/rest/resources/util/ResourceUtils.java
 javac lib/local/rest/smap/SmapConnector.java
 javac lib/local/rest/interfaces/Is4Resource.java
+javac lib/local/analytics/ProcType.java
+javac lib/local/analytics/RouterCommand.java
+javac lib/local/analytics/Node.java
+javac lib/local/analytics/Router.java
