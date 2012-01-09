@@ -429,6 +429,7 @@ public class Router implements Runnable{
                         outgoing.flush();
                         break;
                     case PULL:
+			logger.info("PULL CALLED");
                         String reply = null;
                         if(cmd.lowts>0 && cmd.hights>0 && cmd.sourcepath!=null && cmd.units !=null)
                             reply = pullFromNode(cmd.sourcepath, cmd.units, 
@@ -454,6 +455,7 @@ public class Router implements Runnable{
                         outgoing.flush();
                         break;
                     case ADD_LINK:
+			logger.info("ADD_LINK CALLED");
                         if(cmd.sourcepath !=null && cmd.destpath !=null)
                             createLink(cmd.sourcepath, cmd.destpath);
                         cmdrep = new RouterCommand(RouterCommand.CommandType.ADD_LINK_ACK);
@@ -575,7 +577,7 @@ public class Router implements Runnable{
         Edge e = graph.aConnectingEdge(parentVertex, childVertex);
         if(e == Edge.NONE){
             graph.insertDirectedEdge(parentVertex, childVertex, "edge");
-            System.out.println("Added edge between " + parentPath + " and " + childPath);
+            logger.info("Added edge between " + parentPath + " and " + childPath);
         }
     }
 

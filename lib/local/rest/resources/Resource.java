@@ -146,7 +146,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				query(exchange, null, internalCall, internalResp);
 			} 
             
-            else if(exchangeJSON.containsKey("agg") && exchangeJSON.containsKey("unit")){
+            else if(exchangeJSON.containsKey("agg") && exchangeJSON.containsKey("units")){
 
                 logger.info("OLAP_QUERY: aggregate data query");
                 boolean queryQ = exchangeJSON.containsKey("query");

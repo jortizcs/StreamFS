@@ -106,6 +106,7 @@ public class MetadataGraph{
 
     public String queryAgg(String path, String aggtype, String units, JSONObject queryJson){
         try{
+		setRouterCommInfo("localhost", 9999);
             RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.PULL);
             rcmd.setSrcVertex(path);
             rcmd.setAggType(aggtype);
@@ -381,6 +382,7 @@ public class MetadataGraph{
 			Vertex thisVertex = null;
 			boolean symlink=false;
 			if((thisVertex =internalGraph.insertVertex(resourcePath)) !=null){
+				routerAddNode(resourcePath);
 				thisVertex.set("path", resourcePath);
 				String linksToStr = null; 	//only used if this vertex is a symlink
 				if(resource.getType() == ResourceUtils.DEFAULT_RSRC || 
