@@ -104,6 +104,27 @@ public class MetadataGraph{
         }
     }
 
+    public String queryAgg(String path, String aggtype, String units, JSONObject queryJson){
+        try{
+            RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.PULL);
+            rcmd.setSrcVertex(path);
+            rcmd.setAggType(aggtype);
+            rcmd.setUnits(units);
+
+            //extract the timestamp limits from
+            //queryJson
+
+            routerOut.writeObject(rcmd);
+            routerOut.flush();
+
+            rcmd = (RouterCommand)routerIn.readObject();
+            return rcmd.data;
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+        }
+        return null;
+    }
+
     /**
      * Turns the node with the given pathname as an in/active aggregation point for 
      * the specified units.

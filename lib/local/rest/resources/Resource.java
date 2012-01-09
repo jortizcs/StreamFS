@@ -144,7 +144,23 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				exchange.getRequestURI().toString().contains("props_")){
 				logger.info("Handling PROPERTIES query");
 				query(exchange, null, internalCall, internalResp);
-			} else {
+			} 
+            
+            else if(exchangeJSON.containsKey("agg") && exchangeJSON.containsKey("unit")){
+
+                boolean queryQ = exchangeJSON.containsKey("query");
+                String queryVal = exchangeJSON.optString("query");
+                queryQ &= (queryVal!=null && queryVal.equalsIgnoreCase("true"));
+                if(queryQ){
+                    handleTSAggQuery(exchange, null, internalCall, internalResp);
+                } else {
+                    String aggStr = exchangeJSON.getString("agg");
+                    String units = exchangeJSON.getString("units");
+                    metadataGraph.queryAgg(URI, aggStr, units, null);
+                }
+            } 
+            
+            else {
 				logger.fine("GETTING RESOURCES: " + URI);
 				JSONObject response = new JSONObject();
 				JSONArray subResourceNames = ((MySqlDriver)(DBAbstractionLayer.database)).rrGetChildren(URI);
@@ -1336,4 +1352,128 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			allToks.add((String)tokens.nextToken());
 		return allToks;
 	}
+
+    public JSONArray queryAggTimeseries(String aggStr, String units, JSONObject queryJson){
+		JSONArray queryResults = new JSONArray();
+		try{
+
+			//only run the query for this publisher
+			/*queryJson.put("pubid", publisherId.toString());
+
+			//remove the PubId key from the results
+			JSONObject keys = new JSONObject();
+			keys.put("pubid",0);
+
+			logger.info("QUERY: " + queryJson.toString() + "\nKEYS:  " + keys.toString());
+
+			return mongoDriver.queryTsColl(queryJson.toString(), keys.toString());*/
+
+            String qres = metadataGraph.queryAgg(URI, aggStr, units, queryJson);
+            if(qres !=null){
+                JSONSerializer serializer = new JSONSerializer();
+                queryResults = (JSONArray) serializer.toJSON(qres);
+            }
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+		return queryResults;
+	}
+
+    private JSONObject genTSQueryObject(HttpExchange exchange, String data){
+		JSONObject tsQueryObj2 = new JSONObject();
+		try{
+		
+			//get query object from input data
+			if(data != null && !data.equals("")){	
+				JSONObject dataJsonObj = (JSONObject) JSONSerializer.toJSON(data);
+				JSONObject dataTsQuery = dataJsonObj.optJSONObject("ts_query");
+				tsQueryObj2.putAll(dataTsQuery);
+			}
+
+			Iterator keys = exchangeJSON.keys();
+			Vector<String> attributes = new Vector<String>();
+			Vector<String> values = new Vector<String>();
+			while(keys.hasNext()){
+				String thisKey = (String) keys.next();
+				logger.fine("Keys found!; thisKey=" + thisKey);
+				if(thisKey.startsWith("ts_")){
+					String str = "ts_";
+					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
+					String queryValue = exchangeJSON.optString(thisKey);
+
+					logger.info("Query Value: " + queryValue);
+
+					JSONObject conditions = Resource.genJSONClause(queryValue);
+					logger.info("Conditions: " + conditions);
+					if(conditions!=null){
+						if(queryKey.equalsIgnoreCase("timestamp"))
+							tsQueryObj2.put("ts", conditions);
+					} else{
+						if(isNumber(queryValue)){
+							long val = Long.parseLong(queryValue);
+							if(queryKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", val);
+						} else {
+							if(queryKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", queryValue);
+						}
+					}
+
+				} else if(thisKey.startsWith("ts")){
+					String queryValue = exchangeJSON.optString(thisKey);
+
+					JSONObject conditions = Resource.genJSONClause(queryValue);
+					if(conditions!=null){
+						tsQueryObj2.putAll(conditions);
+					} else{
+						if(isNumber(queryValue)){
+							long val = Long.parseLong(queryValue);
+							if(thisKey.equalsIgnoreCase("timestamp"))
+								tsQueryObj2.put("ts", queryValue);
+							else
+								tsQueryObj2.put(thisKey, val);
+						} else {
+							logger.warning("Invalid conditions set for generic props query");
+						}
+					}
+						
+				}
+			}
+        } catch (Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+
+        logger.fine("Timeseries Query2: " + tsQueryObj2.toString());
+        return tsQueryObj2;
+    }
+
+    private void handleTSAggQuery(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+		JSONObject resp = new JSONObject();
+		JSONArray errors = new JSONArray();
+		resp.put("path", URI);
+		try{
+            JSONObject tsQueryObj2 = genTSQueryObject(exchange, data);
+			if(!tsQueryObj2.toString().equals("{}")){
+                String aggStr = exchangeJSON.getString("agg");
+                String units = exchangeJSON.getString("units");
+				JSONArray mqResp2 = queryAggTimeseries(aggStr, units, tsQueryObj2);
+				logger.fine("mqResp2: " + mqResp2.toString());
+				resp.put("ts_query_results", mqResp2);
+			} else {
+				errors.add("TS Query Error: Empty or invalid query");
+				logger.warning(errors.toString());
+				resp.put("errors", errors);
+			}
+		} catch (Exception e){
+			logger.log(Level.WARNING, "", e);
+			if(e instanceof JSONException){
+				errors.add("Invalid JSON for POST data; url params ignored");
+				resp.put(errors, errors);
+				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				return;
+			}
+		}
+		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		exchangeJSON.clear(); 
+    }
 }
