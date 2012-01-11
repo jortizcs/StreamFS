@@ -71,6 +71,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	//is no longer used in the new object.
 	protected HttpContext thisContext = null;
 
+    protected String objectIdentifier = null;
+    protected String versionNumber = null;
+
 	public Resource(String path) throws Exception, InvalidNameException {
 		resourceSetup(path);
 		if(sfsStats == null)

@@ -80,6 +80,12 @@ jar ufv ../is4app.jar local/analytics/Router\$1.class
 jar ufv ../is4app.jar local/analytics/Router\$PathFinder.class
 jar ufv ../is4app.jar local/analytics/RouterCommand\$CommandType.class
 jar ufv ../is4app.jar local/analytics/RouterCommand.class
+jar ufv ../is4app.jar local/analytics/lib/data/TSDataset.class
+jar ufv ../is4app.jar local/analytics/lib/db/OlapMongoDBDriver.class
+jar ufv ../is4app.jar local/analytics/lib/maths/Interpolator.class
+jar ufv ../is4app.jar local/analytics/lib/maths/Interpolator\$1.class
+jar ufv ../is4app.jar local/analytics/lib/maths/InterpType.class
+jar ufv ../is4app.jar local/analytics/util/BiHashtable.class
 
 cd ../
 jar tf is4app.jar

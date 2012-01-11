@@ -68,3 +68,8 @@ javac lib/local/analytics/ProcType.java
 javac lib/local/analytics/RouterCommand.java
 javac lib/local/analytics/Node.java
 javac lib/local/analytics/Router.java
+javac lib/local/analytics/lib/data/TSDataset.java
+javac lib/local/analytics/lib/db/OlapMongoDBDriver.java
+javac lib/local/analytics/lib/maths/Interpolator.java
+javac lib/local/analytics/lib/maths/InterpType.java
+javac lib/local/analytics/util/BiHashtable.java

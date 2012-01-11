@@ -21,6 +21,7 @@ public class Router implements Runnable{
 	private ConcurrentHashMap<String, Vertex> nodeList = null;
 	private IncidenceListGraph graph = null;
     private PathFinder pathFinder = null;
+    private static ServerSocket server =null;
   
     /*private static PipedInputStream pIncoming = null;
     private static PipedOutputStream pOutgoing = null; 
@@ -39,7 +40,13 @@ public class Router implements Runnable{
             test +="/";
         System.out.println(test);*/
 
-        Router router = new Router();
+        Router router = null;
+        try {
+            router = new Router();
+        } catch(Exception e){
+            e.printStackTrace();
+            return;
+        }
 
         String nodePath00 = "/";
         String nodePath01 = "/a";
@@ -79,7 +86,13 @@ public class Router implements Runnable{
 
     //For Mobisys
     public static void main(String[] args){
-        Router router = new Router();
+        Router router =null;
+        try {
+            router = new Router();
+        } catch (Exception e){
+            e.printStackTrace();
+            return;
+        }
 
         //router.scenario1(router);
         router.scenario2(router);
@@ -372,11 +385,15 @@ public class Router implements Runnable{
 
     //////////////////////////////////////////////////////////////////////////////////
 
-	public Router(){
+	public Router() throws Exception{
         graph = new IncidenceListGraph();
 		nodeList = new ConcurrentHashMap<String, Vertex>();
         pathFinder = new PathFinder();
-        
+        try {
+            server = new ServerSocket(9999, 100, InetAddress.getByName("localhost"));
+        } catch (Exception e){
+            throw e;
+        }
     }
 
     /*public Router(PipedInputStream in, PipedOutputStream out){
@@ -394,23 +411,20 @@ public class Router implements Runnable{
         }
     }*/
 
-    public Router(String host, String port){
-        //starts a router on a separate host and port
+    public Router(String host, int port) throws Exception{
+        try {
+            //starts a router on a separate host and port
+             server = new ServerSocket(port, 100, InetAddress.getByName(host));
+        } catch(Exception e){
+            throw e;
+        }
     }
 
     public void run(){
         try {
             ObjectInputStream incoming = null;
             ObjectOutputStream outgoing = null;
-            ServerSocket server = new ServerSocket(9999, 100, InetAddress.getByName("localhost"));
-            /*incoming = new ObjectInputStream(pIncoming);
-            logger.info("ObjectInputStream created");
-            //this.wait();
-            outgoing = new ObjectOutputStream(pOutgoing);
-            outgoing.flush();
-            //Thread.sleep(2000);
-            logger.info("ObjectOutputStream created");*/
-
+            
             boolean keepRunning = true;
             while(keepRunning){
                 logger.info("Listening for incoming connections");
@@ -429,11 +443,14 @@ public class Router implements Runnable{
                         outgoing.flush();
                         break;
                     case PULL:
-			logger.info("PULL CALLED");
+			            logger.info("PULL CALLED");
                         String reply = null;
                         if(cmd.lowts>0 && cmd.hights>0 && cmd.sourcepath!=null && cmd.units !=null)
-                            reply = pullFromNode(cmd.sourcepath, cmd.units, 
+                            reply = pullFromNode(cmd.sourcepath, cmd.aggType, cmd.units, 
                                         cmd.lowts, cmd.hights);
+                        else
+                            reply = pullFromNode(cmd.sourcepath, cmd.aggType, 
+                                        cmd.units, cmd.data);
                         cmdrep = new RouterCommand(RouterCommand.CommandType.PULL_ACK);
                         cmdrep.data = reply;
                         outgoing.writeObject(cmdrep);
@@ -494,7 +511,17 @@ public class Router implements Runnable{
         return;
     }
 
-    public String pullFromNode(String path, String units, long lowts, long hights){
+    public String pullFromNode(String path, String aggType, String units, long lowts, long hights){
+        return null;
+    }
+
+    public String pullFromNode(String path, String aggType, String units, String queryJsonStr){
+        path = cleanPath(path);
+        Vertex vertex = nodeList.get(path);
+        if(vertex !=null){
+            Node node = (Node)vertex.get("Node");
+            return node.pull(units, ProcType.AGGREGATE, queryJsonStr);
+        }
         return null;
     }
 
@@ -601,7 +628,7 @@ public class Router implements Runnable{
             graph.removeEdge(e);
     }
 
-    private String cleanPath(String path){
+    public static String cleanPath(String path){
         //clean up the path
         if(path == null)
             return path;

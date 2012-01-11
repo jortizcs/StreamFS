@@ -86,6 +86,12 @@ rm -f local/analytics/Router\$1.class
 rm -f local/analytics/Router\$PathFinder.class
 rm -f local/analytics/RouterCommand\$CommandType.class
 rm -f local/analytics/RouterCommand.class
+rm -f local/analytics/lib/data/TSDataset.class
+rm -f local/analytics/lib/db/OlapMongoDBDriver.class
+rm -f local/analytics/lib/maths/Interpolator.class
+rm -f local/analytics/lib/maths/Interpolator\$1.class
+rm -f local/analytics/lib/maths/InterType.class
+rm -f local/analytics/util/BiHashtable.class
 
 cd ../
 

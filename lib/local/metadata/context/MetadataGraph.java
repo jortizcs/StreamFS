@@ -106,14 +106,13 @@ public class MetadataGraph{
 
     public String queryAgg(String path, String aggtype, String units, JSONObject queryJson){
         try{
-		setRouterCommInfo("localhost", 9999);
+            
+            setRouterCommInfo("localhost", 9999);
             RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.PULL);
             rcmd.setSrcVertex(path);
             rcmd.setAggType(aggtype);
             rcmd.setUnits(units);
-
-            //extract the timestamp limits from
-            //queryJson
+            rcmd.setData(queryJson.toString());
 
             routerOut.writeObject(rcmd);
             routerOut.flush();

@@ -1,5 +1,6 @@
 package local.analytics;
 
+import local.analytics.lib.db.*;
 import org.json.*;
 import jdsl.graph.api.*;
 import jdsl.graph.ref.*;
@@ -13,6 +14,7 @@ import lib.data.*;
 import lib.maths.*;
 
 public class Node{
+    protected static transient final Logger logger = Logger.getLogger(Node.class.getPackage().getName());
 	private String nodePath = null;
 
     private static ScheduledThreadPoolExecutor executor = null;
@@ -25,6 +27,9 @@ public class Node{
     private String objectId = null;
     private boolean isSymlink = false;
 
+    protected static OlapMongoDBDriver olapDBDriver = null;
+    protected String objectid = null;
+
 	public Node(String path, int maxBufferSize, String id, Router rtr){
 		nodePath = path;
 		maxBufSize = maxBufferSize;
@@ -35,6 +40,9 @@ public class Node{
             executor = new ScheduledThreadPoolExecutor(10);
         if(router ==null)
             router = rtr;
+
+        if(olapDBDriver==null)
+            olapDBDriver = new OlapMongoDBDriver();
 	}
 
     public boolean isSymlink(){
@@ -107,8 +115,31 @@ public class Node{
 		}
 	}
 
-	public String pull(String unit, ProcType procType){
-        return null;
+	public String pull(String units, ProcType procType, String query){
+        if(this.isAggPoint(units, procType)){
+            String queryResults = null;
+            try {
+                JSONObject queryObj = new JSONObject(query);
+                queryObj.put("path", nodePath);
+                logger.info("OlapQuery::" + queryObj.toString());
+                net.sf.json.JSONObject qresObj = olapDBDriver.query(queryObj.toString());
+                queryResults = qresObj.toString();
+            } catch(Exception e){
+               logger.log(Level.WARNING, "", e); 
+            }
+            return queryResults;
+        } else {
+            try {
+                JSONObject error=new JSONObject();
+                String errormsg = "No aggregation point for: [ " + units + 
+                                    ", LINEAR_INTERP_SUM ]";
+                error.put("error_msg", errormsg);
+                return error.toString();
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+                return "{\"error\":\"true\"}";
+            }
+        }
 	}
 
     private void scheduleProcTasks(Vector<TSDataset> signals, String unitsLabel){
@@ -126,6 +157,27 @@ public class Node{
                 }
             }
         }
+    }
+
+    public boolean isAggPoint(){
+        if(units.keySet().size()>0)
+            return true;
+        return false;
+    }
+
+    public boolean isAggPoint(String unit){
+        if(units.containsKey(unit))
+            return true;
+        return false;
+    }
+
+    public boolean isAggPoint(String unit, ProcType proctype){
+        if(units.containsKey(unit)){
+            Vector<ProcType> v = units.get(unit);
+            if(v.contains(proctype))
+                    return true;
+        }
+        return false;
     }
 
     public void addUnit(String unit, ProcType procType){
@@ -201,7 +253,17 @@ public class Node{
             if(isSymlink){
                 //don't save anything, the hardlink will do that
             } else {
+                JSONArray datajarray  = aggSignal.getDataset();
+                ArrayList<net.sf.json.JSONObject> datapts = new ArrayList<net.sf.json.JSONObject>();
+                for(int i=0; i<datajarray.length(); ++i){
+                    try {
+                        datapts.add((net.sf.json.JSONObject) net.sf.json.JSONSerializer.toJSON(datajarray.get(i).toString()));
+                    } catch(Exception e){
+                        logger.log(Level.WARNING, "", e);
+                    }
+                }
                 //save it!
+                olapDBDriver.putOlapTsEntries(datapts);
             }
             
             //push each result to parent nodes
