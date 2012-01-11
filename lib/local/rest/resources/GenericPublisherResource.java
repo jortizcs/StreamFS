@@ -244,8 +244,6 @@ public class GenericPublisherResource extends Resource{
 		}
 		data.put("pubid", publisherId.toString());
 
-        
-
 		//Forward to subscribers
 		String dataStr = data.toString();
 		dataStr = dataStr.replace("$","d_");
@@ -270,24 +268,11 @@ public class GenericPublisherResource extends Resource{
 			alias = thisuri.substring(thisuri.lastIndexOf("/"), thisuri.length());
 		}
 
-        //tell router for dynamic aggregation
-        if(RESTServer.tellRouter){
-            try {
-                setRouterCommInfo("localhost", 9999);
-                //tell the router about it
-                RouterCommand rcmd = new RouterCommand(RouterCommand.
-                                                        CommandType.PUSH);
-                rcmd.setSrcVertex(this.URI.toString());
-                rcmd.setData(dataStr);
-                routerOut.writeObject(rcmd);
-                routerOut.flush();
-
-                rcmd = (RouterCommand)routerIn.readObject();
-                logger.info("Heard reply");
-            } catch(Exception e){
-                logger.log(Level.WARNING, "", e);
-            }
-        }
+        //forward up the olap graph
+        JSONObject properties = database.rrGetProperties(this.URI);
+        String unitsStr = properties.optString("units");
+        if(RESTServer.tellRouter && !unitsStr.equals(""))
+           metadataGraph.streamPush(URI, unitsStr, dataCopy.toString()); 
 
 		logger.info("Publsher PUTTING in data repository");
 

@@ -241,6 +241,33 @@ public class MetadataGraph{
 		}
 	}
 
+    /**
+     * Called by the Stream node when data comes in.
+     *
+     * @param path the path for the resource node
+     * @param units the units associated with the incoming data
+     * @param data the data object
+     * @return void.
+     */
+    public void streamPush(String path, String units, String dataStr){
+        try {
+            setRouterCommInfo("localhost", 9999);
+            //tell the router about it
+            RouterCommand rcmd = new RouterCommand(RouterCommand.
+                                                    CommandType.PUSH);
+            rcmd.setSrcVertex(path);
+            rcmd.setData(dataStr);
+            rcmd.setUnits(units);
+            routerOut.writeObject(rcmd);
+            routerOut.flush();
+
+            rcmd = (RouterCommand)routerIn.readObject();
+            logger.info("Heard reply");
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+    }
+
 	/**
 	 * Looks for the vertex object based on path and returns it.
 	 */

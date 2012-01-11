@@ -435,9 +435,8 @@ public class Router implements Runnable{
                 RouterCommand cmdrep = null;
                 switch(cmd.type){
                     case PUSH:
-                        if(cmd.sourcepath !=null && cmd.destpath !=null &&
-                                cmd.data != null && cmd.units != null)
-                            sendData(cmd.sourcepath, cmd.destpath, cmd.data, cmd.units);
+                        if(cmd.sourcepath !=null && cmd.data != null && cmd.units != null)
+                            sendDataToParents(cmd.sourcepath, cmd.data, cmd.units);
                         cmdrep = new RouterCommand(RouterCommand.CommandType.PUSH_ACK);
                         outgoing.writeObject(cmdrep);
                         outgoing.flush();
