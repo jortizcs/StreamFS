@@ -113,6 +113,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			propsEntry.remove("_id");
 			propsEntry.remove("timestamp");
 			propsEntry.remove("is4_uri");
+            propsEntry.remove("_keywords");
 			database.rrPutProperties(URI, propsEntry);
 			database.updateLastPropsTs(URI, last_props_ts);
 		}
