@@ -69,7 +69,7 @@ public class MetadataGraph{
 		nonpubNodes = new Hashtable<String, Vertex>();
 		externalNodes = new Hashtable<String, Vertex>();
 		symlinkNodes = new Hashtable<String, Vertex>();
-		//populateInternalGraph();
+		//populateInternalGraph(true);
 	}
 
 	public static MetadataGraph getInstance(){
@@ -136,6 +136,7 @@ public class MetadataGraph{
      */
     public void setAggPoint(String pathname, String units, boolean state){
         try{
+            setRouterCommInfo("localhost", 9999);
             RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.CREATE_AGG_PNT);
             rcmd.setSrcVertex(pathname);
             rcmd.setUnits(units);
@@ -156,12 +157,24 @@ public class MetadataGraph{
 		for(int i=0; i<hardlinks.size(); i++){
 			String thisPath = (String)hardlinks.get(i);
 			Resource thisResource = RESTServer.getResource(thisPath);
+
 			if(thisResource !=null){
+                
+
 				thisPath = thisResource.getURI();
 				Vertex v = internalGraph.insertVertex(thisPath);
 				v.set("path", thisPath);
 
                 routerAddNode(thisPath);
+                JSONObject currentProps = thisResource.getProperties();
+                JSONArray aggPointsArray = null;
+                if(currentProps.containsKey("aggBufs"))
+                    aggPointsArray = currentProps.getJSONArray("aggBufs");
+                if(aggPointsArray != null && aggPointsArray.size()>0){
+                    logger.fine("Setting agg point:" + thisPath);
+                    for(int j=0; j<aggPointsArray.size(); j++)
+                        setAggPoint(thisPath, (String)aggPointsArray.get(j),true);
+                }
 
 				if(RESTServer.getResource(thisPath).getType()==ResourceUtils.PUBLISHER_RSRC ||
 					RESTServer.getResource(thisPath).getType()==ResourceUtils.GENERIC_PUBLISHER_RSRC)
@@ -405,10 +418,12 @@ public class MetadataGraph{
 		logger.info("Attempting to add: " + resourcePath);
 		if(resourcePath !=null){
 			Resource resource = RESTServer.getResource(resourcePath);
-			Vertex thisVertex = null;
+			
+            Vertex thisVertex = null;
 			boolean symlink=false;
 			if((thisVertex =internalGraph.insertVertex(resourcePath)) !=null){
 				routerAddNode(resourcePath);
+                
 				thisVertex.set("path", resourcePath);
 				String linksToStr = null; 	//only used if this vertex is a symlink
 				if(resource.getType() == ResourceUtils.DEFAULT_RSRC || 

@@ -271,6 +271,22 @@ public class GenericPublisherResource extends Resource{
         //forward up the olap graph
         JSONObject properties = database.rrGetProperties(this.URI);
         String unitsStr = properties.optString("units");
+        if(dataCopy.containsKey("timestamp")){
+            Long ts = dataCopy.getLong("timestamp");
+            dataCopy.remove("timestamp");
+            dataCopy.put("ts", ts);
+        }
+        
+        if(dataCopy.containsKey("value")){
+            Double v = dataCopy.getDouble("value");
+            dataCopy.remove("value");
+            dataCopy.put("v", v);
+        } else if(dataCopy.containsKey("val")){
+            Double v = dataCopy.getDouble("val");
+            dataCopy.remove("val");
+            dataCopy.put("v", v);
+        }
+
         if(RESTServer.tellRouter && !unitsStr.equals(""))
            metadataGraph.streamPush(URI, unitsStr, dataCopy.toString()); 
 

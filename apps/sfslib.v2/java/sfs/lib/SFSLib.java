@@ -93,17 +93,8 @@ public class SFSLib{
 			request.put("operation", "create_resource");
 			request.put("resourceName", name);
 			request.put("resourceType", type);
-		} else if(type.equalsIgnoreCase("devices")){
-			request.put("operation", "create_resource");
-			request.put("resourceName", name);
-			request.put("resourceType", type);
-		} else if(type.equalsIgnoreCase("device")){
-			request.put("operation", "create_resource");
-			request.put("resourceName", name);
-			request.put("deviceName", name);
-			request.put("resourceType", type);
 		} else if(type.equalsIgnoreCase("genpub")){
-			request.put("operation", "create_generic_resource");
+			request.put("operation", "create_generic_publisher");
 			request.put("resourceName", name);
 		}
 		
@@ -111,7 +102,7 @@ public class SFSLib{
 			URL u = new URL(sfsurl.toString() + path);
 			return HttpOps.put(u, request.toString());
 		} catch(Exception e){
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}
@@ -121,7 +112,7 @@ public class SFSLib{
 			URL u = new URL(sfsurl.toString() + path);
 			return HttpOps.delete(u);
 		} catch(Exception e){
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}
@@ -135,7 +126,7 @@ public class SFSLib{
 			URL u = new URL(sfsurl.toString() + path);
 			return HttpOps.put(u, request.toString());
 		} catch(Exception e){
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}
@@ -188,7 +179,7 @@ public class SFSLib{
 			if(v != null && v.size()>0)
 				return true;
 		} catch(Exception e){
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return false;
 	}

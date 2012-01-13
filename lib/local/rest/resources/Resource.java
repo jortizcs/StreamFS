@@ -140,6 +140,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		return TYPE;
 	}
 
+    public JSONObject getProperties(){
+        return database.rrGetProperties(URI);
+    }
+
 	//////////////// REST-accessible functions ////////////////
 	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
 		try {
@@ -151,7 +155,6 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			} 
             
             else if(exchangeJSON.containsKey("agg") && exchangeJSON.containsKey("units")){
-
                 logger.info("OLAP_QUERY: aggregate data query");
                 boolean queryQ = exchangeJSON.containsKey("query");
                 String queryVal = exchangeJSON.optString("query");
@@ -389,6 +392,33 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                     metadataGraph.setAggPoint(URI, unitsStr, true);
                     logger.info("Set aggregation point: [pathname=" + URI + 
                             ", set_agg=" + setAggStr + ", units=" + unitsStr + "]"); 
+                }
+
+                //add it to the aggregation buffer array in the properties for this resource
+                JSONObject currentProps = database.rrGetProperties(URI);
+                boolean containsAggBufs = currentProps.containsKey("aggBufs");
+                if(setAggBool && containsAggBufs){
+                    JSONArray aggBufsArray = currentProps.getJSONArray("aggBufs");
+                    if(!aggBufsArray.contains(unitsStr)){
+                        aggBufsArray.add(unitsStr);
+                        currentProps.put("aggBufs", aggBufsArray);
+                        database.rrPutProperties(URI, currentProps);
+                        updateProperties(currentProps);
+                    }
+                } else if(!setAggBool && containsAggBufs) {
+                    JSONArray aggBufsArray = currentProps.getJSONArray("aggBufs");
+                    if(aggBufsArray.contains(unitsStr)){
+                        aggBufsArray.remove(unitsStr);
+                        currentProps.put("aggBufs", aggBufsArray);
+                        database.rrPutProperties(URI, currentProps);
+                        updateProperties(currentProps);
+                    }
+                } else if(setAggBool && !containsAggBufs){
+                    JSONArray aggBufsArray = new JSONArray();
+                    aggBufsArray.add(unitsStr);
+                    currentProps.put("aggBufs", aggBufsArray);
+                    database.rrPutProperties(URI, currentProps);
+                    updateProperties(currentProps);
                 }
                 sendResponse(exchange, 200, null, internalCall, internalResp);
             } 

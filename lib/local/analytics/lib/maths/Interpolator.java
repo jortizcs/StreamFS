@@ -1,6 +1,6 @@
-package lib.maths;
+package local.analytics.lib.maths;
 
-import lib.data.TSDataset;
+import local.analytics.lib.data.TSDataset;
 import org.json.*;
 import java.util.*;
 

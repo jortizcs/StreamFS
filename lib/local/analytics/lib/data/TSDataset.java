@@ -1,7 +1,7 @@
-package lib.data;
+package local.analytics.lib.data;
 
 import org.json.*;
-import lib.maths.*;
+import local.analytics.lib.maths.*;
 import java.util.Arrays;
 
 public class TSDataset{
@@ -62,7 +62,7 @@ public class TSDataset{
 		if(ts>0){
 			try {
 				JSONArray dp = new JSONArray();
-				//System.out.println("ts=" + ts + "; val=" + value);
+				System.out.println("ts=" + ts + "; val=" + value);
 				dp.put(ts); dp.put(value);
 				dataset.put(dp);
 				datasetLookup.accumulate(new Long(ts).toString(), value);

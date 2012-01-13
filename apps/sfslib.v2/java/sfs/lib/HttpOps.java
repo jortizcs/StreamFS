@@ -33,10 +33,10 @@ public class HttpOps {
 				lineBuffer.append(line);
 			line = lineBuffer.toString();
 			reader.close();
-			
 			respvec.add(line);
 		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
+			//logger.log(Level.WARNING, "", e);
+            logger.warning("Exception thrown while issuing GET request");
 			return null;
 		}
 		return respvec;
@@ -65,7 +65,8 @@ public class HttpOps {
 			
 			respvec.add(line);
 		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
+			//logger.log(Level.WARNING, "", e);
+            logger.warning("Exception thrown while issuing PUT request");
 			return null;
 		}
 		return respvec;
@@ -94,7 +95,8 @@ public class HttpOps {
 			
 			respvec.add(line);
 		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
+			//logger.log(Level.WARNING, "", e);
+            logger.warning("Exception thrown while issuing POST request");
 			return null;
 		}
 		return respvec;
@@ -122,7 +124,8 @@ public class HttpOps {
 			respvec.add(line);
 			
 		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
+			//logger.log(Level.WARNING, "", e);
+            logger.warning("Exception thrown while issuing DELETE request");
 			return null;
 		}
 		return respvec;

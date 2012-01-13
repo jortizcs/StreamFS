@@ -10,8 +10,8 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.util.concurrent.*;
 import java.util.*;
-import lib.data.*;
-import lib.maths.*;
+import local.analytics.lib.data.*;
+import local.analytics.lib.maths.*;
 
 public class Node{
     protected static transient final Logger logger = Logger.getLogger(Node.class.getPackage().getName());
@@ -60,14 +60,18 @@ public class Node{
 	public void push(String fromPath, String data, String unitsLabel){
         System.out.println("Received data @"  + nodePath  + " from " + fromPath + ", type=" + unitsLabel);
 		try {
-            if(!units.containsKey(unitsLabel))
+            if(!units.containsKey(unitsLabel)){
+                logger.warning("No buffer for units::" + unitsLabel);
                 return;
+            }
             if(fromPath.equals(nodePath))
                 router.sendDataToParents(nodePath, data, unitsLabel);
 
             Vector<TSDataset> signals = null;
             synchronized(this){
+                logger.fine("Checking if " + fromPath + " is child of " + nodePath);
                 if(router.isChild(fromPath, nodePath)){
+                    logger.fine("YES!!!");
                     JSONObject dataObj= new JSONObject(data);
 
                     //check if there are buffers for the given set of units
@@ -76,12 +80,12 @@ public class Node{
                         ConcurrentHashMap<String, TSDataset> bufferMap = unitBuffers.get(unitsLabel);
                         if(bufferMap.containsKey(fromPath)){
                             TSDataset ds = bufferMap.get(fromPath);
-                            ds.put(dataObj.getLong("ts"), dataObj.getDouble("value"));
+                            ds.put(dataObj.getLong("ts"), dataObj.getDouble("v"));
                             bufferMap.replace(fromPath, ds);
                             unitBuffers.replace(unitsLabel, bufferMap);
                         } else {
                             TSDataset ds = new TSDataset();
-                            ds.put(dataObj.getLong("ts"), dataObj.getDouble("value"));
+                            ds.put(dataObj.getLong("ts"), dataObj.getDouble("v"));
                             bufferMap.put(fromPath, ds);
                             unitBuffers.replace(unitsLabel, bufferMap);
                         }
@@ -102,7 +106,7 @@ public class Node{
                         } 
                     } else { //create buffer for this unitLabel
                         TSDataset ds = new TSDataset();
-                        ds.put(dataObj.getLong("ts"), dataObj.getDouble("value"));
+                        ds.put(dataObj.getLong("ts"), dataObj.getDouble("v"));
                         ConcurrentHashMap<String, TSDataset> bufferMap = new ConcurrentHashMap<String, TSDataset>();
                         bufferMap.put(fromPath, ds);
                         unitBuffers.put(unitsLabel, bufferMap);
@@ -112,6 +116,7 @@ public class Node{
                 }
             }
 		} catch (Exception e){
+            e.printStackTrace();
 		}
 	}
 
@@ -257,7 +262,13 @@ public class Node{
                 ArrayList<net.sf.json.JSONObject> datapts = new ArrayList<net.sf.json.JSONObject>();
                 for(int i=0; i<datajarray.length(); ++i){
                     try {
-                        datapts.add((net.sf.json.JSONObject) net.sf.json.JSONSerializer.toJSON(datajarray.get(i).toString()));
+                        //logger.info(i + "::" + datajarray.get(i).toString());
+                        JSONArray dataptArray = (JSONArray)datajarray.get(i);
+                        JSONObject thisDatapt = new JSONObject();
+                        thisDatapt.put("ts",dataptArray.get(0));
+                        thisDatapt.put("v", dataptArray.get(1));
+                        thisDatapt.put("path",nodePath);
+                        datapts.add((net.sf.json.JSONObject) net.sf.json.JSONSerializer.toJSON(thisDatapt.toString()));
                     } catch(Exception e){
                         logger.log(Level.WARNING, "", e);
                     }
