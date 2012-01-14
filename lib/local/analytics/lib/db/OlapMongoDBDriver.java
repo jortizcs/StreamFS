@@ -54,6 +54,7 @@ public class OlapMongoDBDriver {
 
             JSONObject res = olapDBDriver.query(queryobj.toString());
             logger.info("res::" + res.toString());
+            //System.out.println(olapDBDriver.getLastResult("/aggroot/"));
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
         }
@@ -472,4 +473,62 @@ public class OlapMongoDBDriver {
 		
 		return null;
 	}
+
+    public String getLastResult(String path){
+        //run mapreduce to get the last calced result
+        String resStr = "{}";
+        long maxts=0;
+		boolean olapReposOpen=false;
+		try{
+			String path2 = null;
+			if(path.endsWith("/"))
+				path2 = path.substring(0, path.length()-1);
+			else
+				path2 = path + "/";
+			String[] inJArrayStr = {path, path2};
+
+			//DB database = m.getDB(dataRepository);
+			//DBCollection dbCollection = database.getCollection(rsrcPropsCollection);
+			olapRepos.requestStart();
+			olapReposOpen=true;
+			String map = "function() { emit(this.path, this.ts); }";
+			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
+			//String mrResults = "max_props_timestamps";
+			String mrResults = "mrTemp";
+			QueryBuilder qb = QueryBuilder.start("path").in(inJArrayStr);
+			DBObject query = qb.get();
+			logger.info("Query on mapreduce results: " + query.toString());
+			MapReduceOutput mrOutput = olapTsCollection.mapReduce(map, reduce, 
+                                                                    mrResults, query);
+			Iterable<DBObject> dbcIt = mrOutput.results();
+			if(dbcIt!=null){
+				Iterator<DBObject> dbc = dbcIt.iterator();
+				if(dbc.hasNext()){
+					DBObject dbObj = dbc.next();
+					logger.fine("MapReduce Result Obtained: " + dbObj.toString());
+					JSONObject dbJObj = new JSONObject();
+					dbJObj.putAll((Map)dbObj);
+					maxts = dbJObj.getLong("value");
+				}
+			}
+			mrOutput.drop();
+            JSONObject tsquery = new JSONObject();
+            tsquery.put("ts", maxts);
+            JSONObject resObj = query(tsquery.toString());
+            if(resObj!=null){
+                JSONArray resArray = resObj.getJSONArray("results");
+                if(resArray.size()>0){
+                    JSONObject dp = (JSONObject)resArray.get(0);
+                    dp.remove("path");
+                    resStr = dp.toString();
+                }
+            }
+		} catch(Exception e){
+			logger.log(Level.WARNING, "",e);
+		} finally {
+			if(olapReposOpen)
+				olapRepos.requestDone();
+		}
+        return resStr;
+    }
 }

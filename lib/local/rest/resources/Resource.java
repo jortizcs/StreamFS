@@ -164,7 +164,13 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 } else {
                     String aggStr = exchangeJSON.getString("agg");
                     String units = exchangeJSON.getString("units");
-                    metadataGraph.queryAgg(URI, aggStr, units, null);
+                    String queryRes =metadataGraph.queryAgg(URI, aggStr, units, null);
+                    if(queryRes != null){
+                        JSONObject response = (JSONObject)JSONSerializer.toJSON(queryRes);
+                        sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+                    } else {
+                        sendResponse(exchange, 200, null, internalCall, internalResp);
+                    }
                 }
             } 
             
@@ -574,7 +580,6 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			try {
 				if(exchange !=null){
 					exchange.getRequestBody().close();
-					exchange.getResponseBody().close();
 					exchange.close();
 				} 
 			} catch(Exception e){
@@ -1404,9 +1409,11 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			return mongoDriver.queryTsColl(queryJson.toString(), keys.toString());*/
 
             String qres = metadataGraph.queryAgg(URI, aggStr, units, queryJson);
+            logger.fine("qres=" + qres);
             if(qres !=null){
                 JSONSerializer serializer = new JSONSerializer();
-                queryResults = (JSONArray) serializer.toJSON(qres);
+                JSONObject qresObj = (JSONObject)serializer.toJSON(qres);
+                queryResults = qresObj.getJSONArray("results");
             }
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);

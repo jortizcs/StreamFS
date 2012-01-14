@@ -29,6 +29,7 @@ public class Node{
 
     protected static OlapMongoDBDriver olapDBDriver = null;
     protected String objectid = null;
+    private String lastDataPt = null;
 
 	public Node(String path, int maxBufferSize, String id, Router rtr){
 		nodePath = path;
@@ -71,7 +72,7 @@ public class Node{
             synchronized(this){
                 logger.fine("Checking if " + fromPath + " is child of " + nodePath);
                 if(router.isChild(fromPath, nodePath)){
-                    logger.fine("YES!!!");
+                    logger.fine(fromPath + " is child of " +nodePath);
                     JSONObject dataObj= new JSONObject(data);
 
                     //check if there are buffers for the given set of units
@@ -121,8 +122,8 @@ public class Node{
 	}
 
 	public String pull(String units, ProcType procType, String query){
-        if(this.isAggPoint(units, procType)){
-            String queryResults = null;
+        String queryResults = null;
+        if(this.isAggPoint(units, procType) && query!=null){
             try {
                 JSONObject queryObj = new JSONObject(query);
                 queryObj.put("path", nodePath);
@@ -133,7 +134,7 @@ public class Node{
                logger.log(Level.WARNING, "", e); 
             }
             return queryResults;
-        } else {
+        } else if(query!=null){
             try {
                 JSONObject error=new JSONObject();
                 String errormsg = "No aggregation point for: [ " + units + 
@@ -144,7 +145,18 @@ public class Node{
                 logger.log(Level.WARNING, "", e);
                 return "{\"error\":\"true\"}";
             }
+        } else if(query==null){
+            try {
+                JSONObject resp = new JSONObject();
+                //resp.put("path", nodePath);
+                if(lastDataPt == null)
+                    lastDataPt = olapDBDriver.getLastResult(nodePath);
+                resp.put("head", lastDataPt);
+                return resp.toString();
+            } catch(Exception e){
+            }
         }
+        return queryResults;
 	}
 
     private void scheduleProcTasks(Vector<TSDataset> signals, String unitsLabel){
@@ -260,6 +272,7 @@ public class Node{
             } else {
                 JSONArray datajarray  = aggSignal.getDataset();
                 ArrayList<net.sf.json.JSONObject> datapts = new ArrayList<net.sf.json.JSONObject>();
+                long maxTs =0;
                 for(int i=0; i<datajarray.length(); ++i){
                     try {
                         //logger.info(i + "::" + datajarray.get(i).toString());
@@ -267,6 +280,10 @@ public class Node{
                         JSONObject thisDatapt = new JSONObject();
                         thisDatapt.put("ts",dataptArray.get(0));
                         thisDatapt.put("v", dataptArray.get(1));
+                        if(((Long)dataptArray.get(0)).longValue()>maxTs){
+                            maxTs = ((Long)dataptArray.get(0)).longValue();
+                            lastDataPt = thisDatapt.toString();
+                        }
                         thisDatapt.put("path",nodePath);
                         datapts.add((net.sf.json.JSONObject) net.sf.json.JSONSerializer.toJSON(thisDatapt.toString()));
                     } catch(Exception e){

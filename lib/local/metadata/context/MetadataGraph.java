@@ -106,18 +106,19 @@ public class MetadataGraph{
 
     public String queryAgg(String path, String aggtype, String units, JSONObject queryJson){
         try{
-            
             setRouterCommInfo("localhost", 9999);
             RouterCommand rcmd = new RouterCommand(RouterCommand.CommandType.PULL);
             rcmd.setSrcVertex(path);
             rcmd.setAggType(aggtype);
             rcmd.setUnits(units);
-            rcmd.setData(queryJson.toString());
+            if(queryJson!=null)
+                rcmd.setData(queryJson.toString());
 
             routerOut.writeObject(rcmd);
             routerOut.flush();
 
             rcmd = (RouterCommand)routerIn.readObject();
+            logger.fine("DATA::" + rcmd.data);
             return rcmd.data;
         } catch(Exception e){
             logger.log(Level.WARNING, "",e);

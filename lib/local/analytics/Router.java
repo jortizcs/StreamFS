@@ -450,6 +450,7 @@ public class Router implements Runnable{
                         else
                             reply = pullFromNode(cmd.sourcepath, cmd.aggType, 
                                         cmd.units, cmd.data);
+                        logger.info("REPLY=" + reply);
                         cmdrep = new RouterCommand(RouterCommand.CommandType.PULL_ACK);
                         cmdrep.data = reply;
                         outgoing.writeObject(cmdrep);
