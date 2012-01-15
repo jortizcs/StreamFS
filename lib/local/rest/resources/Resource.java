@@ -394,7 +394,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 boolean setAggBool = false;
                 if(setAggStr.equalsIgnoreCase("true"))
                     setAggBool = true;
-                if(!unitsStr.equals("")){
+                if(setAggBool && !unitsStr.equals("")){
                     metadataGraph.setAggPoint(URI, unitsStr, true);
                     logger.info("Set aggregation point: [pathname=" + URI + 
                             ", set_agg=" + setAggStr + ", units=" + unitsStr + "]"); 
@@ -403,6 +403,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 //add it to the aggregation buffer array in the properties for this resource
                 JSONObject currentProps = database.rrGetProperties(URI);
                 boolean containsAggBufs = currentProps.containsKey("aggBufs");
+
+                logger.info("CONTAINS AGGBUFS::" + containsAggBufs);
                 if(setAggBool && containsAggBufs){
                     JSONArray aggBufsArray = currentProps.getJSONArray("aggBufs");
                     if(!aggBufsArray.contains(unitsStr)){
@@ -414,6 +416,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 } else if(!setAggBool && containsAggBufs) {
                     JSONArray aggBufsArray = currentProps.getJSONArray("aggBufs");
                     if(aggBufsArray.contains(unitsStr)){
+                        metadataGraph.setAggPoint(URI, unitsStr, false);
                         aggBufsArray.remove(unitsStr);
                         currentProps.put("aggBufs", aggBufsArray);
                         database.rrPutProperties(URI, currentProps);
@@ -1413,7 +1416,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
             if(qres !=null){
                 JSONSerializer serializer = new JSONSerializer();
                 JSONObject qresObj = (JSONObject)serializer.toJSON(qres);
-                queryResults = qresObj.getJSONArray("results");
+                if(qresObj.containsKey("results"))
+                    queryResults = qresObj.getJSONArray("results");
             }
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);

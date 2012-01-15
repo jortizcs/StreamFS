@@ -122,7 +122,8 @@ public class Node{
 	}
 
 	public String pull(String units, ProcType procType, String query){
-        String queryResults = null;
+        String queryResults = "{}";
+
         if(this.isAggPoint(units, procType) && query!=null){
             try {
                 JSONObject queryObj = new JSONObject(query);
@@ -134,7 +135,7 @@ public class Node{
                logger.log(Level.WARNING, "", e); 
             }
             return queryResults;
-        } else if(query!=null){
+        } else if(this.isAggPoint(units, procType) && query!=null){
             try {
                 JSONObject error=new JSONObject();
                 String errormsg = "No aggregation point for: [ " + units + 
@@ -145,7 +146,7 @@ public class Node{
                 logger.log(Level.WARNING, "", e);
                 return "{\"error\":\"true\"}";
             }
-        } else if(query==null){
+        } else if(this.isAggPoint(units, procType) && query==null){
             try {
                 JSONObject resp = new JSONObject();
                 //resp.put("path", nodePath);
@@ -154,8 +155,19 @@ public class Node{
                 resp.put("head", lastDataPt);
                 return resp.toString();
             } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
             }
         }
+        
+        try {
+            JSONObject resp = new JSONObject();
+            resp.put("error", nodePath + " is not an aggregation point for [" + units + ", LINEAR_INTERP]");
+            queryResults = resp.toString();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+
+
         return queryResults;
 	}
 
