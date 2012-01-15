@@ -404,7 +404,6 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 JSONObject currentProps = database.rrGetProperties(URI);
                 boolean containsAggBufs = currentProps.containsKey("aggBufs");
 
-                logger.info("CONTAINS AGGBUFS::" + containsAggBufs);
                 if(setAggBool && containsAggBufs){
                     JSONArray aggBufsArray = currentProps.getJSONArray("aggBufs");
                     if(!aggBufsArray.contains(unitsStr)){
@@ -1399,18 +1398,6 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
     public JSONArray queryAggTimeseries(String aggStr, String units, JSONObject queryJson){
 		JSONArray queryResults = new JSONArray();
 		try{
-
-			//only run the query for this publisher
-			/*queryJson.put("pubid", publisherId.toString());
-
-			//remove the PubId key from the results
-			JSONObject keys = new JSONObject();
-			keys.put("pubid",0);
-
-			logger.info("QUERY: " + queryJson.toString() + "\nKEYS:  " + keys.toString());
-
-			return mongoDriver.queryTsColl(queryJson.toString(), keys.toString());*/
-
             String qres = metadataGraph.queryAgg(URI, aggStr, units, queryJson);
             logger.fine("qres=" + qres);
             if(qres !=null){
@@ -1418,6 +1405,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                 JSONObject qresObj = (JSONObject)serializer.toJSON(qres);
                 if(qresObj.containsKey("results"))
                     queryResults = qresObj.getJSONArray("results");
+                else
+                    queryResults.add(qresObj);
             }
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);

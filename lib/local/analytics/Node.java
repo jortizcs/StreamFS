@@ -135,7 +135,7 @@ public class Node{
                logger.log(Level.WARNING, "", e); 
             }
             return queryResults;
-        } else if(this.isAggPoint(units, procType) && query!=null){
+        } else if(!this.isAggPoint(units, procType) && query!=null){
             try {
                 JSONObject error=new JSONObject();
                 String errormsg = "No aggregation point for: [ " + units + 
