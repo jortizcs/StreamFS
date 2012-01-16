@@ -116,6 +116,24 @@ public class SFSLib{
 		}
 		return null;
 	}
+
+    public Vector<Object> mksymlink(String parentpath, String name, String links_to){
+        JSONObject request = new JSONObject();
+        request.put("operation", "create_symlink");
+        request.put("name", name);
+        if(links_to.startsWith("http"))
+            request.put("url", links_to);
+        else
+            request.put("uri", links_to);
+
+        try {
+			URL u = new URL(sfsurl.toString() + parentpath);
+			return HttpOps.put(u, request.toString());
+		} catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+    }
 	
 	public  Vector<Object> mksmappub(String path, URL smapurl){
 		JSONObject request = new JSONObject();

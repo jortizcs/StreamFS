@@ -85,8 +85,48 @@ public class SymlinkResource extends Resource{
 		return null;
 	}
 
-	public  void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		String tailResources = null;
+    public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+        String links_to = database.getSymlinkAlias(URI);
+        links_to = cleanPath(links_to);
+        logger.info("links_to::" + links_to);
+        if(links_to.startsWith("/")){
+            logger.info("EXCHANGE:" + exchangeJSON.toString());
+            String requestPath = exchangeJSON.getString("requestUri");
+            String tail = null;
+            if(requestPath.contains("?")){
+                tail = requestPath.substring(requestPath.indexOf("?"), requestPath.length());
+                logger.info("TAIL::" + tail);
+                requestPath = requestPath.replace(tail, "");
+            }
+            requestPath = cleanPath(requestPath);
+            String translation= requestPath.replace(URI, links_to);
+            logger.info("REQUEST PATH::" + requestPath + ", REPLACE::" + URI + ", WITH::" + links_to);
+            logger.info("TRANSLATION PATH::" + translation);
+            Resource r = null;
+            if(!database.isSymlink(links_to))
+                r = RESTServer.getResource(translation);
+            else 
+                r = RESTServer.getResource(links_to);
+            if(r!=null){
+                r.exchangeJSON.accumulateAll(this.exchangeJSON);
+                if(tail != null){
+                    logger.fine("new request uri=" + translation + tail);
+                    r.exchangeJSON.put("requestUri", translation + tail);
+                } else {
+                    logger.fine("new request uri=" + translation);
+                    r.exchangeJSON.put("requestUri", translation);
+                }
+                this.exchangeJSON.clear();
+                r.get(exchange, false, internalResp);
+                return;
+            }
+        }
+
+        sendResponse(exchange, 404, null, internalCall, internalResp);
+    }
+
+	public  void get2(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+		//String tailResources = null;
 		//this symlink points directly to a hardlink
 		if(uri_link != null && !database.isSymlink(uri_link)){
 			logger.info(uri_link + " is not a symlink");
@@ -155,7 +195,7 @@ public class SymlinkResource extends Resource{
 			StringBuffer serverRespBuffer = new StringBuffer();
 			HttpURLConnection is4Conn = is4ServerGet(thisUrl, serverRespBuffer);
 			if(is4Conn != null){
-				String requestUri = exchange.getRequestURI().toString();
+				String requestUri = exchangeJSON.getString("requestUri");
 				if(requestUri.contains("?"))
 					requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -194,7 +234,7 @@ public class SymlinkResource extends Resource{
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerPut(thisUrl, data, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchange.getRequestURI().toString();
+					String requestUri = exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -235,7 +275,7 @@ public class SymlinkResource extends Resource{
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerPost(thisUrl, data, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchange.getRequestURI().toString();
+					String requestUri = exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -317,7 +357,7 @@ public class SymlinkResource extends Resource{
 					StringBuffer serverRespBuffer = new StringBuffer();
 					HttpURLConnection is4Conn = is4ServerDelete(thisUrl, serverRespBuffer);
 					if(is4Conn != null){
-						String requestUri = exchange.getRequestURI().toString();
+						String requestUri = exchangeJSON.getString("requestUri");
 						if(requestUri.contains("?"))
 							requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -353,7 +393,7 @@ public class SymlinkResource extends Resource{
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerDelete(thisUrl, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchange.getRequestURI().toString();
+					String requestUri = exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -390,7 +430,7 @@ public class SymlinkResource extends Resource{
 			logger.info("Got internalExchange.requestUri=" + requestUri);
 			exchangeJSON.discard("requestUri");
 		}else{
-			requestUri = exchange.getRequestURI().toString();
+			requestUri = exchangeJSON.getString("requestUri");
 		}
 		String myUri = URI;
 

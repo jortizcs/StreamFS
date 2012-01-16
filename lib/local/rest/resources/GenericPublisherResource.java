@@ -372,6 +372,7 @@ public class GenericPublisherResource extends Resource{
 				tsQueryObj2.putAll(dataTsQuery);
 			}
 
+            logger.fine("query->exchangeJSON::" + exchangeJSON.toString());
 			Iterator keys = exchangeJSON.keys();
 			Vector<String> attributes = new Vector<String>();
 			Vector<String> values = new Vector<String>();
