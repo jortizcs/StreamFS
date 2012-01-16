@@ -87,17 +87,17 @@ public class GenericPublisherResource extends Resource{
 			if(properties == null){
 				properties = new JSONObject();
 			}
-			properties.put("type", "properties");
+			//properties.put("type", "properties");
 			response.put("status", "success");
 
 			UUID assocPubid = database.isRRPublisher2(this.URI);
 			if(assocPubid != null){
 				response.put("pubid", assocPubid.toString());
 				logger.info("POPULATING");
-				properties.put("PubId", assocPubid.toString());
-				properties.put("URI", this.URI);
-				String dataStr = "URI: " + this.URI + "\n\nPubId: " + assocPubid.toString();
-				properties.put("data", dataStr);
+				//properties.put("PubId", assocPubid.toString());
+				//properties.put("URI", this.URI);
+				//String dataStr = "URI: " + this.URI + "\n\nPubId: " + assocPubid.toString();
+				//properties.put("data", dataStr);
 
 				//get last few values received
 				//db.is4_main_coll.find().sort({timestamp:1}).limit(5);
@@ -113,7 +113,12 @@ public class GenericPublisherResource extends Resource{
 									queryJSON.toString(), 
 									sortByJSON.toString(), 
 									headCount);
-				properties.put("head", lastValuesReceived.toString());
+                JSONArray res = lastValuesReceived.optJSONArray("results");
+                if(res!=null && res.size()>0)
+                    lastValuesReceived = (JSONObject) res.get(0);
+                else
+                    lastValuesReceived = new JSONObject();
+				response.put("head", lastValuesReceived.toString());
 			}
 			response.put("properties", properties);
 			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
