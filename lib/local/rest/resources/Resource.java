@@ -1127,8 +1127,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						thisResource.setExchangeJSON(this.exchangeJSON);
 						thisResource.get(exchange, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							processResponse(thisResource, respBuffer);
-							responses.putAll(respBuffer);
+							//processResponse(thisResource, respBuffer);
+							//responses.putAll(respBuffer);
+                            respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
+                            responses.put(thisResource.URI, respBuffer);
 						} else {
 							responses.put(thisResource.URI, respBuffer);
 						}
@@ -1143,8 +1145,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						thisResource.setExchangeJSON(this.exchangeJSON);
 						thisResource.put(exchange, putPostData, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							processResponse(thisResource, respBuffer);
-							responses.putAll(respBuffer);
+							//processResponse(thisResource, respBuffer);
+							//responses.putAll(respBuffer);
+                            respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
+                            responses.put(thisResource.URI, respBuffer);
 						} else{
 							responses.put(thisResource.URI, respBuffer);
 						}
@@ -1159,8 +1163,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						thisResource.setExchangeJSON(this.exchangeJSON);
 						thisResource.post(exchange, putPostData, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							processResponse(thisResource, respBuffer);
-							responses.putAll(respBuffer);
+							//processResponse(thisResource, respBuffer);
+							//responses.putAll(respBuffer);
+                            respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
+                            responses.put(thisResource.URI, respBuffer);
 						} else {
 							responses.put(thisResource.URI, respBuffer);
 						}
@@ -1177,8 +1183,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						thisResource.setExchangeJSON(this.exchangeJSON);
 						thisResource.delete(exchange, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							processResponse(thisResource, respBuffer);
-							responses.putAll(respBuffer);
+							//processResponse(thisResource, respBuffer);
+							//responses.putAll(respBuffer);
+                            respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
+                            responses.put(thisResource.URI, respBuffer);
 						} else {
 							responses.put(thisResource.URI, respBuffer);
 						}
