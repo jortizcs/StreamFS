@@ -117,7 +117,7 @@ public class SymlinkResource extends Resource{
                     r.exchangeJSON.put("requestUri", translation);
                 }
                 this.exchangeJSON.clear();
-                r.get(exchange, false, internalResp);
+                r.get(exchange, internalCall, internalResp);
                 return;
             }
         }
