@@ -155,7 +155,12 @@ public class GenericPublisherResource extends Resource{
 					}
 				}else {
 					String type = (String) exchange.getAttribute("type");
-					UUID pubid = UUID.fromString((String) exchange.getAttribute("pubid"));
+                    UUID pubid = null;
+                    try {
+					    pubid = UUID.fromString((String) exchange.getAttribute("pubid"));
+                    } catch(Exception e){
+                        logger.warning("\"pubid\" was not set");
+                    }
 					String addts = (String) exchange.getAttribute("addts");
 
 					logger.info("type: " + type +"; pubid: " + pubid.toString());
