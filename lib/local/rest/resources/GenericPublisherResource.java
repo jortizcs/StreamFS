@@ -163,7 +163,8 @@ public class GenericPublisherResource extends Resource{
                     }
 					String addts = (String) exchange.getAttribute("addts");
 
-					logger.info("type: " + type +"; pubid: " + pubid.toString());
+                    if(pubid!=null)
+				        logger.info("type: " + type +"; pubid: " + pubid.toString());
 
 					if(!internalCall){
 						exchange.setAttribute("pubid", "");
