@@ -189,7 +189,7 @@ public class GenericPublisherResource extends Resource{
 							errors.add("pubid parameter missing");
 						if(type != null)
 							errors.add("Unknown type");
-						if(pubid.compareTo(publisherId) != 0)
+						if(pubid !=null && pubid.compareTo(publisherId) != 0)
 							errors.add("pubid does not match that of this generic publisher");
 						resp.put("errors", errors);
 						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
