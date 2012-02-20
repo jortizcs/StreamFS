@@ -86,6 +86,11 @@ public class SymlinkResource extends Resource{
 	}
 
     public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+        if(exchangeJSON.containsKey("incident_paths")){
+            super.get(exchange, internalCall, internalResp);
+            return;
+        }
+
         String links_to = database.getSymlinkAlias(URI);
         links_to = cleanPath(links_to);
         logger.info("links_to::" + links_to);

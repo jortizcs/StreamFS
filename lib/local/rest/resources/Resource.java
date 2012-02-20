@@ -172,7 +172,16 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                         sendResponse(exchange, 200, null, internalCall, internalResp);
                     }
                 }
-            } 
+            }
+
+            else if(exchangeJSON.containsKey("incident_paths") && 
+                    exchangeJSON.getString("incident_paths").equalsIgnoreCase("true")){
+                JSONArray pathList = metadataGraph.getAllPathsTo(URI);
+                JSONObject response = new JSONObject();
+                response.put("status", "success");
+                response.put("paths", pathList);
+                sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+            }
             
             else {
 				logger.fine("GETTING RESOURCES: " + URI);

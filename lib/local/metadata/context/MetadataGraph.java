@@ -553,5 +553,38 @@ public class MetadataGraph{
 		}
 	}
 
+    /**
+     * Find all paths that lead to this node.  Should work since we don't
+     * allow cycles unpon entry.
+     */
+    public synchronized JSONArray getAllPathsTo(String destination){
+        JSONArray paths = null;
+        Vertex destVertex = getVertex(destination);
+        HashMap dupMap = new HashMap(10);
+        if(destVertex != null){
+            paths = new JSONArray();
+            EdgeIterator edgeIterator = internalGraph.incidentEdges(destVertex);
+            while(edgeIterator.hasNext()){
+                Edge e = edgeIterator.nextEdge();
+                JSONArray thisEdge = new JSONArray();
+                Vertex[] vertices = internalGraph.endVertices(e);
+                String alt = null;
+                if(destination.endsWith("/"))
+                    alt = destination.substring(0, destination.length()-1);
+                else
+                    alt = destination + "/";
+                System.out.println("vertex_src=" + vertices[0].get("path") + ", vertex_dst=" + vertices[1].get("path") +
+                        ", URI= " + destination + ", alt=" + alt);
+                String sourcePath = (String)vertices[0].get("path");
+                if(!sourcePath.equalsIgnoreCase(destination) &&
+                        !sourcePath.equalsIgnoreCase(alt) && !dupMap.containsKey(sourcePath)){
+                    paths.add(sourcePath);
+                    dupMap.put(sourcePath, "true");
+                }
+            }
+        }
+        return paths;
+    }
+
 
 }

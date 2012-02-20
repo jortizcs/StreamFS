@@ -79,6 +79,11 @@ public class GenericPublisherResource extends Resource{
 			query(exchange, null, internalCall, internalResp);
 			return;
 		}
+
+        if(exchangeJSON.containsKey("incident_paths")){
+            super.get(exchange, internalCall, internalResp);
+            return;
+        }
 		
 		logger.info("GET " + this.URI);
 		JSONObject response = new JSONObject();
