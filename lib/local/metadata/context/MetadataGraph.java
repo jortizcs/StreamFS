@@ -193,9 +193,9 @@ public class MetadataGraph{
 			if(!thisPath.equals("/")){
 				String parentPath = getParentPath(thisPath);
 				Vertex parentNode = getVertex(parentPath);
-				if(parentNode != null && thisNode != null){
+				if(parentNode != null && thisNode != null && 
+                        !edgeExists(parentPath, thisPath)){
 					internalGraph.insertDirectedEdge(parentNode, thisNode, "hardlink");
-
                     routerAddLink(parentPath, thisPath);
                 }
 			}
@@ -235,7 +235,8 @@ public class MetadataGraph{
 				String thisPath = thisResource.getURI();
 				String linksToPath = thisResource.getLinkString();
 				Vertex symlinkNode = getVertex(thisPath);
-				if(linksToPath.startsWith("/")){
+				if(linksToPath.startsWith("/") &&
+                        !edgeExists(thisPath, linksToPath)){
 					Vertex linksToNode =getVertex(linksToPath);
 					internalGraph.insertDirectedEdge(symlinkNode, linksToNode, "linksto");
                    
@@ -246,9 +247,11 @@ public class MetadataGraph{
 				String symlinkParentPath = getParentPath((String)symlinks.get(i));
 				symlinkParentPath = RESTServer.getResource(symlinkParentPath).getURI();
 				Vertex parentVertex = getVertex(symlinkParentPath);
-				internalGraph.insertDirectedEdge(parentVertex, symlinkNode, "symlink");
+                if(!edgeExists(symlinkParentPath, thisPath)){
+                    internalGraph.insertDirectedEdge(parentVertex, symlinkNode, "symlink");
 
-                routerAddLink(symlinkParentPath, thisPath);
+                    routerAddLink(symlinkParentPath, thisPath);
+                }
 			} else {
 				logger.fine("Could not get: " + (String)symlinks.get(i));
 			}
@@ -415,11 +418,23 @@ public class MetadataGraph{
         }
     }
 
+    private boolean edgeExists(String src, String dst){
+        Vertex dstV = getVertex(dst);
+        EdgeIterator edgeIterator = internalGraph.incidentEdges(dstV);
+        while(edgeIterator.hasNext()){
+            Edge e = edgeIterator.nextEdge();
+            Vertex[] vertices = internalGraph.endVertices(e);
+            String thisSource = (String)vertices[0].get("path");
+            if(thisSource.equals(src))
+                return true;
+        }
+        return false;
+    }
+
 	public synchronized boolean addNode(String resourcePath){
 		logger.info("Attempting to add: " + resourcePath);
 		if(resourcePath !=null){
 			Resource resource = RESTServer.getResource(resourcePath);
-			
             Vertex thisVertex = null;
 			boolean symlink=false;
 			if((thisVertex =internalGraph.insertVertex(resourcePath)) !=null){
@@ -444,10 +459,13 @@ public class MetadataGraph{
 					} else {
 						linksToNode = getVertex(linksToStr);
 					}
-					internalGraph.insertDirectedEdge(thisVertex, linksToNode, "linksto");
-					symlink=true;
-
-                    routerAddLink(resourcePath, linksToStr);
+                   
+                    if(!edgeExists((String)thisVertex.get("path"), 
+                                (String) linksToNode.get("path"))){
+					    internalGraph.insertDirectedEdge(thisVertex, linksToNode, "linksto");
+                        symlink=true;
+                        routerAddLink(resourcePath, linksToStr);
+                    }
 				} else {
 					nonpubNodes.put(resource.getURI(), thisVertex);
 					String parent = getParentPath(resource.getURI());
@@ -472,9 +490,11 @@ public class MetadataGraph{
 						logger.fine("NO CYCLE DETECTED");
 					}
 				} else{
-					internalGraph.insertDirectedEdge(parentVertex, thisVertex, "hardlink");
+                    if(!edgeExists(parent, resource.getURI())){
+                        internalGraph.insertDirectedEdge(parentVertex, thisVertex, "hardlink");
 
-                    routerAddLink(parent, resourcePath);
+                        routerAddLink(parent, resourcePath);
+                    }
 				}
 				
 				return true;
@@ -573,8 +593,8 @@ public class MetadataGraph{
                     alt = destination.substring(0, destination.length()-1);
                 else
                     alt = destination + "/";
-                System.out.println("vertex_src=" + vertices[0].get("path") + ", vertex_dst=" + vertices[1].get("path") +
-                        ", URI= " + destination + ", alt=" + alt);
+                /*System.out.println("vertex_src=" + vertices[0].get("path") + ", vertex_dst=" + vertices[1].get("path") +
+                        ", URI= " + destination + ", alt=" + alt);*/
                 String sourcePath = (String)vertices[0].get("path");
                 if(!sourcePath.equalsIgnoreCase(destination) &&
                         !sourcePath.equalsIgnoreCase(alt) && !dupMap.containsKey(sourcePath)){
