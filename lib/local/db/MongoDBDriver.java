@@ -35,10 +35,12 @@ public class MongoDBDriver implements Is4Database {
 
 	private static transient final Logger logger = Logger.getLogger(MongoDBDriver.class.getPackage().getName());
 
-	public static String serverAddress = "localhost";
-	public static int port = 27017;
+	public static String serverAddress = null;//"localhost";
+	public static int port = 0;//27017;
 	public static String login = "";
 	public static String password = "";
+    public static boolean replicaSetEnabled = false;
+    private static JSONArray replicas = null;
 
 	private static int openConns =0;
 
@@ -78,7 +80,7 @@ public class MongoDBDriver implements Is4Database {
 			setupGlobals();
 		}
 
-		try {
+		/*try {
 			if(m == null && port==27017 && login.equals("") && password.equals("")){
 				MongoOptions options = new MongoOptions();
 				options.connectionsPerHost=1000;
@@ -94,7 +96,7 @@ public class MongoDBDriver implements Is4Database {
 			//todo: add more setup code
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-		}
+		}*/
 
 		if(!inited){
 			//setup indices
@@ -150,19 +152,52 @@ public class MongoDBDriver implements Is4Database {
 								toJSON(strBuf.toString());
 			cFileReader.close();
 			bufReader.close();
-			serverAddress = configJsonObj.getString("address");
+            if(configJsonObj.containsKey("address"))
+			    serverAddress = configJsonObj.optString("address");
+            else if(configJsonObj.containsKey("replicaSet") && 
+                    configJsonObj.getJSONArray("replicaSet").size()>0){
+                replicas = configJsonObj.getJSONArray("replicaSet");
+            } else{
+                logger.warning("must contain either \"address\" attribute or " +
+                        "\"replicaSet\" array with a list of atleast 2 hosts");
+                System.exit(1);
+            }
+
 			if(configJsonObj.optInt("port") != 0)
 				port = configJsonObj.optInt("port");
 			login = configJsonObj.optString("login");
-			password = configJsonObj.optString("password");
+			password = configJsonObj.optString("pw");
 
-			if(m == null ){//&& port==27017 && login.equals("") && password.equals("")){
+			if(m == null ){
 				MongoOptions options = new MongoOptions();
 				options.connectionsPerHost=1000;
-				ServerAddress serverAddr = new ServerAddress(serverAddress, port);
-				m = new Mongo(serverAddr,options);
-				//BasicDBObject options = new BasicDBObject();
+                if(serverAddress != null){
+                    ServerAddress serverAddr = new ServerAddress(serverAddress, port);
+                    m = new Mongo(serverAddr,options);
+                } else {
+                    ArrayList<ServerAddress> replicaHosts = new ArrayList<ServerAddress>();
+                    for(int i=0; i<replicas.size(); i++){
+                        JSONObject thisHostEntry = replicas.getJSONObject(i);
+                        ServerAddress thisSvrAddr = null;
+                        String thisSvrAddrStr = thisHostEntry.getString("host");
+                        int port =  thisHostEntry.optInt("port");
+                        if(port !=0)
+                            thisSvrAddr = new ServerAddress(thisSvrAddrStr, port);
+                        else
+                            thisSvrAddr = new ServerAddress(thisSvrAddrStr);
+                        replicaHosts.add(thisSvrAddr);
+                    }
+                    m = new Mongo(replicaHosts, options);
+                }
 				dataRepos = m.getDB(dataRepository);
+                if(!login.equals("") && !password.equals("")){
+                    boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                    if(auth != true){
+                        logger.severe("Could not authenticate on DB::" + dataRepository + 
+                                " with login=" + login + ",pw=" + password);
+                        System.exit(1);
+                    }
+                }
 				dataCollection = dataRepos.getCollection(mainCollection);
 				propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 				hierCollection = dataRepos.getCollection(snapshotCollection);

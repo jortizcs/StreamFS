@@ -1278,7 +1278,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 
 	public void updateProperties(JSONObject propsObj){
 		
-		MongoDBDriver mongoDriver = new MongoDBDriver();
+		//MongoDBDriver mongoDriver = new MongoDBDriver();
 
 		//add an array to support fulltxt search
 		HashMap<String, String> uniqueKeys = new HashMap<String, String>();

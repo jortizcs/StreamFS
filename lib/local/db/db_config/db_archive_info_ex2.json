@@ -1,0 +1,14 @@
+{
+    "login":"root",
+    "pw":"root",
+    "replicaSet":
+        [
+            {
+                "host":"replica1.host.name",
+                "port":27017
+            },
+            {
+                "host":"replica2.host.name",
+            }
+        ]
+}

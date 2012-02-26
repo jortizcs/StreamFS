@@ -20,7 +20,7 @@ export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/ezmorph-1.0.3.jar"
 export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/httpclient-4.0-beta2.jar"
 export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/httpcore-4.0-beta2.jar"
 export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/json-lib-2.2.3-MODIFIED-jdk15.jar"
-export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/mongo-2.5.3.jar"
+export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/mongo-2.7.3.jar"
 
 ############################
 # Is4 Security Libraries
