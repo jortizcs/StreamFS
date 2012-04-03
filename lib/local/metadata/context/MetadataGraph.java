@@ -239,9 +239,10 @@ public class MetadataGraph{
 				if(linksToPath.startsWith("/") &&
                         !edgeExists(thisPath, linksToPath)){
 					Vertex linksToNode =getVertex(linksToPath);
-					internalGraph.insertDirectedEdge(symlinkNode, linksToNode, "linksto");
-                   
-                    routerAddLink(thisPath, linksToPath);
+                    if(linksToNode != null){
+					    internalGraph.insertDirectedEdge(symlinkNode, linksToNode, "linksto");
+                        routerAddLink(thisPath, linksToPath);
+                    }
 				}
 
 				//create a link between this resource and its parent
@@ -421,13 +422,15 @@ public class MetadataGraph{
 
     private boolean edgeExists(String src, String dst){
         Vertex dstV = getVertex(dst);
-        EdgeIterator edgeIterator = internalGraph.incidentEdges(dstV);
-        while(edgeIterator.hasNext()){
-            Edge e = edgeIterator.nextEdge();
-            Vertex[] vertices = internalGraph.endVertices(e);
-            String thisSource = (String)vertices[0].get("path");
-            if(thisSource.equals(src))
-                return true;
+        if(dstV != null){
+            EdgeIterator edgeIterator = internalGraph.incidentEdges(dstV);
+            while(edgeIterator.hasNext()){
+                Edge e = edgeIterator.nextEdge();
+                Vertex[] vertices = internalGraph.endVertices(e);
+                String thisSource = (String)vertices[0].get("path");
+                if(thisSource.equals(src))
+                    return true;
+            }
         }
         return false;
     }
