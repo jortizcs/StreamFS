@@ -1523,7 +1523,10 @@ public class MySqlDriver implements Is4Database {
 			if(path != null) {
 				conn = openConnLocal();
 				Statement s = conn.createStatement ();
-				ResultSet rs = s.executeQuery ( "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\"");
+                String altPath = path.endsWith("/")?path.substring(0, path.length()-1):path+"/";
+                String query = "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
+                logger.fine("MySqlDriver.rrGetPropertiesStr::Query=" + query);
+				ResultSet rs = s.executeQuery (query);
 				while(rs.next()){
 					Blob propsBlob = rs.getBlob("properties");
 					String propsStr = null;
@@ -1555,7 +1558,10 @@ public class MySqlDriver implements Is4Database {
 			if(path != null) {
 				conn = openConnLocal();
 				Statement s = conn.createStatement ();
-				ResultSet rs = s.executeQuery ( "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\"");
+                String altPath = path.endsWith("/")?path.substring(0, path.length()-1):path+"/";
+                String query = "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
+                logger.fine("MySqlDriver.rrGetProperties::Query=" + query);
+				ResultSet rs = s.executeQuery (query );
 				while(rs.next()){
 					Blob propsBlob = rs.getBlob("properties");
 					JSONObject props = new JSONObject();
@@ -1795,6 +1801,83 @@ public class MySqlDriver implements Is4Database {
 		return hardlinkUris;
 
 	}
+
+    public HashMap<String, String> move(String srcPath, String dstPath){
+        Connection conn = openConn();
+        HashMap<String, String> retMap = new HashMap<String, String>();
+		try{
+            //clean the path
+            srcPath = srcPath.replaceAll("/+", "/");
+            dstPath = dstPath.replaceAll("/+", "/");
+            srcPath = srcPath.endsWith("/")?srcPath:srcPath+"/";
+            dstPath = dstPath.endsWith("/")?dstPath:dstPath+"/";
+
+            //construct the alternate path
+            String altPath = null;
+            if(srcPath.endsWith("/"))
+                altPath = srcPath.substring(0, srcPath.length()-1);
+            else
+                altPath = srcPath + "/";
+
+            //change all resources that start with the srcPath prefix
+            String p = srcPath.endsWith("/")?srcPath:srcPath+"/";
+            String rp = dstPath.endsWith("/")?dstPath:dstPath+"/";
+            String query = "Select `path` from `rest_resources` where `path` like \"" + p + "%\"";
+            logger.fine("Move.Query.3=" + query);
+            PreparedStatement ps = conn.prepareStatement(query);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()){
+                String thisPath = rs.getString("path");
+                String replacementStr = thisPath.replace(p, rp);
+                query = "Update `rest_resources` set `path`=? WHERE `path`=?";
+                logger.fine("Move.Query.4=" + 
+                    query.replaceFirst("\\?", replacementStr).replaceFirst("\\?", thisPath));
+                retMap.put(thisPath, replacementStr);
+                ps = conn.prepareStatement(query);
+                ps.setString(1, replacementStr);
+                ps.setString(2, thisPath);
+                ps.executeUpdate();
+            }
+
+            query = "Select `symlink_uri` from `symlinks` where `symlink_uri` like \"" + p + "%\"";
+            logger.fine("Move.Query.5=" + query);
+            ps = conn.prepareStatement(query);
+            rs = ps.executeQuery();
+            while(rs.next()){
+                String thisPath = rs.getString("symlink_uri");
+                String replacementStr = thisPath.replace(p, rp);
+                query = "Update `symlinks` set `symlink_uri`=? WHERE `symlink_uri`=?";
+                logger.fine("Move.Query.6=" + 
+                    query.replaceFirst("\\?", replacementStr).replaceFirst("\\?", thisPath));
+                ps = conn.prepareStatement(query);
+                ps.setString(1, replacementStr);
+                ps.setString(2, thisPath);
+                ps.executeUpdate();
+            }
+
+            query = "Select `report_uri` from `publishers` where `report_uri` like \"" + p + "%\"";
+            logger.fine("Move.Query.8=" + query);
+            ps = conn.prepareStatement(query);
+            rs = ps.executeQuery();
+            while(rs.next()){
+                String thisPath = rs.getString("report_uri");
+                String replacementStr = thisPath.replace(p, rp);
+                query = "Update `publishers` set `report_uri`=? WHERE `report_uri`=?";
+                logger.fine("Move.Query.8=" + 
+                    query.replaceFirst("\\?", replacementStr).replaceFirst("\\?", thisPath));
+                ps = conn.prepareStatement(query);
+                ps.setString(1, replacementStr);
+                ps.setString(2, thisPath);
+                ps.executeUpdate();
+            }
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+		finally {
+			closeConn(conn);
+		}
+        return retMap;
+    }
 
 	/**********************************************************************************************/
 
@@ -2966,117 +3049,6 @@ public class MySqlDriver implements Is4Database {
 		}
 		return ts;
 	}
-
-
-	/*******************************/
-	/** Properties buffer queries **/
-	/*******************************/
-
-	/*
-	public boolean hasPropertiesBuffered(String uri){
-		boolean hasProps = false;
-		try{
-			String query = "SELECT `id` from `last_props_buffer` where `uri`=?";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			ps.setString(1,uri);
-			ResultSet rs = ps.executeQuery();
-			if(rs.next())
-				hasProps = true;
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-		return hasProps;
-	}
-
-	public void insertPropertiesIntoBuffer(String uri, JSONObject props){
-		try{
-			String query = "INSERT into `last_props_buffer` (`uri`, `properties`) values (?, ?)";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			ps.setString(1,uri);
-			SerialBlob thisBlob = new SerialBlob(props.toString().getBytes());
-			ps.setBlob(2, thisBlob);
-			ps.executeUpdate();
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-	}
-
-	public void updatePropertiesInBuffer(String uri, JSONObject props){
-		try{
-			String query = "UPDATE `last_props_buffer` set `properties`=? where `uri`=?";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			SerialBlob thisBlob = new SerialBlob(props.toString().getBytes());
-			ps.setBlob(1, thisBlob);
-			ps.setString(2,uri);
-			ps.executeUpdate();
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-	}*/
-
-	/*************************/
-	/** Data buffer Queries **/
-	/*************************/
-	/*
-	public boolean hasDataBuffered(String uri){
-		boolean hasData = false;
-		try{
-			String query = "SELECT `id` from `last_data_buffer` where `uri`=?";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			ps.setString(1,uri);
-			ResultSet rs = ps.executeQuery();
-			if(rs.next())
-				hasData = true;
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-		return hasData;
-	}
-
-	public void insertIntoDataBuffer(String uri, JSONObject data){
-		try{
-			String query = "INSERT into `last_data_buffer` (`uri`, `data`) values (?, ?)";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			ps.setString(1,uri);
-			SerialBlob thisBlob = new SerialBlob(data.toString().getBytes());
-			ps.setBlob(2, thisBlob);
-			ps.executeUpdate();
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-	}
-
-	public void updateDataBuffer(String uri, JSONObject data){
-		try{
-			String query = "UPDATE `last_data_buffer` set `data`=? where `uri`=?";
-			logger.info("QUERY: " + query);
-			Connection conn = openConn();
-			PreparedStatement ps = conn.preparedStatement(query);
-			SerialBlob thisBlob = new SerialBlob(data.toString().getBytes());
-			ps.setBlob(1, thisBlob);
-			ps.setString(2,uri);
-			ps.executeUpdate();
-			closeConn(conn);
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-	}*/
-	
 	
 		/************************/
 		/** Model queries **/
@@ -3135,118 +3107,6 @@ public class MySqlDriver implements Is4Database {
 
 	/************************************************************************************/
 
-	public String getPid(String deviceName) {
-		String pid  = null;
-		Connection conn = openConn();
-		try {
-			Statement s = conn.createStatement ();
-			ResultSet rs = s.executeQuery ( "SELECT id FROM `object_stream` WHERE `device_name`=\"" + deviceName + "\"");
-			if(rs.next())
-				pid = rs.getString("id");
-			
-		} catch (Exception e){
-			logger.log(Level.WARNING, "Error while fetching regId", e);
-		}
-		finally {
-			closeConn(conn);
-		}
-		return pid;
-	}
-
-	public boolean inFormatting(String pid) {
-
-		Connection conn = openConn();
-		boolean found = false;
-		try{
-			Statement s = conn.createStatement ();
-			ResultSet rs = s.executeQuery ( "SELECT * FROM `Formatting` WHERE `id`=\"" + pid + "\"");
-			String name =null;
-			if(rs.next())
-				found=true;
-		} catch (Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
-		finally {
-			closeConn(conn);
-		}
-		return found;
-	}
-
-	public String getName(String pid){
-
-		Connection conn = openConn();
-		String name =null;
-		try {
-			Statement s = conn.createStatement ();
-			ResultSet rs = s.executeQuery ( "SELECT device_name FROM `object_stream` WHERE `id`=\"" + pid + "\"");
-			if(rs.next())
-				name = rs.getString("device_name");
-		
-		} catch (Exception e){
-			logger.log(Level.WARNING, "Error while fetching pud id", e);
-		}
-		finally {
-			closeConn(conn);
-		}
-		return name;
-	}
-
-	public JSONObject getMetadata(String id) {
-
-		JSONObject meta = new JSONObject();
-		JSONObject os = new JSONObject();
-		JSONObject cs = new JSONObject();
-		JSONObject ls = new JSONObject();
-
-		Connection conn = openConn();
-		try {
-			
-			Statement s = conn.createStatement ();
-			ResultSet rs = s.executeQuery ( "SELECT * FROM `object_stream` WHERE `id`=\"" + id + "\"");
-			while(rs.next()){
-				os.put("id", id);
-				os.put("device_name", rs.getString("device_name"));
-				os.put("make", rs.getString("make"));
-				os.put("model", rs.getString("model"));
-				os.put("desc", rs.getString("desc"));
-				os.put("address", rs.getString("address"));
-				os.put("sensors", rs.getString("sensors"));
-				os.put("timestamp", rs.getString("timestamp"));
-			}
-
-			s = conn.createStatement ();
-			rs = s.executeQuery ( "SELECT * FROM `context_stream` WHERE `id`=\"" + id + "\"");
-			while(rs.next()){
-				cs.put("id", id);
-				cs.put("context_desc", rs.getString("context_desc"));
-				cs.put("timestamp", rs.getString("timestamp"));
-			}
-
-			s = conn.createStatement ();
-			rs = s.executeQuery ( "SELECT * FROM `logic_stream` WHERE `id`=\"" + id + "\"");
-			while (rs.next()){
-				ls.put("id", id);
-				ls.put("functions", rs.getString("functions"));
-				ls.put("dataschema", rs.getString("dataschema"));
-				ls.put("timestamp", rs.getString("timestamp"));
-			}
-
-
-			meta.put("object_stream", os);
-			meta.put("context_stream", cs);
-			meta.put("logic_stream", ls);
-
-			return meta;
-		} catch (Exception e){
-			logger.log(Level.WARNING, "Error while fetching metadata", e);
-		}
-
-		finally {
-			closeConn(conn);
-		}
-		return new JSONObject();
-	}
-
 	/* There are different types of queries that you can run so this might/should expand*/
 	public JSONObject query(String query) {
 		return null;
@@ -3280,4 +3140,16 @@ public class MySqlDriver implements Is4Database {
 			return false;*/
 		return true;
 	}
+
+    public JSONObject getMetadata(String id){
+        return null;
+    }
+
+    public String getPid(String id){
+        return null;
+    }
+
+    public String getName(String id){
+        return null;
+    }
 }

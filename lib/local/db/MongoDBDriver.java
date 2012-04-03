@@ -924,6 +924,49 @@ public class MongoDBDriver implements Is4Database {
 		}
 		return results;
 	}
+
+    public void move(String srcPath, String dstPath){
+		boolean dbCursorOpen=false;
+		boolean dataReposOpen=false;
+		DBCursor dbCursor =null;
+        WriteResult writeResults =null;
+		try {
+            String altPath =srcPath.endsWith("/")?srcPath.substring(0, srcPath.length()-1):srcPath+"/";
+			if(m!= null){
+                JSONObject queryObj = new JSONObject();
+                JSONArray orArray = new JSONArray();
+                JSONObject cond1 = new JSONObject();
+                JSONObject cond2 = new JSONObject();
+                cond1.put("is4_uri", srcPath);
+                cond2.put("is4_uri", altPath);
+                orArray.add(cond1);
+                orArray.add(cond2);
+                queryObj.put("$or", orArray);
+				BasicDBObject queryDBObj = new BasicDBObject((Map)queryObj);
+				dataRepos.requestStart();
+                dataReposOpen= true;
+				dbCursor = propsCollection.find(queryDBObj);
+				dbCursorOpen=true;
+			    if(dbCursor.hasNext()){
+					JSONObject thisJSONObj = (JSONObject) JSONSerializer.toJSON(dbCursor.next());
+                    thisJSONObj.put("is4_uri", dstPath);
+                    BasicDBObject updatedObj = new BasicDBObject((Map)thisJSONObj);
+                    writeResults = propsCollection.update(queryDBObj, updatedObj);
+				}
+			}
+			
+		} catch(Exception e){
+            if(writeResults !=null)
+			    logger.log(Level.WARNING, writeResults.getError(), e);
+            else
+                logger.log(Level.WARNING, "", e);
+		} finally {
+			if(dbCursorOpen)
+				dbCursor.close();
+			if(dataReposOpen)
+				dataRepos.requestDone();
+		}
+	}
 	
 	
 	

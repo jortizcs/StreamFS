@@ -69,7 +69,8 @@ public class RESTServer {
     PipedInputStream myEnd_pipedInput = null;
     PipedOutputStream myEnd_pipedOut = null;
 
-
+    private static Object lock = new Object();
+    
 	public RESTServer(){}
 
 	public RESTServer(String address, int p){
@@ -319,6 +320,66 @@ public class RESTServer {
 				logger.log(Level.WARNING, "", e);
 		}
 	}
+
+    public static boolean moveResource(String srcPath, String dstPath){
+        if(srcPath == null || dstPath == null || !isResource(srcPath) || 
+            baseResources.contains(srcPath) || baseResources.contains(dstPath))
+            return false;
+
+        //check that the parent exists
+        StringTokenizer tokenizer = new StringTokenizer(dstPath, "/");
+        Vector<String> tokens = new Vector<String>();
+        while(tokenizer.hasMoreTokens())
+            tokens.add(tokenizer.nextToken());
+        StringBuffer parentPathBuf = new StringBuffer();
+        for(int i=0; i<tokens.size()-1; ++i)
+            parentPathBuf.append("/").append(tokens.get(i));
+        parentPathBuf.append("/");
+        Resource r = RESTServer.getResource(parentPathBuf.toString());
+        if(r==null || r.TYPE!=ResourceUtils.DEFAULT_RSRC)
+            return false;
+
+        boolean retval=false;
+
+        //clean the path
+        srcPath = srcPath.replaceAll("/+", "/");
+        dstPath = dstPath.replaceAll("/+", "/");
+        if(!srcPath.endsWith("/"))
+            srcPath += "/";
+        if(!dstPath.endsWith("/"))
+            dstPath += "/";
+       
+        //update 
+        MySqlDriver database = (MySqlDriver)DBAbstractionLayer.database;
+        synchronized(lock){
+            r = RESTServer.getResource(srcPath);
+            if(r!=null){
+                //change it in MongoDB
+                HashMap<String, String> affectedPaths = database.move(srcPath,dstPath);
+               
+                if(affectedPaths != null){ 
+                    //for all affected paths run the update
+                    Iterator<String> keys = affectedPaths.keySet().iterator();
+                    while(keys.hasNext()){
+                        String thisSrc = keys.next();
+                        String thisDst = affectedPaths.get(thisSrc);
+                        mdriver.move(thisSrc, thisDst);
+
+                        r = RESTServer.getResource(thisSrc);
+                        if(r !=null) {
+                            //update the local web server mappings
+                            RESTServer.removeResource(r);
+                            r.setURI(thisDst);
+                            RESTServer.addResource(r);
+                        }
+                    }
+                    retval = true;
+                }
+            } else
+                retval = false;
+        }
+        return retval;
+    }
 
 	public static boolean isBaseResource(String path){
 		return baseResources.contains(path);

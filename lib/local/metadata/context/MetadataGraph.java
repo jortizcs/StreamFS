@@ -163,6 +163,7 @@ public class MetadataGraph{
                 
 
 				thisPath = thisResource.getURI();
+                logger.fine("populateInternalGraph::thisPath=" + thisPath);
 				Vertex v = internalGraph.insertVertex(thisPath);
 				v.set("path", thisPath);
 

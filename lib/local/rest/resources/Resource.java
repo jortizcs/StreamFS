@@ -136,6 +136,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		return URI;
 	}
 
+    public void setURI(String newPath){
+        URI = newPath;
+    }
+
 	public int getType(){
 		return TYPE;
 	}
@@ -349,17 +353,21 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					}
 				}
 
-                else if(op.equalsIgnoreCase("move")){
-                    JSONArray errors=new JSONArray();
-                    JSONObject resp = new JSONObject();
-                    
-                    if(!dataObj.optString("src").equals("") && !dataObj.optString("dst").equals("")){
-                        //change the database resource pathname
-                        //if it's a symlink, so it there too
+				else if(op.equalsIgnoreCase("move")){
+				    JSONArray errors=new JSONArray();
+				    JSONObject resp = new JSONObject();
+				    
+				    if(!dataObj.optString("src").equals("") && !dataObj.optString("dst").equals("")){
+                        String srcPath = dataObj.getString("src");
+                        String dstPath = dataObj.getString("dst");
                         //tell RESTServer you're moving the resource
-                        //  - change the name of the resource object
-                        //  - change lookup key in the RESTServer
-                        //change the id associated with this resource object in mongodb
+                        if(RESTServer.moveResource(srcPath, dstPath))
+                            resp.put("status", "success");
+                        else{
+                            errors.add("Could not move resource; check src and dst paths are valid and dst parent is default resource");
+                            resp.put("status", "fail");
+                            resp.put("errors", errors);
+                        }
                     } else {
                         errors.add("Request must contain 'src' and 'dst' attributes");
                         resp.put("status", "fail");
@@ -367,7 +375,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                     }
                     sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
                 }
-								
+
 				else {
 					sendResponse(exchange, 200, null, internalCall, internalResp);
 				}
