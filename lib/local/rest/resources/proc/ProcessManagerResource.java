@@ -98,26 +98,41 @@ public class ProcessManagerResource extends Resource {
     }
 
     public boolean initiate(JSONObject configServerEntry){
+        logger.info(configServerEntry.toString());
         if(configServerEntry ==null || !configServerEntry.containsKey("host") ||
                 !configServerEntry.containsKey("port") || 
-                !configServerEntry.containsKey("name"))
+                !configServerEntry.containsKey("name")){
+            logger.warning("port, name, host must be set");
             return false;
+        }
 
         try {
             String name = configServerEntry.getString("name");
-            String host = configServerEntry.getString("port");
+            String host = configServerEntry.getString("host");
             int port = configServerEntry.getInt("port");
             JSONObject initObj = new JSONObject();
             initObj.put("command", "init");
             initObj.put("sfsname", "jortiz");
-            Socket socket = new Socket(host, port);
+            Socket socket =null;
+            //if(host.equals("127.0.0.1") || host.equals("localhost"))
+                socket = new Socket(host, port);
+            /*else
+                socket = new Socket(null, port);*/
+
             if(socket.isConnected()){
+                BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());
+                byte[] data = initObj.toString().getBytes();
+                bos.write(data, 0, data.length);
+                bos.flush();
                 connections.put(name, socket);
+            } else {
+                logger.info("Socket is NOT connected");
             }
 
-            logger.info("closing socket");
-            socket.close();
+            //logger.info("closing socket");
+            //socket.close();
         } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
             return false;
         }
         return true;

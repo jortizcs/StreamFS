@@ -28,6 +28,7 @@ import local.metadata.context.*;
 import local.rest.handlers.*;
 import local.db.*;
 import local.rest.resources.*;
+import local.rest.resources.proc.*;
 import local.rest.resources.util.*;
 import local.analytics.*;
 
@@ -180,6 +181,11 @@ public class RESTServer {
 			ModelManagerResource mmr = new ModelManagerResource();
 			baseResources.put(mmr.getURI(),"");
 			RESTServer.addResource(mmr);
+
+            //Process manager
+            ProcessManagerResource pmr = new ProcessManagerResource();
+            baseResources.put(pmr.getURI(), "");
+            RESTServer.addResource(pmr);
 
 			//setup admin resources
 			Resource adminResource = new Resource(rootPath + "admin/");

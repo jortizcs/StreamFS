@@ -73,3 +73,4 @@ javac lib/local/analytics/lib/db/OlapMongoDBDriver.java
 javac lib/local/analytics/lib/maths/Interpolator.java
 javac lib/local/analytics/lib/maths/InterpType.java
 javac lib/local/analytics/util/BiHashtable.java
+javac lib/local/rest/resources/proc/ProcessManagerResource.java

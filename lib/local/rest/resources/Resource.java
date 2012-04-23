@@ -194,7 +194,11 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				logger.fine(subResourceNames.toString());
 				response.put("status", "success");
 				response.put("type", ResourceUtils.translateType(TYPE));
-				response.put("properties", database.rrGetProperties(URI));
+                JSONObject p = (JSONObject) JSONSerializer.toJSON(database.rrGetProperties(URI));
+                p.remove("_keywords");
+                p.remove("is4_uri");
+                p.remove("timestamp");
+				response.put("properties", p.toString());
 				findSymlinks(subResourceNames);
 				response.put("children",subResourceNames);
 				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
