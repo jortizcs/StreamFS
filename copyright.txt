@@ -1,5 +1,5 @@
 /*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
+ * "Copyright (c) 2010-14 The Regents of the University  of California. 
  * All rights reserved.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -19,5 +19,5 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * StreamFS release version 2.0
+ * StreamFS release version 3.0
  */
