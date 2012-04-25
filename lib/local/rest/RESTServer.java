@@ -500,6 +500,14 @@ public class RESTServer {
 							alreadyAdded=true;
 						}
 						break;
+
+                    case ResourceUtils.PROCESS_PUBLISHER_RSRC:
+                        resource = RESTServer.getResource(thisPath);
+                        break;
+
+                    case ResourceUtils.PROCESS_RSRC:
+                        resource = RESTServer.getResource(thisPath);
+                        break;
 						
 					default:
 						resource = new Resource(thisPath);
