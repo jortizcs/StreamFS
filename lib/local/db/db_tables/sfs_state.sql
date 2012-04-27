@@ -1,29 +1,10 @@
--- phpMyAdmin SQL Dump
--- version 3.3.2deb1
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: Jul 26, 2011 at 11:01 AM
--- Server version: 5.1.41
--- PHP Version: 5.3.2-1ubuntu4.9
-
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8 */;
 
---
--- Database: `sfs_state`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `bulk_reports`
---
 
 CREATE TABLE IF NOT EXISTS `bulk_reports` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -35,13 +16,7 @@ CREATE TABLE IF NOT EXISTS `bulk_reports` (
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `smap_report_id` (`smap_report_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=4 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `devices`
---
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 CREATE TABLE IF NOT EXISTS `devices` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -52,12 +27,6 @@ CREATE TABLE IF NOT EXISTS `devices` (
   UNIQUE KEY `rrid` (`rrid`),
   KEY `pubtable_id` (`pubtable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `publishers`
---
 
 CREATE TABLE IF NOT EXISTS `publishers` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -76,13 +45,7 @@ CREATE TABLE IF NOT EXISTS `publishers` (
   KEY `smap_server` (`smap_server`),
   KEY `alias` (`alias`),
   KEY `smap_uri` (`smap_uri`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=222 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `rest_resources`
---
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=447 ;
 
 CREATE TABLE IF NOT EXISTS `rest_resources` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -90,18 +53,12 @@ CREATE TABLE IF NOT EXISTS `rest_resources` (
   `properties` longblob,
   `last_props_update_time` int(10) NOT NULL DEFAULT '0' COMMENT 'The last time this properties field was updated.',
   `last_model_update_time` int(10) NOT NULL DEFAULT '0',
-  `type` enum('default','generic_publisher','publisher','devices','device','subscription','symlink','model') NOT NULL DEFAULT 'default',
+  `type` enum('default','generic_publisher','publisher','devices','device','subscription','symlink','model','process','process_code') NOT NULL DEFAULT 'default',
   `creation_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `path` (`path`),
   KEY `type` (`type`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=612 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `subscriptions`
---
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=998 ;
 
 CREATE TABLE IF NOT EXISTS `subscriptions` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -113,16 +70,13 @@ CREATE TABLE IF NOT EXISTS `subscriptions` (
   `src_pubid` varchar(36) NOT NULL,
   `wildcardPath` varchar(255) DEFAULT NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `procsvr_name` varchar(255) NOT NULL,
+  `procsvr_host` varchar(255) NOT NULL DEFAULT '',
+  `procsvr_port` int(5) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`),
   KEY `subid` (`subid`),
   KEY `src_pubid` (`src_pubid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=75 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `symlinks`
---
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=78 ;
 
 CREATE TABLE IF NOT EXISTS `symlinks` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -131,4 +85,4 @@ CREATE TABLE IF NOT EXISTS `symlinks` (
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `symlink_uri` (`symlink_uri`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=114 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=117 ;
