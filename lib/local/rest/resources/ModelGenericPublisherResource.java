@@ -177,7 +177,7 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 		SubMngr submngr = SubMngr.getSubMngrInstance();
 		submngr.signalModelThreadKill(this);
 
-		//delete all subscriptions where the associate model thread was the publisher
+		//delete all subscriptions where the associate model thread was the publisher source
 		JSONArray subs = database.getAllAssociatedSubUris(URI);
 		for(int i=0; i<subs.size(); i++){
 			Resource r = RESTServer.getResource((String)subs.get(i));

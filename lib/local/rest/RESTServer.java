@@ -502,11 +502,17 @@ public class RESTServer {
 						break;
 
                     case ResourceUtils.PROCESS_PUBLISHER_RSRC:
-                        resource = RESTServer.getResource(thisPath);
                         break;
 
                     case ResourceUtils.PROCESS_RSRC:
-                        resource = RESTServer.getResource(thisPath);
+                        try {
+                            String script = database.rrGetPropertiesStr(thisPath);
+                            JSONObject scriptObj = (JSONObject)JSONSerializer.toJSON(script);
+                            resource = new ProcessResource(thisPath, scriptObj.getJSONObject("script").toString());
+                            this.addResource(resource);
+                        } catch(Exception e){
+                            logger.log(Level.WARNING, "", e);
+                        }
                         break;
 						
 					default:

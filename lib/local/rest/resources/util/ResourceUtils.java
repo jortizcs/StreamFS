@@ -50,6 +50,8 @@ public class ResourceUtils {
 	public static final String MODEL_RSRC_STR = "MODEL";
 	public static final String MODEL_INSTANCE_RSRC_STR = "MODEL_INSTANCE";
 	public static final String MODEL_GENERIC_PUBLISHER_RSRC_STR ="MODEL_GENERIC_PUBLISHER";
+    public static final String PROCESS_PUBLISHER_RSRC_STR = "PROCESS";
+    public static final String PROCESS_RSRC_STR = "PROCESS_CODE";
 
 	//resource type ints
 	public static final int DEFAULT_RSRC = 0;
@@ -62,7 +64,8 @@ public class ResourceUtils {
 	public static final int MODEL_RSRC = 8;
 	public static final int MODEL_INSTANCE_RSRC = 9;
 	public static final int MODEL_GENERIC_PUBLISHER_RSRC = 10;
-	
+    public static final int PROCESS_PUBLISHER_RSRC = 11;
+    public static final int PROCESS_RSRC = 12;
 
 	//methods
 	public static boolean isValidType(String type){
@@ -87,6 +90,10 @@ public class ResourceUtils {
 			case MODEL_INSTANCE_RSRC:
 				return true;
 			case MODEL_GENERIC_PUBLISHER_RSRC:
+				return true;
+            case PROCESS_PUBLISHER_RSRC:
+				return true;
+            case PROCESS_RSRC:
 				return true;
 			default:
 				return false;
@@ -116,6 +123,10 @@ public class ResourceUtils {
 				return MODEL_INSTANCE_RSRC;
 			else if(type.equalsIgnoreCase(MODEL_GENERIC_PUBLISHER_RSRC_STR))
 				return MODEL_GENERIC_PUBLISHER_RSRC;
+            else if(type.equalsIgnoreCase(PROCESS_PUBLISHER_RSRC_STR))
+				return PROCESS_PUBLISHER_RSRC;
+            else if(type.equalsIgnoreCase(PROCESS_RSRC_STR))
+				return PROCESS_RSRC;
 		}
 		return -1;
 	}
@@ -142,6 +153,10 @@ public class ResourceUtils {
 				return MODEL_INSTANCE_RSRC_STR;
 			case MODEL_GENERIC_PUBLISHER_RSRC:
 				return MODEL_GENERIC_PUBLISHER_RSRC_STR;
+            case PROCESS_PUBLISHER_RSRC:
+				return PROCESS_PUBLISHER_RSRC_STR;
+            case PROCESS_RSRC:
+				return PROCESS_RSRC_STR;
 			default:
 				return null;
 		}
@@ -198,4 +213,17 @@ public class ResourceUtils {
 		Vector<String> myChildrenVec = new Vector<String>(myChildren);
 		return !myChildrenVec.contains(childName);
 	}
+
+    public static String cleanPath(String path){
+        //clean up the path
+        if(path == null)
+            return path;
+
+        if(!path.startsWith("/"))
+            path = "/" + path;
+        path = path.replaceAll("/+", "/");
+        if(!path.endsWith("/"))
+            path += "/";
+        return path;
+    }
 }

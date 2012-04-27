@@ -70,6 +70,10 @@ public class GenericPublisherResource extends Resource{
 		database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
 	}
 
+    public UUID getPubId(){
+        return publisherId;
+    }
+
 	public synchronized void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
 		
 		if(exchange.getAttribute("query") != null &&

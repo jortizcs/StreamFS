@@ -1,27 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 2.0
- */
-
 package is4;
 
 import java.util.logging.Logger;
@@ -35,6 +11,7 @@ import com.sun.net.httpserver.*;
 import local.db.*;
 import local.rest.*;
 import local.rest.resources.*;
+import local.rest.resources.proc.*;
 import local.rest.resources.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.nio.ByteBuffer;
@@ -165,7 +142,8 @@ public class SubMngr {
 			if(target.startsWith("/")){
 				//the target uri/path; try to create a model thread and pipe
 				Resource r = RESTServer.getResource(target);
-				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC)){
+				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC ||
+                                r.TYPE==ResourceUtils.PROCESS_RSRC || r.TYPE==ResourceUtils.PROCESS_PUBLISHER_RSRC)){
 
 					if(r.TYPE==ResourceUtils.MODEL_RSRC){
 						Pipe newPipe = Pipe.open();
@@ -206,6 +184,17 @@ public class SubMngr {
 						//create initial entry
 						database.insertNewSubEntry(UUID.fromString(newSubId), null, null, null, r.getURI(), null, wildcardPath);
 					}
+
+
+                    else if(r.TYPE == ResourceUtils.PROCESS_RSRC){
+                        //create a new publisher, get the path to it and set the target to that path
+                        logger.info("Installing subscription and creating publisher for associated process for target (" + target + ")");
+                    }
+
+                    else if(r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC){
+                        //add this publisher to the subscription for this resource
+                        logger.info("Adding stream to subscription for a publisher resource (" + target + ")");
+                    }
 				} else {
 					errors.add("Target path must be a MODEL or PROCESSING resource");
 					response = response.discard("subid");
@@ -268,7 +257,8 @@ public class SubMngr {
 			if(target.startsWith("/")){
 				//the target uri/path; try to create a model thread and pipe
 				Resource r = RESTServer.getResource(target);
-				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC)){
+				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC ||
+                                r.TYPE==ResourceUtils.PROCESS_RSRC || r.TYPE==ResourceUtils.PROCESS_PUBLISHER_RSRC)){
 					
 					if(r.TYPE==ResourceUtils.MODEL_RSRC){
 						Pipe newPipe = Pipe.open();
@@ -309,7 +299,41 @@ public class SubMngr {
 
 						//create initial entry
 						database.insertNewSubEntry(UUID.fromString(newId), null, null, null, r.getURI(), pubid, null);
-					}
+					} 
+
+                    else if(r.TYPE == ResourceUtils.PROCESS_RSRC){
+                        //create a new publisher, get the path to it and set the target to that path
+                        logger.info("Installing subscription and creating publisher for associated process for target (" + target + ")");
+                        JSONObject pubinfo = ((ProcessResource)r).startNewProcess(newId);
+                        if(pubinfo !=null){
+                            try {
+                                String path = pubinfo.getString("path");
+                                database.insertNewSubEntry(UUID.fromString(newId), null, null, null, path, pubid, null);
+                                if(!ProcessManagerResource.updateSubEntry(newId)){
+                                    Resource resource_ = RESTServer.getResource(path);
+                                    resource_.delete(null, true, new JSONObject());
+                                    database.removeSubEntry(UUID.fromString(newId));
+
+                                    response.clear();
+                                    errors.add("Could not start process on process server");
+                                    errors.add("Check that process servers are all up");
+                                    response.put("errors", errors);
+                                }
+                                    
+                                return response;
+                            } catch(Exception e){
+                                logger.log(Level.WARNING, "", e);
+                                response.clear();
+                                errors.add("Exception thrown while creating process publisher during subscription installation");
+                                response.put("error", errors);
+                            }
+                        }
+                    }
+
+                    else if(r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC){
+                        //add this publisher to the subscription for this resource
+                        logger.info("Adding stream to subscription for a publisher resource (" + target + ")");
+                    }
 				} else {
 					errors.add("Target path must be a MODEL resource");
 					response = response.discard("subid");
@@ -549,10 +573,16 @@ public class SubMngr {
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 									in.close();
 								}
-							} 
+							}
+                
+                            else if(thisSubUriStr != null && 
+                                        RESTServer.getResource(thisSubUriStr).getType()==ResourceUtils.PROCESS_PUBLISHER_RSRC){
+                                    ProcessManagerResource.dataReceived(usid.toString(), dataObject);
+                            }
 							
 							//this target is a model, lets see which instance to model thread to forward the data to
-							else if(thisSubUriStr != null){
+							else if(thisSubUriStr != null && 
+                                        RESTServer.getResource(thisSubUriStr).getType()==ResourceUtils.MODEL_RSRC){
 								logger.info("Looking up pipe for subid: " + usid.toString());
 								String destUri = database.getSubDestUriStr(usid);
 								UUID pubid = database.isPublisher(destUri, false);

@@ -74,3 +74,5 @@ javac lib/local/analytics/lib/maths/Interpolator.java
 javac lib/local/analytics/lib/maths/InterpType.java
 javac lib/local/analytics/util/BiHashtable.java
 javac lib/local/rest/resources/proc/ProcessManagerResource.java
+javac lib/local/rest/resources/proc/ProcessPublisherResource.java
+javac lib/local/rest/resources/proc/ProcessResource.java

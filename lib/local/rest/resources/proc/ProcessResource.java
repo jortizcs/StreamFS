@@ -23,16 +23,16 @@ public class ProcessResource extends Resource {
 	
 	protected static transient final Logger logger = Logger.getLogger(ProcessResource.class.getPackage().getName());
 
-    protected String scriptStr=null;
+    protected JSONObject scriptObj=null;
     private String lastError = null;
 
     public ProcessResource(String path, String scriptObjStr) throws Exception, InvalidNameException{
         super(path);
-        scriptStr = scriptObjStr;
+        scriptObj = (JSONObject)JSONSerializer.toJSON(scriptObjStr);
         TYPE = ResourceUtils.PROCESS_RSRC;
         database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
         JSONObject properties = new JSONObject();
-        properties.put("script", translateScript(scriptObjStr));
+        properties.put("script", translateScript(scriptObj.toString()));
         setNewProperties(properties);
     }
 
@@ -61,12 +61,38 @@ public class ProcessResource extends Resource {
         return ret;
     }
 
-    public boolean startNewProcess(String subid){
+    public JSONObject startNewProcess(String subid){
         //create a new publisher associated with the output of running this process
-        //pass the new path to processing layer for POSTing output to it.
+        String rfn = UUID.randomUUID().toString();
+        rfn = rfn.substring(rfn.lastIndexOf("-")+1, rfn.length());
+        if(rfn.startsWith("-"))
+            rfn = rfn.substring(1, rfn.length());
+        if(rfn.endsWith("-"))
+            rfn = rfn.substring(0, rfn.length()-1);
+
         //  + pass in the materialize option as the default (can be changed on a specific publisher)
-        //  + pass in the associated subscription id
-        return true;
+        UUID npid = null;
+        if((npid=this.createPublisher(rfn, scriptObj.optBoolean("materialize", false))) !=null){
+            ProcessPublisherResource newpubfile = 
+                (ProcessPublisherResource)RESTServer.getResource(
+                                                ResourceUtils.cleanPath(URI)+rfn);
+            if(newpubfile !=null){
+                newpubfile.setAssociatedSubId(UUID.fromString(subid));
+                //pass the new path to processing layer for POSTing output to it.
+                //  + pass in the associated subscription id    
+
+                String str = translateScript(scriptObj.toString());
+                logger.info(str);
+                ProcessManagerResource.startProcess(subid, str, newpubfile.getURI());
+                JSONObject pubinfo = new JSONObject();
+                pubinfo.put("path", newpubfile.getURI());
+                pubinfo.put("pubid", npid.toString());
+                logger.info(pubinfo.toString());
+                return pubinfo;
+                
+            }
+        }
+        return null;
     }
 
     public void put(HttpExchange exchange, String data, boolean internalCall, 
@@ -88,7 +114,7 @@ public class ProcessResource extends Resource {
 		JSONArray children = database.rrGetChildren(this.URI);
 		try {
 			UUID thisPubIdUUID = null;
-			String pubUri = this.URI + pubName;
+			String pubUri = ResourceUtils.cleanPath(this.URI) + pubName;
 			if(!children.contains(pubName) && 
 				(thisPubIdUUID=database.isPublisher(pubUri, false)) == null){
 

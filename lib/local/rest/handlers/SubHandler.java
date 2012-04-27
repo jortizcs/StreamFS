@@ -79,13 +79,18 @@ public class SubHandler extends Resource {
 				}
 			}
 
+            Resource r;
 			//get pubid id or absolute path
 			String pidStr = jsonReq.optString("pubid");
 			String sNodePathStr = jsonReq.optString("s_uri");
+            if(sNodePathStr.equals(""))
+                sNodePathStr = jsonReq.optString("path");
 			String mNodePathStr = jsonReq.optString("m_uri");
+            if(mNodePathStr.equals(""))
+                mNodePathStr = jsonReq.optString("path");
 			logger.fine("sNodePathStr: " + sNodePathStr + "; mNodePathStr: " + mNodePathStr);
 			if(!pidStr.equals("") && sNodePathStr.equals("") && mNodePathStr.equals("") ){
-				errors.add("Must include one of [pubid | s_uri | m_uri] string");
+				errors.add("Must include one of [pubid | s_uri | m_uri | path] string");
 				resp.put("status", "fail");
 				resp.put("errors", errors);
 				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
@@ -100,7 +105,7 @@ public class SubHandler extends Resource {
 				JSONArray pArray = database.getPubIdsFromSnodes(paths);
 				if(pArray !=null && pArray.size()!=0){
 					pidStr = (String) pArray.get(0);
-				} else {
+				}else {
 					errors.add("Invalid path " + (String)paths.get(0));
 					resp.put("status", "fail");
 					resp.put("errors",errors);

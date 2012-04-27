@@ -15,6 +15,8 @@ import java.util.Enumeration;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
+import java.util.Vector;
+import java.util.StringTokenizer;
 
 import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
@@ -33,16 +35,23 @@ public class ProcessManagerResource extends Resource {
     //the name of the server (as specified in the config file and the assocaited socket
     private static Hashtable<String, Socket> connections = new Hashtable<String, Socket>();
 
-    //the pubid and name of the processing machine where that process runs
+    //the subid and name of the processing machine where that process runs
     private static Hashtable<String, String> procAssignment = new Hashtable<String, String>();
-
-    private static Socket socket =null;
 
     public void setup(){
         properties= new JSONObject();
         properties.put("status", "inactive");
         setNewProperties(properties);
-       
+        loadConfigFile();
+    }
+
+	public ProcessManagerResource() throws Exception, InvalidNameException {
+		super(PROC_ROOT);
+        setup();
+        loadPrevState();
+	}
+
+    public void loadConfigFile(){
         JSONObject configJsonObj=null; 
         //load processing layer config information
         try{
@@ -93,11 +102,7 @@ public class ProcessManagerResource extends Resource {
             logger.log(Level.WARNING, "Missing 'procservers' array in config file.", e);
         }
     }
-	
-	public ProcessManagerResource() throws Exception, InvalidNameException {
-		super(PROC_ROOT);
-        setup();
-	}
+
 
     public boolean initiate(JSONObject configServerEntry){
         logger.info(configServerEntry.toString());
@@ -115,7 +120,9 @@ public class ProcessManagerResource extends Resource {
             JSONObject initObj = new JSONObject();
             initObj.put("command", "init");
             initObj.put("sfsname", "jortiz");
-            socket = new Socket(host, port);
+            initObj.put("sfshost", System.getenv().get("IS4_HOSTNAME"));
+            initObj.put("sfsport", System.getenv().get("IS4_PORT"));
+            Socket socket = new Socket(host, port);
 
             if(socket.isConnected()){
                 BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());
@@ -127,8 +134,6 @@ public class ProcessManagerResource extends Resource {
                 logger.info("Socket is NOT connected");
             }
 
-            //logger.info("closing socket");
-            //socket.close();
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
             return false;
@@ -141,6 +146,36 @@ public class ProcessManagerResource extends Resource {
 	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
 		post(exchange, data, internalCall, internalResp);
 	}
+
+    private static void reconnect(String subid){
+        String n = procAssignment.get(subid);
+        if(n != null){
+            Socket s = connections.get(n);
+            if(s == null)
+                pickServerToRunProcess(subid);
+            else if(s!=null && !s.isConnected()){
+                try {s.close();}catch(Exception e){}
+                connections.remove(n);
+                //find the entry and reconnet
+                for(int i=0; i<serverList.size(); i++){
+                    try {
+                        JSONObject thisServerObj = (JSONObject) JSONSerializer.
+                                                    toJSON(serverList.get(i));
+                        if(thisServerObj.getString("name").equalsIgnoreCase(n)){
+                            String host = thisServerObj.getString("host");
+                            int port = thisServerObj.getInt("port");
+                            Socket sock = new Socket(host, port);
+                            if(sock.isConnected())
+                                connections.put(n, sock);
+                        }
+                    } catch(Exception e){
+                        logger.log(Level.WARNING, "",e);
+                    }
+                }
+                
+            }
+        }
+    }
 	
 	public void post(HttpExchange exchange, String data, 
             boolean internalCall, JSONObject internalResp){
@@ -178,6 +213,7 @@ public class ProcessManagerResource extends Resource {
                         }
                     }
                     setup();
+                    sendResponse(exchange, 200, null, internalCall, internalResp);
                 }
 				
 				else {
@@ -239,12 +275,6 @@ public class ProcessManagerResource extends Resource {
             boolean materialize = scriptObj.optBoolean("materialize", false);
             long timeout = scriptObj.optLong("timeout", 0L);
             
-            /*String cleanScript = scriptObj.toString().trim().replaceAll("\t", " ").replaceAll("\n", " ");
-            cleanScript = cleanScript.trim().replace("\\t", " ").replaceAll("\"", "");
-            logger.info("CleanScript:" + cleanScript);*/
-        
-            /*ModelResource newModelResource = new ModelResource(PROC_ROOT + name + "/", cleanScript, materialize);
-            RESTServer.addResource(newModelResource);*/
             ProcessResource newProc = new ProcessResource(PROC_ROOT + name + "/", scriptObj.toString());
             RESTServer.addResource(newProc);
             sendResponse(exchange, 201, null, internalCall, internalResp);
@@ -254,63 +284,137 @@ public class ProcessManagerResource extends Resource {
         }
     }
 
-    public static void killProcessing(ProcessPublisherResource r){
+    /**
+     * Sends a kill command to the process server for the given subid.
+     * @param subid the subscription identifier used to identify the process associated with this subscription.
+     */
+    public static void killProcessing(String subid){
         //send a message to the server to kill the process that was pushing post-processed
         //data to this associated publisher
-        String processServerName = procAssignment.get(r.getPubId());
-        if(r!=null && processServerName!=null){
-            Socket thisSocket = connections.get(processServerName);
-            if(thisSocket !=null && thisSocket.isConnected()){
-                try {
-                    JSONObject killProcessReq = new JSONObject();
-                    killProcessReq.put("command", "kill");
-                    killProcessReq.put("pubid", r.getPubId());
+        JSONObject killProcessReq = new JSONObject();
+        killProcessReq.put("command", "kill");
+        killProcessReq.put("subid", subid);
+        sendToProcServer(subid, killProcessReq);
+    }
 
-                    BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());
-                    byte[] data = killProcessReq.toString().getBytes();
+    public static void dataReceived(String subid, JSONObject data){
+        JSONObject dataFwdObj = new JSONObject();
+        dataFwdObj.put("command", "process");
+        dataFwdObj.put("subid", subid);
+        dataFwdObj.put("data", data);
+        sendToProcServer(subid, dataFwdObj);
+    }
+
+    /**
+     * Each process is done on a collection of streams, and a collection of streams is contained within 
+     * a subscription; that's why we used the subid to refer to the process.
+     * 
+     * @param subid the subscription id associated with the process to be started on the process server.
+     * @param scriptObjStr the script object in specified Process file creation request.
+     * @param pubPath the path for the publisher that represents the output stream of the process.
+     */
+    public static void startProcess(String subid, String scriptObjStr, String pubPath){
+        //communicate with the nodejs processing layer
+        logger.info("subid=" + subid + ", pubpath=" + pubPath);
+        ProcessPublisherResource p = (ProcessPublisherResource) RESTServer.getResource(pubPath);
+        if(p!=null)
+            logger.info("Publisher for pubpath=" + pubPath + " is not null");
+        String loc = pubPath + "?type=generic&pubid" + p.getPubId();
+        JSONObject startProcReq= new JSONObject();
+        startProcReq.put("command", "procinstall");
+        startProcReq.put("name", "jortiz");
+        startProcReq.put("subid", subid);
+        startProcReq.put("post_loc", loc);
+        startProcReq.put("script", scriptObjStr);
+
+        pickServerToRunProcess(subid);
+
+        sendToProcServer(subid, startProcReq);
+    }
+
+    public static boolean updateSubEntry(String subid){
+        //if successful, save the assignment in the database 
+        //(in the subscriptions table)
+        logger.info("ServerName[subid=" + subid + "]=" + procAssignment.get(subid));
+        Socket sock = connections.get(procAssignment.get(subid));
+        String host =null;
+        int port = sock.getPort();
+        if(sock==null){
+            logger.warning("Socket is null!");
+            return false;
+        } else {
+            String hstr = sock.getInetAddress().toString();
+            StringTokenizer tokenizer = new StringTokenizer(hstr, "/");
+            Vector<String> tokens = new Vector<String>();
+            while(tokenizer.hasMoreElements())
+                tokens.add(tokenizer.nextToken());
+            host = tokens.get(0);
+            logger.info("sock.host=" + host + "\tsock.port=" + sock.getPort());
+        }
+        return database.updateProcSvrAssignment(subid, procAssignment.get(subid), host, port);
+    }
+
+    private static void pickServerToRunProcess(String subid){
+        //pick the server to run the process on and associate this id this that server
+        int idx = (new java.util.Random()).nextInt(serverList.size());
+        JSONObject s = (JSONObject)serverList.get(idx);
+        String serverName = s.getString("name");
+        procAssignment.put(subid,serverName);
+        logger.info("assigned::[subid=" + subid + ", server=" + serverName);
+    }
+
+    public static String sendToProcServer(String subid, JSONObject obj){
+        String machine_name = procAssignment.get(subid);
+        if(machine_name != null){
+            Socket sock = connections.get(machine_name);
+            if(sock !=null && sock.isConnected()){
+                try {
+                    BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
+                    byte[] data = obj.toString().getBytes();
                     bos.write(data, 0, data.length);
                     bos.flush();
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+                    String line = null;
+                    StringBuffer linebuf = new StringBuffer();
+                    boolean end = false;
+                    while(!end && (line=reader.readLine())!=null){
+                        linebuf.append(line);
+                        logger.info("Read line:" + line);
+                        try {
+                            JSONObject o = (JSONObject)JSONSerializer.toJSON(linebuf.toString());
+                            end=true;
+                            logger.info("end=true");
+                        } catch(Exception e){
+                            logger.info("Could not parse: "+ linebuf.toString());
+                        }
+                    }
+                    return linebuf.toString();
                 } catch(Exception e){
                     logger.log(Level.WARNING, "", e);
                 }
-            }
-
+            } else if(sock!=null && !sock.isConnected()){
+                logger.warning("Socket for subid " + subid + " machine: [" + 
+                                sock.getInetAddress().toString() + ", " + sock.getPort() + "]");
+              }
+        } else {
+            logger.info("UNKNOWN::Could not find " + subid + " on any machine");
         }
+        return null;
     }
 
-    public static void dataReceived(String pubPath, JSONObject data){
-        //send it to the associated socket
-        ProcessPublisherResource r = (ProcessPublisherResource)RESTServer.getResource(pubPath);
-        if(r !=null){
-            String pubid = r.getPubId().toString();
-            String serverName = procAssignment.get(pubid);
-            String loc = "http://" + System.getenv().get("IS4_HOSTNAME") + ":" +
-                                System.getenv().get("IS4_PORT") + pubPath + 
-                                "?type=generic&pubid=" + r.getPubId();
-            if(serverName !=null){
-                Socket s = connections.get(serverName);
-                if(s!=null && s.isConnected()){
-                    try {
-                        JSONObject dataFwdObj = new JSONObject();
-                        dataFwdObj.put("command", "process");
-                        dataFwdObj.put("pubid", pubid);
-                        dataFwdObj.put("location", loc);
-                        dataFwdObj.put("data", data);
-
-                        //write to the socket
-                        BufferedOutputStream bos = new BufferedOutputStream(s.getOutputStream());
-                        byte[] dataBytes = dataFwdObj.toString().getBytes();
-                        bos.write(dataBytes, 0, dataBytes.length);
-                        bos.flush();
-                    } catch(Exception e){
-                        logger.log(Level.WARNING, "", e);
-                    }
-                }
+    private static void loadPrevState(){
+        JSONArray v = database.getSubIdToProcServerInfo();
+        for(int i=0; i<v.size(); i++){
+            try {
+                JSONObject thisObj = (JSONObject)v.get(i);
+                procAssignment.put(thisObj.getString("subid"),
+                                    thisObj.getString("name"));
+                
+            } catch(Exception e){
             }
         }
     }
-
-
 
 
 }

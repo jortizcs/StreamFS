@@ -75,6 +75,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
     protected String versionNumber = null;
 
 	public Resource(String path) throws Exception, InvalidNameException {
+        path =ResourceUtils.cleanPath(path);
 		resourceSetup(path);
 		if(sfsStats == null)
 			sfsStats = SFSStatistics.getInstance(mongoDriver.openConn());
@@ -239,7 +240,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					sendResponse(exchange, 201, null, internalCall, internalResp);
 				}
 
-				else if (op.equalsIgnoreCase("create_generic_publisher") &&
+				else if ((op.equalsIgnoreCase("create_generic_publisher") || 
+                            (op.equalsIgnoreCase("create_stream")) ||
+                            (op.equalsIgnoreCase("create_publisher"))) &&
 					!dataObj.optString("resourceName").equals("")){
 					UUID newPubId = this.createPublisher(dataObj.optString("resourceName"));
 
@@ -712,24 +715,27 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			JSONObject header = exchangeJSON.getJSONObject("header");
 			boolean gzipResp = header.containsKey("Accept-encoding") && 
 						header.getJSONArray("Accept-encoding").getString(0).contains("gzip");
-			Headers responseHeaders = exchange.getResponseHeaders();
-			responseHeaders.set("Connection", "close");
-			responseHeaders.set("Content-Type", "application/json");
-			if(gzipResp)
-				responseHeaders.set("Content-Encoding", "gzip");
-			
-			exchange.sendResponseHeaders(errorCode, 0);
-			responseBody = exchange.getResponseBody();
-			if(response!=null){
-				if(gzipResp){
-					gzipos = new GZIPOutputStream(responseBody);
-					gzipos.write(response.getBytes());
-					gzipos.close();
-				} else {
-					responseBody.write(response.getBytes());
-					responseBody.close();
-				}
-			}
+            if(exchange !=null){
+                Headers responseHeaders = exchange.getResponseHeaders();
+                responseHeaders.set("Connection", "close");
+                responseHeaders.set("Content-Type", "application/json");
+                if(gzipResp)
+                    responseHeaders.set("Content-Encoding", "gzip");
+
+                
+                exchange.sendResponseHeaders(errorCode, 0);
+                responseBody = exchange.getResponseBody();
+                if(response!=null){
+                    if(gzipResp){
+                        gzipos = new GZIPOutputStream(responseBody);
+                        gzipos.write(response.getBytes());
+                        gzipos.close();
+                    } else {
+                        responseBody.write(response.getBytes());
+                        responseBody.close();
+                    }
+                }
+            }
 
 			sfsStats.docSent(response);
 		}catch(Exception e){
@@ -1584,5 +1590,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
         if(!path.endsWith("/"))
             path += "/";
         return path;
+    }
+
+    public void setNewProperties(JSONObject props){
+        database.rrPutProperties(URI, props);
+	    updateProperties(props);
     }
 }

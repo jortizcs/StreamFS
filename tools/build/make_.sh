@@ -87,6 +87,8 @@ jar ufv ../is4app.jar local/analytics/lib/maths/Interpolator\$1.class
 jar ufv ../is4app.jar local/analytics/lib/maths/InterpType.class
 jar ufv ../is4app.jar local/analytics/util/BiHashtable.class
 jar ufv ../is4app.jar local/rest/resources/proc/ProcessManagerResource.class
+jar ufv ../is4app.jar local/rest/resources/proc/ProcessPublisherResource.class
+jar ufv ../is4app.jar local/rest/resources/proc/ProcessResource.class
 
 cd ../
 jar tf is4app.jar

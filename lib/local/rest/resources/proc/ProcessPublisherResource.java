@@ -64,7 +64,8 @@ public class ProcessPublisherResource extends GenericPublisherResource {
             }
         }
         //kill the process on the process server associated with this publisher
-        ProcessManagerResource.killProcessing(this);
+        if(associatedSubId!=null)
+            ProcessManagerResource.killProcessing(associatedSubId.toString());
   
         //this not noly removes this resource, but also any subscriptions to this resource
         // (i.e. any subscriptions where this publisher is the source)

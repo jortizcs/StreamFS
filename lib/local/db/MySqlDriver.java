@@ -2004,7 +2004,7 @@ public class MySqlDriver implements Is4Database {
 			if(
 				(destUrl!=null && destUri==null) || 
 				(destUrl==null && destUri!=null && ((r=RESTServer.getResource(destUri)) != null)) 
-				&& r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC){
+				&& (r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC || r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC)){
 					
 				String query = "INSERT INTO `subscriptions` (`subid`, `alias`, `uri`, `dest_url`, `dest_uri`,`src_pubid`, `wildcardPath`) ";
 				query = query + "values (?, ?, ?, ?, ?, ?, ?)";
@@ -2307,6 +2307,7 @@ public class MySqlDriver implements Is4Database {
 		JSONArray a =new JSONArray();
 		Connection conn  = openConn();
 		try{
+            destUri = ResourceUtils.cleanPath(destUri);
 			String query = "SELECT `uri` from `subscriptions` where `dest_uri`=?";
 			PreparedStatement ps = conn.prepareStatement(query);
 			ps.setString(1, destUri);
@@ -3076,6 +3077,69 @@ public class MySqlDriver implements Is4Database {
 			return ts;
 		}
 	
+    /************************************************************************************/
+    /* Functions for updating the subscription table with process server information
+    /************************************************************************************/
+
+    public boolean updateProcSvrAssignment(String subid, String procname, String prochost, int procport){
+        Connection conn = openConn();
+        try {
+            UUID subuuid = UUID.fromString(subid);
+            String query = "UPDATE `subscriptions` set `procsvr_host`=?, `procsvr_port`=?, `procsvr_name`=? where `subid`=?";
+            PreparedStatement ps =  conn.prepareStatement(query);
+            ps.setString(1, prochost);
+            ps.setInt(2, procport);
+            ps.setString(3, procname);
+            ps.setString(4, subid);
+            int r = ps.executeUpdate();
+            
+            logger.info("Execute Update::" + query.replaceFirst("\\?", prochost)
+                                        .replaceFirst("\\?", new Integer(procport).toString())
+                                        .replaceFirst("\\?", procname)
+                                        .replaceFirst("\\?", subid));
+            if(r>0)
+                return true;
+            else
+                return false;
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+            logger.warning("Could not execute update subscriptions query: [" + subid + ", " +
+                                        procname + ", " + prochost + ", " + procport + "]");
+        }
+        finally {
+            closeConn(conn);
+        }
+        return false;
+    }
+
+    public JSONArray getSubIdToProcServerInfo(){
+        Connection conn = openConn();
+        JSONArray retArray = new JSONArray();
+        try {
+            String query = "Select `subid`, `procsvr_host', `procsvr_port`, `procsvr_name` from `subscriptions` where `procsvr_port`>-1";
+            logger.info(query);
+            PreparedStatement ps =  conn.prepareStatement(query);
+            ResultSet res = ps.executeQuery();
+            while(res.next()){
+                String subid = res.getString("subid");
+                String name = res.getString("procsvr_name");
+                String host = res.getString("procsvr_host");
+                int port = res.getInt("procsvr_port");
+                JSONObject item = new JSONObject();
+                item.put("subid", subid);
+                item.put("name", name);
+                item.put("host", host);
+                item.put("port", port);
+                retArray.add(item);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+        }
+        finally {
+            closeConn(conn);
+        }
+        return retArray;
+    }
 
 
 	/************************************************************************************/

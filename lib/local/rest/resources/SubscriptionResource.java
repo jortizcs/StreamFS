@@ -181,7 +181,6 @@ public class SubscriptionResource extends Resource{
 	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
 		SubMngr submngr = SubMngr.getSubMngrInstance();
 		if(submngr.isSubscriber(SUBID.toString())){
-			
 			//remove the subscription
 			submngr.removeSub(SUBID);
 
