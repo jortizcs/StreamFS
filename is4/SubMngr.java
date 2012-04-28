@@ -325,7 +325,7 @@ public class SubMngr {
                                 logger.log(Level.WARNING, "", e);
                                 response.clear();
                                 errors.add("Exception thrown while creating process publisher during subscription installation");
-                                response.put("error", errors);
+                                response.put("errors", errors);
                             }
                         }
                     }
@@ -795,9 +795,16 @@ public class SubMngr {
 					//remove from internal graph
 					Resource.removeFromMetadataGraph(r.getURI());
 				}
-			}
+			} else if (destStr != null && destStr.startsWith("/proc") && database.getSubCountToModelPub(destStr)==1){
+                UUID mpubid = database.isRRPublisher2(destStr);
+                if(mpubid!=null){
+                    Resource r = (ProcessPublisherResource) RESTServer.getResource(destStr);
+                    r.delete(null, true, new JSONObject());
+				}
+            }
 		} catch (Exception e){
 			logger.log(Level.WARNING, "",e);
+            
 		}
 		
 		//remove all subscriber from table

@@ -59,7 +59,9 @@ public class ProcessPublisherResource extends GenericPublisherResource {
                 Resource r = RESTServer.getResource(subPath);
                 if(r !=null && r instanceof SubscriptionResource){
                     JSONObject inresp = new JSONObject();
-                    ((SubscriptionResource)r).delete(exchange, true, inresp);
+                    SubscriptionResource sr  = (SubscriptionResource)r;
+                    if(sr!=null)
+                        sr.delete(exchange, true, inresp);
                 }
             }
         }

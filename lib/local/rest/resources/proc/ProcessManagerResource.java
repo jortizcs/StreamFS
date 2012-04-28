@@ -295,6 +295,7 @@ public class ProcessManagerResource extends Resource {
         killProcessReq.put("command", "kill");
         killProcessReq.put("subid", subid);
         sendToProcServer(subid, killProcessReq);
+        procAssignment.remove(subid);
     }
 
     public static void dataReceived(String subid, JSONObject data){
@@ -327,40 +328,52 @@ public class ProcessManagerResource extends Resource {
         startProcReq.put("post_loc", loc);
         startProcReq.put("script", scriptObjStr);
 
-        pickServerToRunProcess(subid);
-
-        sendToProcServer(subid, startProcReq);
+        if(pickServerToRunProcess(subid))
+            sendToProcServer(subid, startProcReq);
     }
 
     public static boolean updateSubEntry(String subid){
         //if successful, save the assignment in the database 
         //(in the subscriptions table)
         logger.info("ServerName[subid=" + subid + "]=" + procAssignment.get(subid));
-        Socket sock = connections.get(procAssignment.get(subid));
-        String host =null;
-        int port = sock.getPort();
-        if(sock==null){
-            logger.warning("Socket is null!");
-            return false;
+        String name =procAssignment.get(subid);
+        if(name != null){
+            Socket sock = connections.get(name);
+            String host =null;
+            int port = -1;
+            if(sock==null){
+                logger.warning("Socket is null!");
+                return false;
+            } else {
+                port = sock.getPort(); 
+                String hstr = sock.getInetAddress().toString();
+                StringTokenizer tokenizer = new StringTokenizer(hstr, "/");
+                Vector<String> tokens = new Vector<String>();
+                while(tokenizer.hasMoreElements())
+                    tokens.add(tokenizer.nextToken());
+                host = tokens.get(0);
+                logger.info("sock.host=" + host + "\tsock.port=" + sock.getPort());
+            }
+            return database.updateProcSvrAssignment(subid, procAssignment.get(subid), host, port);
         } else {
-            String hstr = sock.getInetAddress().toString();
-            StringTokenizer tokenizer = new StringTokenizer(hstr, "/");
-            Vector<String> tokens = new Vector<String>();
-            while(tokenizer.hasMoreElements())
-                tokens.add(tokenizer.nextToken());
-            host = tokens.get(0);
-            logger.info("sock.host=" + host + "\tsock.port=" + sock.getPort());
+            return false;
         }
-        return database.updateProcSvrAssignment(subid, procAssignment.get(subid), host, port);
     }
 
-    private static void pickServerToRunProcess(String subid){
+    private static boolean pickServerToRunProcess(String subid){
         //pick the server to run the process on and associate this id this that server
         int idx = (new java.util.Random()).nextInt(serverList.size());
         JSONObject s = (JSONObject)serverList.get(idx);
         String serverName = s.getString("name");
-        procAssignment.put(subid,serverName);
-        logger.info("assigned::[subid=" + subid + ", server=" + serverName);
+        if(serverName!=null){
+            Socket sock = connections.get(serverName);
+            if(sock!=null && sock.isConnected()){
+                procAssignment.put(subid,serverName);
+                logger.info("assigned::[subid=" + subid + ", server=" + serverName);
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String sendToProcServer(String subid, JSONObject obj){

@@ -57,6 +57,8 @@ public class SubscriptionResource extends Resource{
 	private UUID SUBID = null;
 	private String wildcardPath = null;
 
+    private boolean deleteActive = false;
+
 	public SubscriptionResource(UUID subid) throws Exception, InvalidNameException{
 		super();
 		subname = generateSubRsrcName(subid);
@@ -179,6 +181,10 @@ public class SubscriptionResource extends Resource{
 	}
 
 	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+        synchronized(this){
+            if(!deleteActive) deleteActive=true;
+            else return;
+        }
 		SubMngr submngr = SubMngr.getSubMngrInstance();
 		if(submngr.isSubscriber(SUBID.toString())){
 			//remove the subscription
@@ -196,6 +202,12 @@ public class SubscriptionResource extends Resource{
 		JSONObject response = new JSONObject();
 		response.put("status", "success");
 		sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+        try {} catch(Exception e){}
+        finally{
+            synchronized(this){
+                deleteActive = false;
+            }
+        }
 	}
 
 	private String generateSubRsrcName(UUID subid){
