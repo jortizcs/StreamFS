@@ -1596,4 +1596,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
         database.rrPutProperties(URI, props);
 	    updateProperties(props);
     }
+
+    public void setNewScriptProperties(String props){
+        database.rrPutProperties(URI, props);
+	    updateProperties(((JSONObject)JSONSerializer.toJSON(props)));
+    }
 }

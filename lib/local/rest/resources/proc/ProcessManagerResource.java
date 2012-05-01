@@ -119,9 +119,9 @@ public class ProcessManagerResource extends Resource {
             int port = configServerEntry.getInt("port");
             JSONObject initObj = new JSONObject();
             initObj.put("command", "init");
-            initObj.put("sfsname", "jortiz");
-            initObj.put("sfshost", System.getenv().get("IS4_HOSTNAME"));
-            initObj.put("sfsport", System.getenv().get("IS4_PORT"));
+            initObj.put("name", "jortiz");
+            initObj.put("host", System.getenv().get("IS4_HOSTNAME"));
+            initObj.put("port", System.getenv().get("IS4_PORT"));
             Socket socket = new Socket(host, port);
 
             if(socket.isConnected()){
@@ -187,7 +187,7 @@ public class ProcessManagerResource extends Resource {
 				String op = dataObj.optString("operation");
 				
 				if(op.equalsIgnoreCase("save_proc")){
-                    handleSaveProc(dataObj, exchange, internalCall, internalResp);
+                    handleSaveProc(data, exchange, internalCall, internalResp);
 				} 
 
                 else if(op.equalsIgnoreCase("add_server")){ //&& Security.allowed(POST, "add_server", key)
@@ -240,10 +240,11 @@ public class ProcessManagerResource extends Resource {
 		sendResponse(exchange, 403, null, internalCall, internalResp);
 	}
 
-    private void handleSaveProc(JSONObject dataObj, HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+    private void handleSaveProc(String dataObjStr, HttpExchange exchange, boolean internalCall, JSONObject internalResp){
         JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
         try {
+            JSONObject dataObj = (JSONObject)JSONSerializer.toJSON(dataObjStr);
             String name = dataObj.optString("name");
             if(name.equals("") || !ResourceUtils.devNameIsUnique(PROC_ROOT,name)){
                 errors.add("There's already a process named " + name + "or it's an empty string; try another name");
@@ -275,7 +276,7 @@ public class ProcessManagerResource extends Resource {
             boolean materialize = scriptObj.optBoolean("materialize", false);
             long timeout = scriptObj.optLong("timeout", 0L);
             
-            ProcessResource newProc = new ProcessResource(PROC_ROOT + name + "/", scriptObj.toString());
+            ProcessResource newProc = new ProcessResource(PROC_ROOT + name + "/", dataObjStr);
             RESTServer.addResource(newProc);
             sendResponse(exchange, 201, null, internalCall, internalResp);
         } catch(Exception e){
@@ -293,6 +294,7 @@ public class ProcessManagerResource extends Resource {
         //data to this associated publisher
         JSONObject killProcessReq = new JSONObject();
         killProcessReq.put("command", "kill");
+        killProcessReq.put("name", "jortiz");
         killProcessReq.put("subid", subid);
         sendToProcServer(subid, killProcessReq);
         procAssignment.remove(subid);
@@ -300,7 +302,8 @@ public class ProcessManagerResource extends Resource {
 
     public static void dataReceived(String subid, JSONObject data){
         JSONObject dataFwdObj = new JSONObject();
-        dataFwdObj.put("command", "process");
+        dataFwdObj.put("command", "data");
+        dataFwdObj.put("name", "jortiz");
         dataFwdObj.put("subid", subid);
         dataFwdObj.put("data", data);
         sendToProcServer(subid, dataFwdObj);
@@ -320,16 +323,28 @@ public class ProcessManagerResource extends Resource {
         ProcessPublisherResource p = (ProcessPublisherResource) RESTServer.getResource(pubPath);
         if(p!=null)
             logger.info("Publisher for pubpath=" + pubPath + " is not null");
-        String loc = pubPath + "?type=generic&pubid" + p.getPubId();
+        String loc = pubPath + "?type=generic&pubid=" + p.getPubId();
         JSONObject startProcReq= new JSONObject();
         startProcReq.put("command", "procinstall");
         startProcReq.put("name", "jortiz");
+        JSONObject dstinfo = new JSONObject();
+        dstinfo.put("host", System.getenv().get("IS4_HOSTNAME"));
+        dstinfo.put("port", System.getenv().get("IS4_PORT"));
+        dstinfo.put("path", loc);
+        startProcReq.put("dest", dstinfo);
         startProcReq.put("subid", subid);
-        startProcReq.put("post_loc", loc);
-        startProcReq.put("script", scriptObjStr);
+
+        String startProcReqStr = startProcReq.toString();
+        startProcReqStr = startProcReqStr.substring(0, startProcReqStr.lastIndexOf("}"));
+        startProcReqStr = startProcReqStr + ", \"proc_config\":" + scriptObjStr + "}";
+
+        /*System.out.println("HERE::"+startProcReqStr);
+        try{JSONObject test = (JSONObject)JSONSerializer.toJSON(startProcReqStr);}
+        catch(Exception e){  e.printStackTrace(); System.exit(1);}*/
+        //startProcReq.put("script", scriptObjStr);
 
         if(pickServerToRunProcess(subid))
-            sendToProcServer(subid, startProcReq);
+            sendToProcServer(subid, startProcReqStr);
     }
 
     public static boolean updateSubEntry(String subid){
@@ -382,9 +397,59 @@ public class ProcessManagerResource extends Resource {
             Socket sock = connections.get(machine_name);
             if(sock !=null && sock.isConnected()){
                 try {
-                    BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
-                    byte[] data = obj.toString().getBytes();
-                    bos.write(data, 0, data.length);
+                    BufferedWriter bos = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
+                    String data = obj.toString().trim().replaceAll("[^\\x20-\\x7e]", "").trim().replaceAll(" +", " ");;
+                    bos.write(data, 0, data.length());
+                    bos.flush();
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+                    String line = null;
+                    StringBuffer linebuf = new StringBuffer();
+                    boolean end = false;
+                    while(!end && (line=reader.readLine())!=null){
+                        linebuf.append(line);
+                        logger.info("Read line:" + line);
+                        try {
+                            JSONObject o = (JSONObject)JSONSerializer.toJSON(linebuf.toString());
+                            end=true;
+                            logger.info("end=true");
+                        } catch(Exception e){
+                            logger.info("Could not parse: "+ linebuf.toString());
+                        }
+                    }
+                    return linebuf.toString();
+                } catch(Exception e){
+                    logger.log(Level.WARNING, "", e);
+                }
+            } else if(sock!=null && !sock.isConnected()){
+                logger.warning("Socket for subid " + subid + " machine: [" + 
+                                sock.getInetAddress().toString() + ", " + sock.getPort() + "]");
+              }
+        } else {
+            logger.info("UNKNOWN::Could not find " + subid + " on any machine");
+        }
+        return null;
+    }
+
+    public static String sendToProcServer(String subid, String obj){
+        String machine_name = procAssignment.get(subid);
+        if(machine_name != null){
+            Socket sock = connections.get(machine_name);
+            if(sock !=null && sock.isConnected()){
+                try {
+                    BufferedWriter bos = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
+                    int length1 = obj.getBytes().length;
+                    String data = obj.trim().replaceAll("[^\\x20-\\x7e]", "").trim().replaceAll(" +", " ");
+                    int length2 = data.getBytes().length;
+                    
+                    /*byte[] bytes = obj.getBytes();
+                    for(int i=0; i<bytes.length; i++)
+                        System.out.println(new Byte(bytes[i]).toString());*/
+                    System.out.println(data + "\nlength_before=" + length1 + ", length_after=" + length2);
+                    //System.exit(1);
+                    
+
+                    bos.write(data, 0, data.length());
                     bos.flush();
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));

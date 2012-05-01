@@ -24,16 +24,18 @@ public class ProcessResource extends Resource {
 	protected static transient final Logger logger = Logger.getLogger(ProcessResource.class.getPackage().getName());
 
     protected JSONObject scriptObj=null;
+    protected String scriptStr = null;
     private String lastError = null;
 
     public ProcessResource(String path, String scriptObjStr) throws Exception, InvalidNameException{
         super(path);
         scriptObj = (JSONObject)JSONSerializer.toJSON(scriptObjStr);
+        scriptStr = scriptObjStr;
         TYPE = ResourceUtils.PROCESS_RSRC;
         database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
-        JSONObject properties = new JSONObject();
-        properties.put("script", translateScript(scriptObj.toString()));
-        setNewProperties(properties);
+        //JSONObject properties = new JSONObject();
+        //properties.put("script", translateScript(scriptObjStr);
+        setNewScriptProperties(scriptObjStr);
     }
 
     private String translateScript(String scriptObjStr){
@@ -44,7 +46,7 @@ public class ProcessResource extends Resource {
             JSONObject func = s.getJSONObject("func");
             s.discard("func");
             if(scriptObjStr != null){
-                retbuf.append("function(");
+                retbuf.append("\"function(");
                 JSONArray params = func.getJSONArray("params");
                 for(int i=0; i<params.size(); i++){
                     retbuf.append((String)params.get(i));
@@ -52,8 +54,9 @@ public class ProcessResource extends Resource {
                         retbuf.append(",");
                 }
                 retbuf.append("){").append(func.getString("text")).append("}");
-                retbuf.toString();
-                ret = s.toString().substring(0, s.toString().length()-1) + ",func:\"" + retbuf.toString() + "\"";
+                ret = s.toString().substring(0, s.toString().length()-1) + ",func:" + retbuf.toString().replace("\"", "") + "\"";
+                ret = ret.replace("\\\"", "\"");
+                
             }
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
@@ -81,9 +84,9 @@ public class ProcessResource extends Resource {
                 //pass the new path to processing layer for POSTing output to it.
                 //  + pass in the associated subscription id    
 
-                String str = translateScript(scriptObj.toString());
-                logger.info(str);
-                ProcessManagerResource.startProcess(subid, str, newpubfile.getURI());
+                /*String str = translateScript(scriptObj.toString());
+                logger.info(str);*/
+                ProcessManagerResource.startProcess(subid, scriptStr, newpubfile.getURI());
                 JSONObject pubinfo = new JSONObject();
                 pubinfo.put("path", newpubfile.getURI());
                 pubinfo.put("pubid", npid.toString());
