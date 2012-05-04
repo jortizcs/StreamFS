@@ -21,6 +21,7 @@ import java.util.StringTokenizer;
 import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
+import java.util.*;
 
 public class ProcessManagerResource extends Resource {
 	
@@ -48,7 +49,6 @@ public class ProcessManagerResource extends Resource {
 	public ProcessManagerResource() throws Exception, InvalidNameException {
 		super(PROC_ROOT);
         setup();
-        loadPrevState();
 	}
 
     public void loadConfigFile(){
@@ -129,7 +129,24 @@ public class ProcessManagerResource extends Resource {
                 byte[] data = initObj.toString().getBytes();
                 bos.write(data, 0, data.length);
                 bos.flush();
-                connections.put(name, socket);
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                String line = null;
+                StringBuffer linebuf = new StringBuffer();
+                boolean end = false;
+                while(!end && (line=reader.readLine())!=null){
+                    linebuf.append(line);
+                    logger.info("Read line:" + line);
+                    try {
+                        JSONObject o = (JSONObject)JSONSerializer.toJSON(linebuf.toString());
+                        end=true;
+                    } catch(Exception e){
+                        logger.info("Could not parse: "+ linebuf.toString());
+                    }
+                }
+                JSONObject respObj = (JSONObject)JSONSerializer.toJSON(linebuf.toString());
+                if(respObj.getString("stat").equalsIgnoreCase("ok"))
+                    connections.put(name, socket);
             } else {
                 logger.info("Socket is NOT connected");
             }
@@ -481,18 +498,120 @@ public class ProcessManagerResource extends Resource {
         return null;
     }
 
-    private static void loadPrevState(){
+    private static String getStartProcStr(String subid){
+        try {
+                String pubPath = database.getSubDestUriStr(UUID.fromString(subid));
+                if(pubPath!=null){
+                    ProcessPublisherResource p = (ProcessPublisherResource) RESTServer.getResource(pubPath);
+                    logger.info("Publisher for pubpath=" + pubPath + " is not null");
+                    String loc = pubPath + "?type=generic&pubid=" + p.getPubId();
+                    JSONObject startProcReq= new JSONObject();
+                    startProcReq.put("command", "procinstall");
+                    startProcReq.put("name", "jortiz");
+                    JSONObject dstinfo = new JSONObject();
+                    dstinfo.put("host", System.getenv().get("IS4_HOSTNAME"));
+                    dstinfo.put("port", System.getenv().get("IS4_PORT"));
+                    dstinfo.put("path", loc);
+                    startProcReq.put("dest", dstinfo);
+                    startProcReq.put("subid", subid);
+
+                    String startProcReqStr = startProcReq.toString();
+                    startProcReqStr = startProcReqStr.substring(0, startProcReqStr.lastIndexOf("}"));
+                    StringTokenizer tokenizer = new StringTokenizer(pubPath, "/");
+                    Vector<String> tokens = new Vector<String>();
+                    while(tokenizer.hasMoreTokens())
+                        tokens.add(tokenizer.nextToken());
+                    String parent = "";
+                    for(int i=0; i<tokens.size()-1; i++)
+                        parent += "/" + tokens.get(i);
+                    ProcessResource pparent = (ProcessResource)RESTServer.getResource(parent);
+                    startProcReqStr = startProcReqStr + ", \"proc_config\":" +pparent. scriptStr + "}";
+
+                    return startProcReqStr;
+                }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+        }
+        return null;
+    }
+
+    public static void loadPrevState(){
         JSONArray v = database.getSubIdToProcServerInfo();
+        //logger.info(v.toString());
+        //System.exit(1);
         for(int i=0; i<v.size(); i++){
             try {
                 JSONObject thisObj = (JSONObject)v.get(i);
-                procAssignment.put(thisObj.getString("subid"),
-                                    thisObj.getString("name"));
-                
+                String name = thisObj.getString("name");
+                String subid = thisObj.getString("subid");
+                procAssignment.put(subid,name);
+                logger.info("ProcessManager::PUT[subid=" + subid + ", name=" + name);
+                JSONObject existReq = new JSONObject();
+                existReq.put("command", "job_status");
+                existReq.put("name", "jortiz");
+                existReq.put("subid", subid);
+                String resp = sendToProcServer(subid, existReq);
+                logger.info("resp=" + resp);
+                if(resp !=null){
+                    String startProcReqStr = getStartProcStr(subid);
+                    logger.info("startProcReqStr=" + startProcReqStr);
+                    JSONObject respObj = (JSONObject)JSONSerializer.toJSON(resp);
+                    if(respObj.getString("stat").equalsIgnoreCase("fail") &&
+                        respObj.getInt("code") == 1 && startProcReqStr !=null){
+                        sendToProcServer(subid, startProcReqStr);
+                    }
+                }
             } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
             }
         }
     }
 
+
+    protected class ConnectionCheckerTask extends TimerTask{
+        public void run(){
+            //checks if every connection is still alive, if not it removes the
+            //connection from the list of active connections and
+            // re-assigns all the task to other servers
+            for(int i=0; i<serverList.size(); i++){
+                try {
+                    JSONObject configServerEntry = (JSONObject)serverList.get(i);
+                    String name = configServerEntry.getString("name");
+                    Socket s = connections.get(name);
+                    if(s!=null && !s.isConnected()){
+                        if(!initiate(configServerEntry)){
+                            //pickServerToRunProcess(subid);
+                        }
+                    }
+                } catch(Exception e){
+                }
+            }
+            /*JSONArray v = database.getSubIdToProcServerInfo();
+            for(int i=0; i<v.size(); i++){
+                try {
+                    JSONObject thisObj = (JSONObject)v.get(i);
+                    String name = thisObj.getString("name");
+                    String subid = thisObj.getString("subid");
+                    procAssignment.put(subid,name);
+                    logger.info("ProcessManager::PUT[subid=" + subid + ", name=" + name);
+                    JSONObject existReq = new JSONObject();
+                    existReq.put("command", "job_status");
+                    existReq.put("name", "jortz");
+                    existReq.put("subid", subid);
+                    String resp = sendToProcServer(subid, existReq);
+                    if(resp !=null){
+                        String startProcReqStr = getStartProcStr(subid);
+                        JSONObject respObj = (JSONObject)JSONSerializer.toJSON(resp);
+                        if(respObj.getString("stat").equalsIgnoreCase("fail") &&
+                            respObj.getInt("code") == 1 && startProcReqStr !=null){
+                            sendToProcServer(subid, startProcReqStr);
+                        }
+                    }
+                } catch(Exception e){
+                    logger.log(Level.WARNING, "", e);
+                }
+            }*/
+        }
+    }
 
 }

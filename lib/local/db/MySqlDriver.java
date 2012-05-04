@@ -3116,7 +3116,7 @@ public class MySqlDriver implements Is4Database {
         Connection conn = openConn();
         JSONArray retArray = new JSONArray();
         try {
-            String query = "Select `subid`, `procsvr_host', `procsvr_port`, `procsvr_name` from `subscriptions` where `procsvr_port`>-1";
+            String query = "Select `subid`, `procsvr_host`, `procsvr_port`, `procsvr_name` from `subscriptions` where `procsvr_port`>-1";
             logger.info(query);
             PreparedStatement ps =  conn.prepareStatement(query);
             ResultSet res = ps.executeQuery();

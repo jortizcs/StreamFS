@@ -93,6 +93,7 @@ rm -f local/analytics/lib/maths/Interpolator\$1.class
 rm -f local/analytics/lib/maths/InterType.class
 rm -f local/analytics/util/BiHashtable.class
 rm -f local/rest/resources/proc/ProcessManagerResource.class
+rm -f local/rest/resources/proc/ProcessManagerResource\$ConnectionCheckerTask.class
 rm -f local/rest/resources/proc/ProcessPublisherResource.class
 rm -f local/rest/resources/proc/ProcessResource.class
 
