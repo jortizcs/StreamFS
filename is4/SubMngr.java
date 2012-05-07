@@ -572,6 +572,7 @@ public class SubMngr {
 									wr.flush();
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 									in.close();
+                                    wr.close();
 								}
 							}
                 

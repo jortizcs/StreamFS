@@ -46,7 +46,20 @@ public class ProcessPublisherResource extends GenericPublisherResource {
         if(materialize || isQuery){
             super.post(exchange, data, internalCall, internalResp);
         } else {
-            sendResponse(exchange, 503, null, internalCall, internalResp);
+            try {
+                JSONObject dataObj = (JSONObject)JSONSerializer.toJSON(data);
+                dataObj.put("PubId", publisherId.toString());
+                SubMngr submngr  = SubMngr.getSubMngrInstance();
+                submngr.dataReceived(dataObj);
+                sendResponse(exchange, 200, null, internalCall, internalResp);
+            } catch(Exception e){
+                JSONObject resp = new JSONObject();
+                if(e instanceof JSONException)
+                    resp.put("error", "Invalid JSON");
+                logger.log(Level.WARNING, "", e);
+                sendResponse(exchange, 500, resp.toString(), 
+                                    internalCall, internalResp);
+            }
         }
     }
 
