@@ -715,7 +715,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			JSONObject header = exchangeJSON.getJSONObject("header");
 			boolean gzipResp = header.containsKey("Accept-encoding") && 
 						header.getJSONArray("Accept-encoding").getString(0).contains("gzip");
-            if(exchange !=null){
+            if(exchange !=null && !internalCall){
                 Headers responseHeaders = exchange.getResponseHeaders();
                 responseHeaders.set("Connection", "close");
                 responseHeaders.set("Content-Type", "application/json");

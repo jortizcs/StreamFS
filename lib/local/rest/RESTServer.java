@@ -482,6 +482,8 @@ public class RESTServer {
                         try {
                             pubid = database.isRRPublisher2(thisPath);
                             resource = new ProcessPublisherResource(thisPath, pubid, false);
+                            String subidStr = (String) (database.getSubIdsByPubId(pubid)).get(0);
+                            ((ProcessPublisherResource)resource).setAssociatedSubId(UUID.fromString(subidStr));
                             this.addResource(resource);    
                         } catch(Exception e){
                             logger.log(Level.WARNING, "",e);

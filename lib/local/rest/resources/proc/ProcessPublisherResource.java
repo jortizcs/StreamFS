@@ -66,7 +66,7 @@ public class ProcessPublisherResource extends GenericPublisherResource {
     public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
         //delete the subscription associated with this publisher
         //i.e the subscription where this publisher is the destination
-        if(database.isSubscription(associatedSubId) != null){
+        if(associatedSubId != null && database.isSubscription(associatedSubId) != null){
             String subPath = database.getSubUriBySubId(associatedSubId);
             if(subPath !=null){
                 Resource r = RESTServer.getResource(subPath);
@@ -79,6 +79,7 @@ public class ProcessPublisherResource extends GenericPublisherResource {
             }
         }
         //kill the process on the process server associated with this publisher
+        System.out.println("associatedSubId: " + associatedSubId);
         if(associatedSubId!=null)
             ProcessManagerResource.killProcessing(associatedSubId.toString());
   

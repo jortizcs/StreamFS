@@ -418,8 +418,10 @@ public class SubMngr {
 				UUID tsid = UUID.fromString((String)sids.get(i));
 				String subUri = database.getSubUriBySubId(tsid);
 				Resource r = RESTServer.getResource(subUri);
-				if(r!=null)
-					r.delete(exchange, internalCall, internalResp);
+				if(r!=null){
+                    logger.info("Deleting " + subUri);
+					r.delete(exchange, true, internalResp);
+                }
 			}
 			
 			//now remove all of them
@@ -560,19 +562,23 @@ public class SubMngr {
 								logger.info("Pushing data to URL: " + thisSubUrl.toString() + " " + dataObject.toString());
 								if(thisSubUrl != null){
 									URLConnection urlConn = thisSubUrl.openConnection();
-									/*urlConn.setRequestProperty("Accept-Charset", "UTF-8");
-									urlConn.setRequestProperty("Content-Type", 
-											"application/x-www-form-urlencoded;charset=UTF-8");*/
-									urlConn.setRequestProperty("Content-Type", "application/json");
+                                    urlConn.setDoInput (true);
 									urlConn.setDoOutput(true);
+                                    urlConn.setUseCaches (false);
+									urlConn.setRequestProperty("Content-Type", "application/json");
 									OutputStreamWriter wr = new OutputStreamWriter(urlConn.getOutputStream());
-									/*if(urlParamsStr != null)
-										wr.write(urlParamsStr);*/
-									wr.write(dataObject.toString());
+                                    String dataStr = dataObject.toString();
+                                    logger.info("Length: " + dataStr.getBytes().length);
+									wr.write(dataStr, 0, dataStr.length());
 									wr.flush();
+
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
-									in.close();
+                                    /*String l = null;
+                                    while((l=in.readLine())!=null)
+                                        logger.info(l);*/
+
                                     wr.close();
+									in.close();
 								}
 							}
                 
