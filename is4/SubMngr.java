@@ -420,7 +420,7 @@ public class SubMngr {
 				Resource r = RESTServer.getResource(subUri);
 				if(r!=null){
                     logger.info("Deleting " + subUri);
-					r.delete(exchange, true, internalResp);
+					r.delete(exchange, internalCall, internalResp);
                 }
 			}
 			

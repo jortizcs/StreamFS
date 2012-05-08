@@ -236,7 +236,7 @@ public class GenericPublisherResource extends Resource{
 		
 		//remove subscriptions to this publisher
 		SubMngr submngr = SubMngr.getSubMngrInstance();
-		submngr.pubRemoved(exchange, internalCall, internalResp, publisherId.toString());
+		submngr.pubRemoved(exchange, true, internalResp, publisherId.toString());
 
 		//remove from internal graph
 		this.metadataGraph.removeNode(this.URI);
