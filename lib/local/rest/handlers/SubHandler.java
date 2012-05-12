@@ -1,27 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 1.1
- */
-
 package local.rest.handlers;
 
 import java.io.*;
@@ -117,7 +93,7 @@ public class SubHandler extends Resource {
 		
 			//initialize the subscription entry
 			JSONObject initSubStat = subMngr.initSubscription(UUID.fromString(pidStr), targetStr);
-			if(initSubStat.containsKey("subid")){
+			if(initSubStat.containsKey("subid") && !initSubStat.containsKey("add_to_existing")){
 				//update the subscription entry, create subscription resource, and send success to user
 				String sid = initSubStat.getString("subid");
 				logger.info("Successfully added new subscriber: [" + targetStr + ", " + sid + "]");
@@ -130,7 +106,16 @@ public class SubHandler extends Resource {
 				subResp.put("subid", sid);
 
 				sendResponse(exchange, 200, subResp.toString(), internalCall, internalResp);
-			} else{
+			} else if(initSubStat.containsKey("subid") && initSubStat.containsKey("add_to_existing")){
+                String sid = initSubStat.getString("subid");
+				logger.info("Successfully added new subscriber to existing subscription:: [" + targetStr + ", " + sid + "]");
+				JSONObject subResp = new JSONObject();
+				subResp.put("operation", "subscribe");
+				subResp.put("status", "success");
+				subResp.put("subid", sid);
+
+				sendResponse(exchange, 200, subResp.toString(), internalCall, internalResp);
+            } else{
 				//subscription entry initialization failed, forward errors to user
 				errors.addAll(initSubStat.getJSONArray("errors"));
 				resp.put("status", "fail");

@@ -1,26 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 1.1
- */
 package local.rest.resources;
 
 import local.db.*;
@@ -141,8 +118,19 @@ public class SubscriptionResource extends Resource{
 				response.put("destination", duri);
 
 			if(source != null && !source.equalsIgnoreCase("wc")) {
-				response.put("sourceId", source);
-				response.put("sourcePath", sourcePath);
+                if(duri!=null){
+                    JSONArray srcPaths = new JSONArray();
+                    JSONArray srcPubids = database.getSubSourcePubIds(SUBID);
+                    for(int i =0; i<srcPubids.size(); i++)
+                        srcPaths.add(database.
+                                    getIs4RRPath(UUID.fromString(
+                                        (String)srcPubids.get(i))));
+				    response.put("sourcePaths", srcPaths);
+                }
+                else{
+                    response.put("sourceId", source);
+                    response.put("sourcePath", sourcePath);
+                }
 			} else {
 				response.put("wildcardPath", wildcardPath);
 			}
@@ -186,6 +174,7 @@ public class SubscriptionResource extends Resource{
             else return;
         }
 		SubMngr submngr = SubMngr.getSubMngrInstance();
+        logger.info("Check if is subscriber:: " + submngr.isSubscriber(SUBID.toString()));
 		if(submngr.isSubscriber(SUBID.toString())){
 			//remove the subscription
 			submngr.removeSub(SUBID);

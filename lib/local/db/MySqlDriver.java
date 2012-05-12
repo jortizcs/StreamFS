@@ -2077,7 +2077,29 @@ public class MySqlDriver implements Is4Database {
 			closeConn(conn);
 		}
 	}
-	
+
+    public JSONObject getSubAliasAndUri(UUID subid){
+        Connection conn = openConn();
+        JSONObject resp = null;
+        try {
+            String query = "select `alias`, `uri` from `subscriptions` where `subid`=? and `alias` is not null and `uri` is not null";
+            PreparedStatement ps = conn.prepareStatement(query);
+            logger.info("QUERY::" + query.replaceFirst("\\?", subid.toString()));
+            ps.setString(1, subid.toString());
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                resp= new JSONObject();
+                resp.put("alias", rs.getString("alias"));
+                resp.put("uri", rs.getString("uri"));
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        } finally{
+            closeConn(conn);
+        }
+        return resp;
+    }
+
 	public String getSubscriptionId(UUID pubid, String wildcardPath, String target){
 		Connection conn = openConn();
 		String subid = null;
@@ -2247,6 +2269,7 @@ public class MySqlDriver implements Is4Database {
 			String query  = "SELECT `uri` from `subscriptions` where `subid`=?";
 			PreparedStatement ps = conn.prepareStatement(query);
 			ps.setString(1, subid.toString());
+            logger.info("Query::" + query.replaceFirst("\\?", subid.toString()));
 			ResultSet rs = ps.executeQuery();
 			if(rs.next())
 				subUri = rs.getString("uri");
@@ -2308,21 +2331,27 @@ public class MySqlDriver implements Is4Database {
 		Connection conn  = openConn();
 		try{
             destUri = ResourceUtils.cleanPath(destUri);
-			String query = "SELECT `uri` from `subscriptions` where `dest_uri`=?";
+            String path = destUri;
+            if(path.endsWith("/"))
+                path = path.substring(0, path.length()-1);
+            else
+                path += "/";
+            
+			String query = "SELECT `uri` from `subscriptions` where `dest_uri`=? or `dest_uri`=?";
 			PreparedStatement ps = conn.prepareStatement(query);
 			ps.setString(1, destUri);
+            ps.setString(2, path);
+            logger.info(query.replace("?", destUri).replace("?", path));
 			ResultSet rs = ps.executeQuery();
 			while(rs.next())
 				a.add(rs.getString("uri"));
-
-
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
 		}
-
 		finally {
 			closeConn(conn);
 		}
+        logger.info("list::" + a.toString());
 		return a;
 	}
 
@@ -2572,6 +2601,25 @@ public class MySqlDriver implements Is4Database {
 			closeConn(conn);
 		}
 		return allsubids;
+	}
+
+    public JSONArray getSubSourcePubIds(UUID subid){
+		Connection conn = openConn();
+		JSONArray sourcePubids = new JSONArray();
+		try {
+			String query = "SELECT `src_pubid` FROM `subscriptions` where `subid`=?";
+			PreparedStatement ps = conn.prepareStatement(query);
+			ps.setString(1, subid.toString());
+			ResultSet rs = ps.executeQuery();
+			while(rs.next())
+				sourcePubids.add(rs.getString("src_pubid"));
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+		finally {
+			closeConn(conn);
+		}
+		return sourcePubids;
 	}
 
 	public String getSubSourcePubId(UUID subid){
@@ -3112,6 +3160,40 @@ public class MySqlDriver implements Is4Database {
         return false;
     }
 
+    public boolean updateProcSvrAssignmentWithDstPubId(String subid, String procname, String prochost, int procport, String pubid){
+        Connection conn = openConn();
+        try {
+            UUID subuuid = UUID.fromString(subid);
+            UUID pubuuid = UUID.fromString(pubid);
+            String query = "UPDATE `subscriptions` set `procsvr_host`=?, `procsvr_port`=?, `procsvr_name`=? where `subid`=? and `src_pubid`=?";
+            PreparedStatement ps =  conn.prepareStatement(query);
+            ps.setString(1, prochost);
+            ps.setInt(2, procport);
+            ps.setString(3, procname);
+            ps.setString(4, subid);
+            ps.setString(5, pubid);
+            int r = ps.executeUpdate();
+            
+            logger.info("Execute Update::" + query.replaceFirst("\\?", "\"" + prochost + "\"")
+                                        .replaceFirst("\\?", new Integer(procport).toString())
+                                        .replaceFirst("\\?", "\"" + procname + "\"")
+                                        .replaceFirst("\\?", "\"" + subid + "\"")
+                                        .replaceFirst("\\?", "\""+ pubid + "\""));
+            if(r>0)
+                return true;
+            else
+                return false;
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+            logger.warning("Could not execute update subscriptions query: [subid=" + subid + ", pubid" + pubid + ", " + 
+                                        procname + ", " + prochost + ", " + procport + "]");
+        }
+        finally {
+            closeConn(conn);
+        }
+        return false;
+    }
+
     public JSONArray getSubIdToProcServerInfo(){
         Connection conn = openConn();
         JSONArray retArray = new JSONArray();
@@ -3138,6 +3220,37 @@ public class MySqlDriver implements Is4Database {
         finally {
             closeConn(conn);
         }
+        return retArray;
+    }
+
+    public JSONArray getSubIdByDstPubPath(String procPubPath){
+        Connection conn = openConn();
+        JSONArray retArray = new JSONArray();
+        try {
+            if(procPubPath !=null && procPubPath.length()>0 && procPubPath.startsWith("/")){
+                //clean the path check path with/out ending /
+                procPubPath =  procPubPath.replaceAll("/+", "/");
+                String path = procPubPath;
+                if(!path.endsWith("/"))
+                    path += "/";
+                else
+                    path = path.substring(0, path.length()-1);
+
+                String query = "Select `subid` from `subscriptions` where `dest_uri`=? or `dest_uri`=?";
+                PreparedStatement ps = conn.prepareStatement(query);
+                ps.setString(1, procPubPath);
+                ps.setString(2, path);
+                logger.info("Query::" + query.replaceFirst("\\?", procPubPath).replaceFirst("\\?",path ));
+                ResultSet rs = ps.executeQuery();
+                while(rs.next())
+                    retArray.add(rs.getString("subid"));
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        } finally {
+            closeConn(conn);
+        }
+        
         return retArray;
     }
 

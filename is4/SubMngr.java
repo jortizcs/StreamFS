@@ -243,15 +243,15 @@ public class SubMngr {
 					errors.add(e);
 				}
 
-				if(usid !=null){
+                if(usid !=null && !target.startsWith("/")){
 					String pubPath = database.getIs4RRPath(pubid);
-					e = "The subscriber with (source, target):(" + pubPath + ", " + target 
-										+ ") is already a subscriber; Could not add as new subscriber";
+					e = "The subscription with (source, target):(" + pubPath + ", " + target 
+										+ ") is already a subscription; Could not add as new subscriber";
 					logger.warning(e);
 					errors.add(e);
 				}
-				response.put("errors", errors);
-				return response;
+                response.put("errors", errors);
+                return response;
 			}
 			
 			if(target.startsWith("/")){
@@ -259,6 +259,7 @@ public class SubMngr {
 				Resource r = RESTServer.getResource(target);
 				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC ||
                                 r.TYPE==ResourceUtils.PROCESS_RSRC || r.TYPE==ResourceUtils.PROCESS_PUBLISHER_RSRC)){
+                    logger.info("path:" + target + "; type=" + ResourceUtils.translateType(r.TYPE));
 					
 					if(r.TYPE==ResourceUtils.MODEL_RSRC){
 						Pipe newPipe = Pipe.open();
@@ -329,15 +330,50 @@ public class SubMngr {
                             }
                         }
                     }
-
+                
                     else if(r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC){
                         //add this publisher to the subscription for this resource
                         logger.info("Adding stream to subscription for a publisher resource (" + target + ")");
+                        try {
+                            String subid = (String)(database.getSubIdByDstPubPath(target)).get(0);
+                            JSONArray procInfo = database.getSubIdToProcServerInfo();
+                            for(int i=0; i<procInfo.size(); i++){
+                                JSONObject item = (JSONObject) procInfo.get(i);
+                                String sid = item.getString("subid");
+                                JSONObject aliasuri = database.getSubAliasAndUri(UUID.fromString(subid));
+                                if(sid.equals(subid) && aliasuri!=null){
+                                    String procname = item.getString("name");
+                                    String prochost = item.getString("host");
+                                    int procport = item.getInt("port");
+                                    String alias = aliasuri.getString("alias");
+                                    String uri = aliasuri.getString("uri");
+                                    
+                                    database.insertNewSubEntry(UUID.fromString(subid), alias, uri, null, r.getURI(), pubid, null);
+                                    database.updateProcSvrAssignmentWithDstPubId(subid, procname, prochost, procport, pubid.toString());
+                                    response.put("subid", subid);
+                                    response.put("add_to_existing", true);
+                                    break;
+                                }
+                            }
+
+                            if(!response.containsKey("subid")){
+                                errors.add("Error while fetching subid associated with " + target);
+                                logger.warning(errors.toString());
+                                response.clear();
+                                response.put("errors", errors);
+                            }
+                        } catch(Exception e){
+                            logger.log(Level.WARNING, "", e);
+                            errors.add("Error while fetching subid associated with " + target);
+                            response.clear();
+                            response.put("errors", errors);
+                        }
                     }
+                    
 				} else {
-					errors.add("Target path must be a MODEL resource");
-					response = response.discard("subid");
-					response.put("errors", errors);
+                    errors.add("Target path must be a MODEL, PROCESS or associated publisher resources");
+                    response = response.discard("subid");
+                    response.put("errors", errors);
 				}
 			} else {
 				errors.add("Target path must ABSOLUTE (start with \"/\")");
@@ -347,6 +383,7 @@ public class SubMngr {
 			return response;
 		} catch (Exception m){
 			logger.log(Level.WARNING, "Exception caught in addSub(String url_, List<String> streams)", m);
+            response = response.discard("subid");
 		}
 		response.put("errors",errors);
 		return response;
@@ -571,12 +608,7 @@ public class SubMngr {
                                     logger.info("Length: " + dataStr.getBytes().length);
 									wr.write(dataStr, 0, dataStr.length());
 									wr.flush();
-
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
-                                    /*String l = null;
-                                    while((l=in.readLine())!=null)
-                                        logger.info(l);*/
-
                                     wr.close();
 									in.close();
 								}
@@ -802,7 +834,7 @@ public class SubMngr {
 					//remove from internal graph
 					Resource.removeFromMetadataGraph(r.getURI());
 				}
-			} else if (destStr != null && destStr.startsWith("/proc") && database.getSubCountToModelPub(destStr)==1){
+			} else if (destStr != null && destStr.startsWith("/proc")){
                 UUID mpubid = database.isRRPublisher2(destStr);
                 if(mpubid!=null){
                     Resource r = (ProcessPublisherResource) RESTServer.getResource(destStr);
