@@ -2100,6 +2100,24 @@ public class MySqlDriver implements Is4Database {
         return resp;
     }
 
+    public int getNumSubSrcs(UUID subid){
+        Connection conn = openConn();
+        try {
+            String query = "select count(*) as c from `subscriptions` where `subid`=?";
+            PreparedStatement ps = conn.prepareStatement(query);
+            logger.info("QUERY::" + query.replaceFirst("\\?", subid.toString()));
+            ps.setString(1, subid.toString());
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+                return rs.getInt("c");
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        } finally{
+            closeConn(conn);
+        }
+        return 0;
+    }
+
 	public String getSubscriptionId(UUID pubid, String wildcardPath, String target){
 		Connection conn = openConn();
 		String subid = null;
@@ -2208,6 +2226,22 @@ public class MySqlDriver implements Is4Database {
 
 			PreparedStatement ps = conn.prepareStatement(query);
 			ps.setString(1, subid.toString());
+			ps.executeUpdate();
+		} catch(Exception e){
+			logger.log(Level.WARNING, "",e);
+		}
+		closeConn(conn);
+	}
+
+    public void removeSubEntry(UUID subid, UUID pubid){
+
+		Connection conn  = openConn();
+		try{
+			String query = "DELETE FROM `subscriptions` where `subid`=? and `src_pubid`=?";
+
+			PreparedStatement ps = conn.prepareStatement(query);
+			ps.setString(1, subid.toString());
+            ps.setString(2, pubid.toString());
 			ps.executeUpdate();
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);

@@ -150,19 +150,48 @@ public class SubscriptionResource extends Resource{
 	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
 		JSONArray errors = new JSONArray();
-		JSONObject dataJSON = null;
-		response.put("status", "fail");
+		JSONObject dataJson = null;
 		try {
-			try{dataJSON = (JSONObject)JSONSerializer.toJSON(data);}
-			catch(Exception e){
-				errors.add("Invalid JSON PUT/POSTed");
-				response.put("errors", errors);
-				sendResponse(exchange, 400, response.toString(), internalCall, internalResp);
-				return;
-			}
+            dataJson = (JSONObject)JSONSerializer.toJSON(data);
+            String op = dataJson.getString("operation");
+            if(op.equalsIgnoreCase("remove_src") && dataJson.containsKey("paths")){
+                JSONArray paths = dataJson.getJSONArray("paths");
+                JSONArray pubids = database.getPubIdsFromSnodes(paths);
+                int numLeft = database.getNumSubSrcs(SUBID);
+                String lastOfPubids = null;
+                for(int i=0; i<pubids.size(); i++){
+                    if(numLeft==1){
+                        lastOfPubids = (String)pubids.get(i);
+                        break;
+                    } else {
+                        String thisPubid = (String)pubids.get(i);
+                        database.removeSubEntry(SUBID, 
+                                                UUID.fromString(thisPubid));
+                        numLeft = database.getNumSubSrcs(SUBID);
+                    }
+                    
+                }
 
+                //if there's one subscription entry left, delete the
+                //subscription entirely
+                if(numLeft==1) {
+                    String lastPubid = database.getSubSourcePubId(SUBID);
+                    if(lastPubid != null && lastPubid.equals(lastOfPubids))
+                        this.delete(exchange, true, internalResp);
+                }
+                
+                response.put("status", "success");
+                sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+                return;
+            } else {
+                errors.add("Request must include: remove_src as operation as an Array of paths");
+                response.put("errors", errors);
+            }
+        
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
+            errors.add("Request must include: remove_src as operation as an Array of paths");
+            response.put("errors", errors);
 		}
 		
 		sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
