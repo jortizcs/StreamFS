@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS `devices` (
   KEY `pubtable_id` (`pubtable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
+CREATE TABLE IF NOT EXISTS `group_privileges` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `groupname` varchar(50) NOT NULL,
+  `gid` varchar(36) NOT NULL,
+  `sid` varchar(36) NOT NULL,
+  `path` varchar(260) DEFAULT NULL,
+  `command` enum('GET','PUT','POST','DELETE') DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `groupname` (`groupname`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
 CREATE TABLE IF NOT EXISTS `publishers` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
   `pubid` varchar(36) NOT NULL,
@@ -45,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `publishers` (
   KEY `smap_server` (`smap_server`),
   KEY `alias` (`alias`),
   KEY `smap_uri` (`smap_uri`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=447 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=571 ;
 
 CREATE TABLE IF NOT EXISTS `rest_resources` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -58,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `rest_resources` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `path` (`path`),
   KEY `type` (`type`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=998 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1263 ;
 
 CREATE TABLE IF NOT EXISTS `subscriptions` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -70,13 +81,13 @@ CREATE TABLE IF NOT EXISTS `subscriptions` (
   `src_pubid` varchar(36) NOT NULL,
   `wildcardPath` varchar(255) DEFAULT NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `procsvr_name` varchar(255) NOT NULL,
+  `procsvr_name` varchar(255) NOT NULL DEFAULT '',
   `procsvr_host` varchar(255) NOT NULL DEFAULT '',
   `procsvr_port` int(5) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`),
   KEY `subid` (`subid`),
   KEY `src_pubid` (`src_pubid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=78 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=195 ;
 
 CREATE TABLE IF NOT EXISTS `symlinks` (
   `id` int(24) NOT NULL AUTO_INCREMENT,
@@ -86,3 +97,11 @@ CREATE TABLE IF NOT EXISTS `symlinks` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `symlink_uri` (`symlink_uri`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=117 ;
+
+CREATE TABLE IF NOT EXISTS `user_privileges` (
+  `id` int(10) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `sid` varchar(36) NOT NULL,
+  `path` varchar(260) NOT NULL,
+  `command` enum('GET','PUT','POST','DELETE') NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
