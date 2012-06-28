@@ -1,6 +1,7 @@
 package sfs.db;
 
 import sfs.util.DBQueryTypes;
+import sfs.cache.CacheKeyManager;
 import sfs.SFSServer;
 
 import java.io.BufferedReader;
@@ -44,6 +45,9 @@ public class MySqlDriver {
     private static MySqlDriver mysqlDB=null;
 
 	private static Hashtable<String, String> validSchemas = null;
+
+    //cache key helper
+    CacheKeyManager ccm = CacheKeyManager.getInstance();
 
     public static MySqlDriver getInstance(){
         if(mysqlDB ==null)
@@ -377,7 +381,7 @@ public class MySqlDriver {
 			conn = openConnLocal();
 			Statement s = conn.createStatement ();
 			int count = s.executeUpdate (
-				"DELETE from `rest_resources` where `path`=\"" + resourcePath + "\"");
+				"DELETE from `paths` where `path`=\"" + resourcePath + "\"");
 			s.close();
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
@@ -671,7 +675,7 @@ public class MySqlDriver {
 			Statement s = conn.createStatement ();
 			int count;
 			ResultSet rs = s.executeQuery (
-				"SELECT path FROM `rest_resources` WHERE id=" + rrTableId);
+				"SELECT path FROM `paths` WHERE id=" + rrTableId);
 			while(rs.next())
 				path = rs.getString("path");
 			s.close();
@@ -943,7 +947,7 @@ public class MySqlDriver {
                 conn = openConnLocal();
 
                 Statement s = conn.createStatement ();
-                String rrtype_query = "select type from rest_resources where path=? or path=?";
+                String rrtype_query = "select type from paths where path=? or path=?";
                 PreparedStatement ps1 = conn.prepareStatement(rrtype_query);
                 
                 ps1.setString(1, path);
@@ -978,7 +982,7 @@ public class MySqlDriver {
 			conn = openConnLocal();
 
 			Statement s = conn.createStatement ();
-			String query = "UPDATE `rest_resources` set `type`= ? WHERE path= ? OR path=?";
+			String query = "UPDATE `paths` set `type`= ? WHERE path= ? OR path=?";
 			PreparedStatement ps = conn.prepareStatement(query);
 			
 			ps.setString(1, type);
@@ -991,7 +995,7 @@ public class MySqlDriver {
 			ps.setString(3, path2);
 			
 			int count = ps.executeUpdate();
-			logger.info("Updated " + count + " rows in rest_resources");
+			logger.info("Updated " + count + " rows in paths");
 			
 			ps.close();
 
@@ -1016,7 +1020,7 @@ public class MySqlDriver {
 			conn = openConnLocal();
 
 			Statement s = conn.createStatement ();
-			String rridt_query = "select id from rest_resources where path=? or path=?";//rs1
+			String rridt_query = "select id from paths where path=? or path=?";//rs1
 			String pubidt_query = "select pubtable_id from devices where rrid=?";//rs1.getInt("id"), rs2
 			String pubid_query = "select pubid from publishers where id=?";//rs2.getInt("pubtable_id"),rs3.getString("pubid")
 
@@ -1295,7 +1299,7 @@ public class MySqlDriver {
 		try {
 			conn = openConnLocal();
 			Statement s = conn.createStatement();
-			String query = "SELECT `id` from `rest_resources` where `path`=\"" + path + "\" or `path`=\"" + path2 + "\"";
+			String query = "SELECT `id` from `paths` where `path`=\"" + path + "\" or `path`=\"" + path2 + "\"";
 			ResultSet rs = s.executeQuery(query);
 			logger.info("query: " + query);
 					
@@ -1319,7 +1323,7 @@ public class MySqlDriver {
 			conn = openConnLocal();
 
 			Statement s = conn.createStatement ();
-			String q1 = "SELECT `id` FROM `rest_resources` WHERE `path`=? OR `path`=?";
+			String q1 = "SELECT `id` FROM `paths` WHERE `path`=? OR `path`=?";
 			String q2 = "SELECT `id` FROM `devices` WHERE `device_name`=? AND `rrid`=?";
 
 			PreparedStatement ps1 = conn.prepareStatement(q1);
@@ -1410,7 +1414,7 @@ public class MySqlDriver {
 				if(pubtable_id <0 && pubid != null)
 					logger.warning("Could not find " + pubid.toString() + " entry in publishers table");
 				if(rrid <0)
-					logger.warning("Could not find " + resource_uri + " entry in rest_resources table");
+					logger.warning("Could not find " + resource_uri + " entry in paths table");
 			}
 		} catch (Exception e){
 			logger.log(Level.WARNING, "",e);
@@ -1444,7 +1448,7 @@ public class MySqlDriver {
 		try {
 			conn = openConnLocal();
 			Statement s = conn.createStatement();
-			String query = "SELECT path from `rest_resources` where `id`=" + id;
+			String query = "SELECT path from `paths` where `id`=" + id;
 			logger.info("QUERY: " + query);
 			ResultSet rs = s.executeQuery(query);
 			if(rs.next())
@@ -1471,7 +1475,7 @@ public class MySqlDriver {
                     conn = openConnLocal();
                     Statement s = conn.createStatement ();
                     String altPath = path.endsWith("/")?path.substring(0, path.length()-1):path+"/";
-                    String query = "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
+                    String query = "SELECT `properties` FROM `paths` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
                     logger.fine("MySqlDriver.rrGetPropertiesStr::Query=" + query);
                     ResultSet rs = s.executeQuery (query);
                     while(rs.next()){
@@ -1482,7 +1486,7 @@ public class MySqlDriver {
                         }
                         s.close();
                         closeConn(conn);
-                        memcachedClient.set(key, propsStr);
+                        ccm.set(memcachedClient, key, propsStr);
                         return propsStr;
                     }
                     return null;
@@ -1511,7 +1515,7 @@ public class MySqlDriver {
                     conn = openConnLocal();
                     Statement s = conn.createStatement ();
                     String altPath = path.endsWith("/")?path.substring(0, path.length()-1):path+"/";
-                    String query = "SELECT `properties` FROM `rest_resources` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
+                    String query = "SELECT `properties` FROM `paths` WHERE `path`=\"" + path + "\" or `path`=\"" + altPath + "\"";
                     logger.fine("MySqlDriver.rrGetProperties::Query=" + query);
                     ResultSet rs = s.executeQuery (query );
                     while(rs.next()){
@@ -1520,7 +1524,7 @@ public class MySqlDriver {
                         if(propsBlob != null){
                             String propsStr = new String (propsBlob.getBytes(1L, (int)propsBlob.length()));
                             props = (JSONObject) parser.parse(propsStr);
-                            memcachedClient.set(key, propsStr);
+                            ccm.set(memcachedClient, key, propsStr);
                         }
                         s.close();
                         closeConn(conn);
@@ -1550,7 +1554,7 @@ public class MySqlDriver {
 			if(path != null && props != null && rrPathExists(path)){
 				conn = openConnLocal();
 				//Statement s = conn.createStatement ();
-				PreparedStatement ps = conn.prepareStatement("UPDATE `rest_resources` set `properties`= ? WHERE path= ? or path=?");
+				PreparedStatement ps = conn.prepareStatement("UPDATE `paths` set `properties`= ? WHERE path= ? or path=?");
 				String withoutSlash=null;
 				String withSlash=null;
 				if(!path.endsWith("/")){
@@ -1565,13 +1569,13 @@ public class MySqlDriver {
 				ps.setString(2, withoutSlash);
 				ps.setString(3, withSlash);
 				//String properties = props.toString().replaceAll("\"", "\\\"");
-				//String query = "UPDATE `rest_resources` set `properties`= \"" + properties + "\" WHERE path=\"" + path + "\"";
+				//String query = "UPDATE `paths` set `properties`= \"" + properties + "\" WHERE path=\"" + path + "\"";
 				//logger.info("Executing: " + query);
 				//int count = ps.executeUpdate (query);
 				int count = ps.executeUpdate ();
 				ps.close();
                 String key = DBQueryTypes.GET_PROPS + path;
-                memcachedClient.set(key, props.toString());
+                ccm.set(memcachedClient, key, props.toString());
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
@@ -1588,7 +1592,7 @@ public class MySqlDriver {
 			if(path != null && propsStr != null && rrPathExists(path)){
 				conn = openConnLocal();
 				//Statement s = conn.createStatement ();
-				PreparedStatement ps = conn.prepareStatement("UPDATE `rest_resources` set `properties`= ? WHERE path= ? or path=?");
+				PreparedStatement ps = conn.prepareStatement("UPDATE `paths` set `properties`= ? WHERE path= ? or path=?");
 				String withoutSlash=null;
 				String withSlash=null;
 				if(!path.endsWith("/")){
@@ -1603,13 +1607,13 @@ public class MySqlDriver {
 				ps.setString(2, withoutSlash);
 				ps.setString(3, withSlash);
 				//String properties = props.toString().replaceAll("\"", "\\\"");
-				//String query = "UPDATE `rest_resources` set `properties`= \"" + properties + "\" WHERE path=\"" + path + "\"";
+				//String query = "UPDATE `paths` set `properties`= \"" + properties + "\" WHERE path=\"" + path + "\"";
 				//logger.info("Executing: " + query);
 				//int count = ps.executeUpdate (query);
 				int count = ps.executeUpdate ();
 				ps.close();
                 String key = DBQueryTypes.GET_PROPS + path;
-                memcachedClient.set(key, propsStr);
+                ccm.set(memcachedClient,key, propsStr);
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
@@ -1620,14 +1624,49 @@ public class MySqlDriver {
 		}
 	}
 
-	public void rrPutPath(String path){
+    public boolean isOidUnique(UUID oid){
+        Connection conn = null;
+        try {
+            conn = openConnLocal();
+            String query = "select count(*) as c from `paths` where `oid`=?";
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setString(1, oid.toString());
+            ResultSet rs = ps.executeQuery();
+            if(rs.next() && rs.getInt("c")>0)
+                return false;
+            return true;
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+            System.exit(1);
+        } finally{
+            closeConn(conn);
+        }
+        return false;
+    }
+
+	public void rrPutPath(String path, String oid){
 		Connection conn = null;
 		try {
 			if(path!=null && !this.rrPathExists(path)){
 				conn = openConnLocal();
 				Statement s = conn.createStatement ();
-				int count = s.executeUpdate ("INSERT INTO `rest_resources`(`path`) VALUES(\"" + path + "\")");
+				int count = s.executeUpdate ("INSERT INTO `paths`(`path`, `oid`) VALUES(\"" + path + "\", \"" + oid + "\")");
 				s.close();
+                if(count>0){
+                    //get this path's parent
+                    StringBuffer parent = new StringBuffer();
+                    StringTokenizer tokenizer =new StringTokenizer(path, "/");
+                    Vector<String> tokens = new Vector<String>();
+                    while(tokenizer.hasMoreTokens())
+                        tokens.add(tokenizer.nextToken());
+                    if(tokens.size()==1)
+                        parent.append("/");
+                    else
+                        for(int i=0; i<tokens.size()-1; i++)
+                            parent.append("/").append(tokens.get(i));
+                    //invalidate associated cache entries in memcached
+                    ccm.invalidateAllEntries(memcachedClient, parent.toString() + "*");
+                }
 			}
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "", e);
@@ -1643,7 +1682,7 @@ public class MySqlDriver {
 		try{
             conn = openConnLocal();
 			if(path != null && conn !=null) {
-				PreparedStatement ps= conn.prepareStatement ( "SELECT * FROM `rest_resources` WHERE `path`=? or `path`=?");
+				PreparedStatement ps= conn.prepareStatement ( "SELECT * FROM `paths` WHERE `path`=? or `path`=?");
 				String withoutSlash=null;
 				String withSlash=null;
 				if(!path.endsWith("/")){
@@ -1683,7 +1722,7 @@ public class MySqlDriver {
                 if(path != null) {
                     conn = openConnLocal();
                     Statement s = conn.createStatement ();
-                    String query = "SELECT * FROM `rest_resources` WHERE `path` like \"" + path + "%\"";
+                    String query = "SELECT * FROM `paths` WHERE `path` like \"" + path + "%\"";
                     logger.info("QUERY: " + query);
                     ResultSet rs = s.executeQuery (query);
                     while(rs.next()){
@@ -1706,7 +1745,7 @@ public class MySqlDriver {
                         }
                     }
                     s.close();
-                    memcachedClient.set(key, children.toJSONString());
+                    ccm.set(memcachedClient, key, children.toJSONString());
                     return children;
                 }
             } else {
@@ -1730,7 +1769,7 @@ public class MySqlDriver {
             if(allpathstr==null){
                 conn = openConnLocal();
                 Statement s = conn.createStatement ();
-                ResultSet rs = s.executeQuery ( "SELECT path FROM `rest_resources`");
+                ResultSet rs = s.executeQuery ( "SELECT path FROM `paths`");
                 while(rs.next())
                     allpaths.add(rs.getString("path"));
                 s.close();
@@ -1752,7 +1791,7 @@ public class MySqlDriver {
 		JSONArray hardlinkUris = new JSONArray();
 		Connection conn = openConn();
 		try{
-			String query = "SELECT `path` FROM `rest_resources` WHERE `type`!=\"symlinks\"";
+			String query = "SELECT `path` FROM `paths` WHERE `type`!=\"symlinks\"";
 			PreparedStatement ps = conn.prepareStatement(query);
 			ResultSet rs = ps.executeQuery();
 			while(rs.next())
@@ -1789,14 +1828,14 @@ public class MySqlDriver {
             //change all resources that start with the srcPath prefix
             String p = srcPath.endsWith("/")?srcPath:srcPath+"/";
             String rp = dstPath.endsWith("/")?dstPath:dstPath+"/";
-            String query = "Select `path` from `rest_resources` where `path` like \"" + p + "%\"";
+            String query = "Select `path` from `paths` where `path` like \"" + p + "%\"";
             logger.fine("Move.Query.3=" + query);
             PreparedStatement ps = conn.prepareStatement(query);
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
                 String thisPath = rs.getString("path");
                 String replacementStr = thisPath.replace(p, rp);
-                query = "Update `rest_resources` set `path`=? WHERE `path`=?";
+                query = "Update `paths` set `path`=? WHERE `path`=?";
                 logger.fine("Move.Query.4=" + 
                     query.replaceFirst("\\?", replacementStr).replaceFirst("\\?", thisPath));
                 retMap.put(thisPath, replacementStr);
@@ -2699,7 +2738,7 @@ public class MySqlDriver {
 				boolean typeset = false;
 				uri = uri.replaceAll("\\*", "\\%");
 				logger.info("New uri: " + uri);
-				String query = "SELECT `path` from `rest_resources` where `path` like ?";
+				String query = "SELECT `path` from `paths` where `path` like ?";
 				if(type != null && type.length()>0){
 					query = query + " AND type=?";
 					typeset = true;
@@ -2753,7 +2792,7 @@ public class MySqlDriver {
 		Connection conn = openConn();
 		try{
 			if(uri.contains("*") ){//&& !uri.endsWith("*")){
-				String query = "SELECT `path` from `rest_resources` where `type`=\"symlink\"";
+				String query = "SELECT `path` from `paths` where `type`=\"symlink\"";
 				logger.fine("QUERY: " + query);
 				PreparedStatement ps = conn.prepareStatement(query);
 				ResultSet rs = ps.executeQuery();
@@ -3081,7 +3120,7 @@ public class MySqlDriver {
         String value = null;
 		Connection conn = null;
 		try{
-			String query = "UPDATE `rest_resources` set `last_props_update_time`=? where `path`=? or `path`=?";
+			String query = "UPDATE `paths` set `last_props_update_time`=? where `path`=? or `path`=?";
 			String uri2 = null;
 			if(uri.endsWith("/"))
 				uri2 = uri.substring(0, uri.length()-1);
@@ -3093,7 +3132,7 @@ public class MySqlDriver {
 			ps.setString(2, uri);
 			ps.setString(3, uri2);
 			ps.executeUpdate();
-            memcachedClient.set(key, timestamp);
+            ccm.set(memcachedClient, key, new Long(timestamp).toString());
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		}
@@ -3115,14 +3154,14 @@ public class MySqlDriver {
                 else
                     uri2 = uri + "/";
                 conn = openConn();
-                String query = "SELECT `last_props_update_time` FROM `rest_resources` where `path`=? or `path`=?";
+                String query = "SELECT `last_props_update_time` FROM `paths` where `path`=? or `path`=?";
                 PreparedStatement ps = conn.prepareStatement(query);
                 ps.setString(1, uri);
                 ps.setString(2, uri2);
                 ResultSet rs = ps.executeQuery();
                 if(rs.next()){
                     ts = rs.getLong("last_props_update_time");
-                    memcachedClient.set(key, (new Long(ts)).toString());
+                    ccm.set(memcachedClient, key, (new Long(ts)).toString());
                 }
             } else {
                 ts = new Long(value).longValue();
@@ -3144,7 +3183,7 @@ public class MySqlDriver {
 		public void updateLastModelTs(String uri, long timestamp){
 			Connection conn = null;
 			try{
-				String query = "UPDATE `rest_resources` set `last_model_update_time`=? where `path`=? or `path`=?";
+				String query = "UPDATE `paths` set `last_model_update_time`=? where `path`=? or `path`=?";
 				String uri2 = null;
 				if(uri.endsWith("/"))
 					uri2 = uri.substring(0, uri.length()-1);
@@ -3172,7 +3211,7 @@ public class MySqlDriver {
 				else
 					uri2 = uri + "/";
 				conn = openConn();
-				String query = "SELECT `last_model_update_time` FROM `rest_resources` where `path`=? or `path`=?";
+				String query = "SELECT `last_model_update_time` FROM `paths` where `path`=? or `path`=?";
 				PreparedStatement ps = conn.prepareStatement(query);
 				ps.setString(1, uri);
 				ps.setString(2, uri2);

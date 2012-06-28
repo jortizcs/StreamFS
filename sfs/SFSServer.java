@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.UUID;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import javax.net.ssl.SSLContext;
@@ -40,6 +41,11 @@ public class SFSServer implements Container {
     public static final long start_time = System.currentTimeMillis()/1000;
     private static ExecutorService executor=null;
 
+    //core paths
+    private static final String[] corepaths = {"/ibus", "/", "/pub", "/sub", "/pub/all", "/time", 
+                        "/sub/all", "/proc", "/admin", "/admin/data", "/admin/properties",
+                        "/admin/data/indices", "/admin/properties/indices", "/admin/listrsrcs"};
+
     //parameters to set up https connection handling
     public static String EMTPY_STRING = "";
     public static String KEYSTORE_PROPERTY = "javax.net.ssl.keyStore";
@@ -63,6 +69,9 @@ public class SFSServer implements Container {
 
         //setup db
         mysqlDB = MySqlDriver.getInstance();
+
+        //init core files
+        initCoreFiles();
 
         //resource utils
         utils = ResourceUtils.getInstance();
@@ -131,6 +140,21 @@ public class SFSServer implements Container {
 
         return keyStore;
     }
+
+    private static void initCoreFiles(){
+        long lobs = 0L;
+        for(int i=0; i<corepaths.length; i++){
+            String path = corepaths[i];
+            if(!mysqlDB.rrPathExists(path)){
+                UUID oid = new UUID(0L,lobs);
+                mysqlDB.rrPutPath(path, oid.toString());
+                if(path.equals("/ibus"))
+                    mysqlDB.setRRType(path, ResourceUtils.GENERIC_PUBLISHER_RSRC_STR);
+                lobs+=1;
+            }
+        }
+    }
+
 
     public class AsyncTask implements Runnable{
         private Request request = null;

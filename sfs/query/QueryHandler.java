@@ -47,7 +47,12 @@ public class QueryHandler{
             }
         } else if(method.equalsIgnoreCase("put")){
             if(type.equalsIgnoreCase("default")){
-                //Default.put(request, response, path, false, null);
+                try {
+                    Default.put(request, response, path, request.getContent(), false, null);
+                } catch(Exception e){
+                    logger.log(Level.WARNING, "", e);
+                    utils.sendResponse(request, response, 500, null, false, null);
+                }
             } else if(type.equalsIgnoreCase("stream") || type.equalsIgnoreCase("generic_publisher")){
             } else if(type.equalsIgnoreCase("control")){
             } else if(type.equalsIgnoreCase("subscription")){

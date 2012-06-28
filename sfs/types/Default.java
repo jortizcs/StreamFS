@@ -3,6 +3,7 @@ package sfs.types;
 import sfs.SFSServer;
 import sfs.query.QueryHandler;
 import sfs.util.DBQueryTypes;
+import sfs.db.*;
 
 import org.simpleframework.http.Response;
 import org.simpleframework.http.Request;
@@ -27,6 +28,7 @@ public class Default{
     private static final JSONParser parser = new JSONParser();
     private static final ResourceUtils utils = ResourceUtils.getInstance();
     private static final QueryHandler qh = QueryHandler.getInstance();
+    private static final MongoDBDriver mongoDriver = MongoDBDriver.getInstance();
 
 	public static void get(Request request, Response response, String path, boolean internalCall, JSONObject internalResp){
         try {
@@ -74,12 +76,12 @@ public class Default{
         }
 	}
 
-    private JSONArray getIncidentPaths(String path){
+    /*private JSONArray getIncidentPaths(String path){
         JSONArray l = mysqlDB.getAllSymlinkAndTargetPaths();
         //check alll target paths and see if it shares a substring prefix with
         //the 'path' parameter for this function
         JSONArray a = mysqlDB.rrGetAllPaths();
-    }
+    }*/
 
     /*private void findSymlinks(JSONArray children){
 		JSONArray newChildren = new JSONArray();
@@ -102,13 +104,63 @@ public class Default{
 		children.addAll(newChildren);
 	}*/
 
-	/*public static void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public static void put(Request request, Response response, String path, String data, boolean internalCall, JSONObject internalResp){
+
+        try{
+			logger.info("PUT " + path);
+			if(data != null){
+				JSONObject dataObj = (JSONObject) parser.parse(data);
+				String op = (String)dataObj.get("operation");
+				String resourceName = (String)dataObj.get("resourceName");
+				if(op!=null && op.equalsIgnoreCase("create_resource")){
+                    String name  = (String)dataObj.get("name");
+                    //save if already in database	
+                    if(!mysqlDB.rrPathExists(path)){
+                        UUID suuid = UUID.randomUUID();
+                        UUID oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBit()&0xFFFFFFFF00000000);
+                        while(!mysqlDB.isOidUnique(oid)){
+                            suuid = UUID.randomUUID();
+                            oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBit()&0xFFFFFFFF00000000);
+                        }
+                        logger.info("Created new object with id: " + oid.toString());
+                        mysqlDB.rrPutPath(path + name, oid.toString());
+
+                        //set last_props_ts
+                        long last_props_ts = mysqlDB.getLastPropsTs(path);
+                        if(last_props_ts==0 && mongoDriver.getPropsHistCount(path)>0){
+                            logger.info("Fetching oldest properties values");
+                            last_props_ts = mongoDriver.getMaxTsProps(path);
+                            JSONObject propsEntry = mongoDriver.getPropsEntry(path, last_props_ts);
+                            propsEntry.remove("_id");
+                            propsEntry.remove("timestamp");
+                            propsEntry.remove("is4_uri");
+                            propsEntry.remove("_keywords");
+                            mysqlDB.rrPutProperties(path, propsEntry);
+                            mysqlDB.updateLastPropsTs(path, last_props_ts);
+                        }
+                        //created success!
+                        utils.sendResponse(request, response, 201, null, internalCall, internalResp);
+                    } else {
+                        //conflict error
+                        utils.sendResponse(request, response, 409, null, internalCall, internalResp);
+                    }
+				}
+            }
+		} catch (Exception e){
+			logger.log(Level.WARNING, "Request document not in proper JSON format", e);
+			utils.sendResponse(request, response, 500, null, internalCall, internalResp);
+			return;
+		} 
+
+		//no content
+		utils.sendResponse(request, response, 204, null, internalCall, internalResp);
 	}
 
-	public static void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-	}
 
-	public static void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	/*public static void post(Request request, Response response, String path, String data, boolean internalCall, JSONObject internalResp){
+	}*/
+
+	/*public static void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
 	}*/
 
     
