@@ -1,7 +1,7 @@
 {
 	"address":"localhost",
 	"port":3306,
-	"dbname":"sfs_state",
+	"dbname":"sfs_state_scale",
 	"login":"root",
-	"password":"410soda"
+	"password":"root"
 }

@@ -5,3 +5,4 @@ mongo
 is4app.jar
 *.tmp
 *.log
+*.swo
