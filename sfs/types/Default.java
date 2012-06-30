@@ -107,36 +107,43 @@ public class Default{
 	public static void put(Request request, Response response, String path, String data, boolean internalCall, JSONObject internalResp){
 
         try{
-			logger.info("PUT " + path);
+			logger.info("PUT " + path + "\ndata=" + data);
+
 			if(data != null){
 				JSONObject dataObj = (JSONObject) parser.parse(data);
 				String op = (String)dataObj.get("operation");
 				String resourceName = (String)dataObj.get("resourceName");
 				if(op!=null && op.equalsIgnoreCase("create_resource")){
-                    String name  = (String)dataObj.get("name");
                     //save if already in database	
-                    if(!mysqlDB.rrPathExists(path)){
+                    String newpath = null;
+                    if(!path.equals("/"))
+                        newpath = path + "/" + resourceName;
+                    else
+                        newpath= path + resourceName;
+                    logger.info("Does " + newpath+ " exist?" + mysqlDB.rrPathExists(newpath));
+
+                    if(!mysqlDB.rrPathExists(newpath)){
                         UUID suuid = UUID.randomUUID();
-                        UUID oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBit()&0xFFFFFFFF00000000);
+                        UUID oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBits()&(1L<<32));
                         while(!mysqlDB.isOidUnique(oid)){
                             suuid = UUID.randomUUID();
-                            oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBit()&0xFFFFFFFF00000000);
+                            oid = new UUID(suuid.getMostSignificantBits(), suuid.getLeastSignificantBits()&(1L<<32));
                         }
                         logger.info("Created new object with id: " + oid.toString());
-                        mysqlDB.rrPutPath(path + name, oid.toString());
+                        mysqlDB.rrPutPath(newpath, oid.toString());
 
                         //set last_props_ts
-                        long last_props_ts = mysqlDB.getLastPropsTs(path);
-                        if(last_props_ts==0 && mongoDriver.getPropsHistCount(path)>0){
+                        long last_props_ts = mysqlDB.getLastPropsTs(newpath);
+                        if(last_props_ts==0 && mongoDriver.getPropsHistCount(newpath)>0){
                             logger.info("Fetching oldest properties values");
-                            last_props_ts = mongoDriver.getMaxTsProps(path);
-                            JSONObject propsEntry = mongoDriver.getPropsEntry(path, last_props_ts);
+                            last_props_ts = mongoDriver.getMaxTsProps(newpath);
+                            JSONObject propsEntry = mongoDriver.getPropsEntry(newpath, last_props_ts);
                             propsEntry.remove("_id");
                             propsEntry.remove("timestamp");
                             propsEntry.remove("is4_uri");
                             propsEntry.remove("_keywords");
-                            mysqlDB.rrPutProperties(path, propsEntry);
-                            mysqlDB.updateLastPropsTs(path, last_props_ts);
+                            mysqlDB.rrPutProperties(newpath, propsEntry);
+                            mysqlDB.updateLastPropsTs(newpath, last_props_ts);
                         }
                         //created success!
                         utils.sendResponse(request, response, 201, null, internalCall, internalResp);
@@ -160,8 +167,87 @@ public class Default{
 	/*public static void post(Request request, Response response, String path, String data, boolean internalCall, JSONObject internalResp){
 	}*/
 
-	/*public static void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-	}*/
+	public static void delete(Request request, Response response, String path, boolean internalCall, JSONObject internalResp){
+        try {
+			logger.info("Handling DELETE command for " + path);
+			JSONArray children = mysqlDB.rrGetChildren(path);
+			if(children.size()==0){
+				//reset properties
+				JSONObject emptyProps = new JSONObject();
+				updateProperties(emptyProps, path);
+
+				//delete rest_resource entry
+				mysqlDB.removeRestResource(path);
+
+				utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+			} else {
+				JSONObject resp = new JSONObject();
+				JSONArray errors = new JSONArray();
+				resp.put("status", "fail");
+				errors.add("Cannot delete resource with children");
+				resp.put("errors", errors);
+				utils.sendResponse(request, response, 200, resp.toString(), 
+                        internalCall, internalResp);
+			} 
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		} 
+	}
+
+    public static void updateProperties(JSONObject propsObj, String path){
+		
+		//MongoDBDriver mongoDriver = new MongoDBDriver();
+
+		//add an array to support fulltxt search
+        long last_props_ts = mysqlDB.getLastPropsTs(path);
+		HashMap<String, String> uniqueKeys = new HashMap<String, String>();
+		JSONArray keywords = new JSONArray();
+		Iterator pKeys = propsObj.keySet().iterator();
+		while(pKeys.hasNext()){
+			String thisKey = (String)pKeys.next();
+			if(!uniqueKeys.containsKey(thisKey.trim())){
+				keywords.add(thisKey.trim());
+				uniqueKeys.put(thisKey.trim(),"y");
+			}
+			String val = propsObj.get(thisKey).toString();
+			val.replace("[","");val.replace("]","");val.replace("{","");val.replace("}","");
+			val.replace(",","");val.replace(";","");
+			String delims = "[ ]+";
+			String[] tokens = val.split(delims);
+			for(int i=0;i<tokens.length; ++i){
+				if(!uniqueKeys.containsKey(tokens[i].trim())){
+					keywords.add(tokens[i].trim());
+					uniqueKeys.put(tokens[i].trim(),"y");
+				}
+			}
+		}
+		logger.fine(uniqueKeys.toString());
+		logger.fine("_keywords:" + keywords.toString());
+		propsObj.put("_keywords", keywords);
+
+		//add is4_uri
+		propsObj.put("is4_uri", path);
+
+		//add timestamp
+		Date date = new Date();
+		long timestamp = date.getTime()/1000;
+		propsObj.put("timestamp", timestamp);
+
+		//store in mongodb repos
+		mongoDriver.putPropsEntry(propsObj);
+
+
+		//save the last updated timestamp in the database
+		mysqlDB.updateLastPropsTs(path, timestamp);
+
+		last_props_ts = timestamp;
+
+		//place it in buffer
+		/*if(database.hasPropertiesBuffered(URI))
+			database.insertPropertiesIntoBuffer(URI, propsObj);
+		else
+			database.updatePropertiesInBuffer(URI, propsObj);*/
+	}
 
     
 }

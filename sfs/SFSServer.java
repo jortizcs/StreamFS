@@ -150,7 +150,7 @@ public class SFSServer implements Container {
                 mysqlDB.rrPutPath(path, oid.toString());
                 if(path.equals("/ibus"))
                     mysqlDB.setRRType(path, ResourceUtils.GENERIC_PUBLISHER_RSRC_STR);
-                lobs+=1;
+                lobs=lobs+(1L<<32);
             }
         }
     }

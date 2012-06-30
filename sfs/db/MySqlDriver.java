@@ -1665,7 +1665,7 @@ public class MySqlDriver {
                         for(int i=0; i<tokens.size()-1; i++)
                             parent.append("/").append(tokens.get(i));
                     //invalidate associated cache entries in memcached
-                    ccm.invalidateAllEntries(memcachedClient, parent.toString() + "*");
+                    ccm.invalidateAllEntries(memcachedClient, "[*]" + parent.toString() + "[*]");
                 }
 			}
 		} catch (Exception e) {

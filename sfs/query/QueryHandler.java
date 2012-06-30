@@ -74,7 +74,7 @@ public class QueryHandler{
             }
         } else if(method.equalsIgnoreCase("delete")){
             if(type.equalsIgnoreCase("default")){
-                //Default.delete(request, response, path, false, null);
+                Default.delete(request, response, path, internalCall, internalResp);
             } else if(type.equalsIgnoreCase("stream") || type.equalsIgnoreCase("generic_publisher")){
             } else if(type.equalsIgnoreCase("control")){
             } else if(type.equalsIgnoreCase("subscription")){

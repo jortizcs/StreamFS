@@ -209,8 +209,8 @@ public class ResourceUtils {
         if(!path.startsWith("/"))
             path = "/" + path;
         path = path.replaceAll("/+", "/");
-        if(!path.endsWith("/"))
-            path += "/";
+        if(path.endsWith("/"))
+            path = path.substring(0,path.length()-1);
         return path;
     }
 
