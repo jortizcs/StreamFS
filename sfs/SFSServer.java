@@ -173,7 +173,7 @@ public class SFSServer implements Container {
                 String method = request.getMethod();
                 Query query = request.getQuery();
                 logger.info("query_string=" + query.toString().length());
-                if(m.matches() && type !=null){
+                if((path.equals("") || m.matches()) && type !=null){
                     logger.info("MATCH");
                     if(type!=null){
                         logger.info("Query handler dealing with request");

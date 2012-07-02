@@ -1644,6 +1644,49 @@ public class MySqlDriver {
         return false;
     }
 
+    public int numPaths(UUID oid){
+        Connection conn = null;
+        try {
+            conn = openConnLocal();
+            String query = "select count(*) as c from `paths` where `oid`=?";
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setString(1, oid.toString());
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+                return rs.getInt("c");
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+            System.exit(1);
+        } finally{
+            closeConn(conn);
+        }
+        return 0;
+    }
+
+    public UUID getOidFromPath(String path){
+        Connection conn = null;
+        try {
+            String thisPath2 = null;
+            if(path.endsWith("/")){
+                thisPath2 = path.substring(0,path.length()-1);
+            } else {
+                thisPath2 = path + "/";
+            }
+            conn = openConnLocal();
+            String query = "select oid from paths where `path`=? or `path`=?";
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setString(1, path);
+            ps.setString(2, thisPath2);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+                return UUID.fromString(rs.getString("oid"));
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            System.exit(1);
+        }
+        return null;
+    }
+
 	public void rrPutPath(String path, String oid){
 		Connection conn = null;
 		try {

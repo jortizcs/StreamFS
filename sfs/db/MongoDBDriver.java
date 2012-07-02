@@ -25,25 +25,25 @@ public class MongoDBDriver {
 	private static int openConns =0;
 
 	//database
-	private static String dataRepository = "is4_data_repos";
+	private static String dataRepository = "data_repos";
 
 	//The timeseries data stream collected from stream resource nodes
-	private static String mainCollection  = "is4_main_coll";
+	private static String mainCollection  = "main_coll";
 
 	//The properties for every resource in the hierarchy
-	private static String rsrcPropsCollection = "is4_rsrc_props_coll";
+	private static String rsrcPropsCollection = "rsrc_props_coll";
 
 	//The hierarchy snapshot whenever any structural changes are made to the hierarchy (r/s nodes added/deleted)
-	private static String snapshotCollection = "is4_hier_snapshots_coll";
+	private static String snapshotCollection = "hier_snapshots_coll";
 
 	//Compressed timeseries collection
-	private static String tsCollection = "sfs_timeseries_coll";
+	private static String tsCollection = "timeseries_coll";
 	
 	//Models scripts collection
-	private static String modelsCollection  = "is4_models_coll";
+	private static String modelsCollection  = "models_coll";
 
 	//Configuration file
-	private String dbConfigFile = "/project/eecs/tinyos/is4/lib/local/db/db_config/db_info.json";
+	private String dbConfigFile = "sfs/db/db_config/db_info.json";
 
 
 	private static Mongo m = null;
@@ -72,26 +72,26 @@ public class MongoDBDriver {
 		if(!inited){
 			//setup indices
 			BasicDBObject indicesObj = new BasicDBObject();
-			indicesObj.append("PubId", new Integer(1));
+			indicesObj.append("oid", new Integer(1));
 			indicesObj.append("timestamp", new Integer(1));
 			dataCollection.ensureIndex(indicesObj);
 
 			//Setup timeseries data collection
 			BasicDBObject tsIndicesObj = new BasicDBObject();
-			tsIndicesObj.append("pubid", new Integer(1));
+			tsIndicesObj.append("oid", new Integer(1));
 			tsIndicesObj.append("ts", new Integer(1));
 			tsDataCollection.ensureIndex(indicesObj);
 
 			//setup props indices
 			BasicDBObject propsIndicesObj = new BasicDBObject();
-			propsIndicesObj.append("is4_uri", new Integer(1));
+			propsIndicesObj.append("oid", new Integer(1));
 			propsIndicesObj.append("timestamp", new Integer(1));
 			propsIndicesObj.append("_keywords", new Integer(1));
 			propsCollection.ensureIndex(propsIndicesObj);
 
 			//setup models collection indices
 			BasicDBObject modelsIndicesObj = new BasicDBObject();
-			modelsIndicesObj.append("is4_uri", new Integer(1));
+			modelsIndicesObj.append("oid", new Integer(1));
 			modelsIndicesObj.append("timestamp", new Integer(1));
 			mCollection.ensureIndex(propsIndicesObj);
 			inited = true;
@@ -758,23 +758,19 @@ public class MongoDBDriver {
 		return null;
 	}
 
-	public long getPropsHistCount(String uri){
+	public long getPropsHistCount(String oid){
 		long count = 0;
 		boolean dataReposOpen=false;
 		try {
 			if (m==null){
 				MongoDBDriver mdriver = new MongoDBDriver();
 			}
-			String uri2 = null;
-			if(uri.endsWith("/"))
-				uri2 = uri.substring(0, uri.length()-1);
-			else 
-				uri2 = uri + "/";
-			String[] inJArrayStr = {uri, uri2};	
+			
+			String[] inJArrayStr = {oid};	
 
 			dataRepos.requestStart();
 			dataReposOpen=true;
-			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+			QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 			DBObject query = qb.get();
 			dataReposOpen=true;
 			logger.info("MQuery: " + query.toString());
@@ -790,26 +786,20 @@ public class MongoDBDriver {
 		return count;
 	}
 
-	public long getMaxTsProps(String uri){
+	public long getMaxTsProps(String oid){
 		long maxts=0;
 		boolean dataReposOpen=false;
 		try{
-			String uri2 = null;
-			if(uri.endsWith("/"))
-				uri2 = uri.substring(0, uri.length()-1);
-			else
-				uri2 = uri + "/";
-			String[] inJArrayStr = {uri, uri2};
+			
+			String[] inJArrayStr = {oid};
 
-			//DB database = m.getDB(dataRepository);
-			//DBCollection dbCollection = database.getCollection(rsrcPropsCollection);
 			dataRepos.requestStart();
 			dataReposOpen=true;
-			String map = "function() { emit(this.is4_uri, this.timestamp); }";
+			String map = "function() { emit(this.oid, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
 			String mrResults = "mrTemp";
-			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+			QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());
 			MapReduceOutput mrOutput = propsCollection.mapReduce(map, reduce, mrResults, query);
@@ -832,10 +822,6 @@ public class MongoDBDriver {
 				dataRepos.requestDone();
 		}
 		return maxts;
-	}
-
-	public JSONObject getMetadata(String pubId){
-		return null;
 	}
 
 	public synchronized void putPropsEntry(JSONObject entry){
@@ -864,21 +850,16 @@ public class MongoDBDriver {
 
 	}
 
-	public synchronized JSONObject getPropsEntry(String uri, long timestamp){
+	public synchronized JSONObject getPropsEntry(String oid, long timestamp){
 		JSONObject results = new JSONObject();
 		boolean dataReposOpen=false;
 		try {
 			if(m != null){
-				String uri2 = null;
-				if(uri.endsWith("/"))
-					uri2 = uri.substring(0, uri.length()-1);
-				else 
-					uri2 = uri + "/";
-				String[] inJArrayStr = {uri, uri2};
+				String[] inJArrayStr = {oid};
 			
 				dataRepos.requestStart();
 				dataReposOpen=true;	
-				QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+				QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 				qb = qb.put("timestamp").is(new Long(timestamp));
 				DBObject query = qb.get();
 				logger.info("MQuery: " + query.toString());
@@ -899,20 +880,19 @@ public class MongoDBDriver {
 		return results;
 	}
 
-    public void move(String srcPath, String dstPath){
+    public void move(String old_oid, String new_oid){
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor =null;
         WriteResult writeResults =null;
 		try {
-            String altPath =srcPath.endsWith("/")?srcPath.substring(0, srcPath.length()-1):srcPath+"/";
 			if(m!= null){
                 JSONObject queryObj = new JSONObject();
                 JSONArray orArray = new JSONArray();
                 JSONObject cond1 = new JSONObject();
                 JSONObject cond2 = new JSONObject();
-                cond1.put("is4_uri", srcPath);
-                cond2.put("is4_uri", altPath);
+                cond1.put("oid", old_oid);
+                cond2.put("oid", new_oid);
                 orArray.add(cond1);
                 orArray.add(cond2);
                 queryObj.put("$or", orArray);
@@ -923,7 +903,7 @@ public class MongoDBDriver {
 				dbCursorOpen=true;
 			    if(dbCursor.hasNext()){
 					JSONObject thisJSONObj = (JSONObject) parser.parse(dbCursor.next().toString());
-                    thisJSONObj.put("is4_uri", dstPath);
+                    thisJSONObj.put("oid", new_oid);
                     BasicDBObject updatedObj = new BasicDBObject((Map)thisJSONObj);
                     writeResults = propsCollection.update(queryDBObj, updatedObj);
 				}
@@ -968,20 +948,15 @@ public class MongoDBDriver {
 		}
 	}
 	
-	public synchronized JSONObject getModelEntry(String uri, long timestamp){
+	public synchronized JSONObject getModelEntry(String oid, long timestamp){
 		JSONObject results = new JSONObject();
 		boolean dataReposOpen=false;
 		try {
 			if(m != null){
-				String uri2 = null;
-				if(uri.endsWith("/"))
-					uri2 = uri.substring(0, uri.length()-1);
-				else 
-					uri2 = uri + "/";
-				String[] inJArrayStr = {uri, uri2};
+				String[] inJArrayStr = {oid};
 				dataRepos.requestStart();
 				dataReposOpen=true;
-				QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+				QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 				qb = qb.put("timestamp").is(new Long(timestamp));
 				DBObject query = qb.get();
 				logger.info("MQuery: " + query.toString());
@@ -1002,25 +977,20 @@ public class MongoDBDriver {
 		return results;
 	}
 	
-	public long getMaxTsModels(String uri){
+	public long getMaxTsModels(String oid){
 		long maxts=0;
 		boolean dataReposOpen=false;
 		try{
-			String uri2 = null;
-			if(uri.endsWith("/"))
-				uri2 = uri.substring(0, uri.length()-1);
-			else
-				uri2 = uri + "/";
-			String[] inJArrayStr = {uri, uri2};
+			String[] inJArrayStr = {oid};
 
 			dataRepos.requestStart(); dataReposOpen=true;
 			//DB database = m.getDB(dataRepository);
 			//DBCollection dbCollection = database.getCollection(rsrcPropsCollection);
-			String map = "function() { emit(this.is4_uri, this.timestamp); }";
+			String map = "function() { emit(this.oid, this.timestamp); }";
 			String reduce = "function(keys, values) { return Math.max.apply(Math, values); }";
 			//String mrResults = "max_props_timestamps";
 			String mrResults = "mrResults";
-			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+			QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("Query on mapreduce results: " + query.toString());
 			MapReduceOutput mrOutput = mCollection.mapReduce(map, reduce, mrResults, query);
@@ -1045,22 +1015,17 @@ public class MongoDBDriver {
 		return maxts;
 	}
 	
-	public long getModelHistCount(String uri){
+	public long getModelHistCount(String oid){
 		long count = 0;
 		boolean dataReposOpen=false;
 		try {
 			if (m==null){
 				MongoDBDriver mdriver = new MongoDBDriver();
-			}
-			String uri2 = null;
-			if(uri.endsWith("/"))
-				uri2 = uri.substring(0, uri.length()-1);
-			else 
-				uri2 = uri + "/";
-			String[] inJArrayStr = {uri, uri2};	
+            }
+			String[] inJArrayStr = {oid};	
 
 			dataRepos.requestStart(); dataReposOpen=true;
-			QueryBuilder qb = QueryBuilder.start("is4_uri").in(inJArrayStr);
+			QueryBuilder qb = QueryBuilder.start("oid").in(inJArrayStr);
 			DBObject query = qb.get();
 			logger.info("MQuery: " + query.toString());
 			//DB database = m.getDB(dataRepository);

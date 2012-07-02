@@ -134,10 +134,10 @@ public class Default{
 
                         //set last_props_ts
                         long last_props_ts = mysqlDB.getLastPropsTs(newpath);
-                        if(last_props_ts==0 && mongoDriver.getPropsHistCount(newpath)>0){
+                        if(last_props_ts==0 && mongoDriver.getPropsHistCount(oid.toString())>0){
                             logger.info("Fetching oldest properties values");
-                            last_props_ts = mongoDriver.getMaxTsProps(newpath);
-                            JSONObject propsEntry = mongoDriver.getPropsEntry(newpath, last_props_ts);
+                            last_props_ts = mongoDriver.getMaxTsProps(oid.toString());
+                            JSONObject propsEntry = mongoDriver.getPropsEntry(oid.toString(), last_props_ts);
                             propsEntry.remove("_id");
                             propsEntry.remove("timestamp");
                             propsEntry.remove("is4_uri");
@@ -174,7 +174,9 @@ public class Default{
 			if(children.size()==0){
 				//reset properties
 				JSONObject emptyProps = new JSONObject();
-				updateProperties(emptyProps, path);
+                UUID oid = mysqlDB.getOidFromPath(path);
+                if(mysqlDB.numPaths(oid)==1)
+				    updateProperties(emptyProps, path, oid.toString());
 
 				//delete rest_resource entry
 				mysqlDB.removeRestResource(path);
@@ -194,10 +196,8 @@ public class Default{
 		} 
 	}
 
-    public static void updateProperties(JSONObject propsObj, String path){
+    public static void updateProperties(JSONObject propsObj, String path, String oid){
 		
-		//MongoDBDriver mongoDriver = new MongoDBDriver();
-
 		//add an array to support fulltxt search
         long last_props_ts = mysqlDB.getLastPropsTs(path);
 		HashMap<String, String> uniqueKeys = new HashMap<String, String>();
@@ -225,8 +225,8 @@ public class Default{
 		logger.fine("_keywords:" + keywords.toString());
 		propsObj.put("_keywords", keywords);
 
-		//add is4_uri
-		propsObj.put("is4_uri", path);
+		//add object id
+		propsObj.put("oid", oid.toString());
 
 		//add timestamp
 		Date date = new Date();
