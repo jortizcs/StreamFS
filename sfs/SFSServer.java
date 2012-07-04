@@ -155,7 +155,6 @@ public class SFSServer implements Container {
         }
     }
 
-
     public class AsyncTask implements Runnable{
         private Request request = null;
         private Response response = null;

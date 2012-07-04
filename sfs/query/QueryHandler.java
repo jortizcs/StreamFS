@@ -2,6 +2,7 @@ package sfs.query;
 
 import sfs.types.*;
 import sfs.db.*;
+import sfs.security.*;
 import sfs.util.ResourceUtils;
 
 import org.simpleframework.http.Response;
@@ -25,6 +26,9 @@ public class QueryHandler{
     private static final MongoDBDriver mongodb = MongoDBDriver.getInstance();
     private static final ResourceUtils utils = ResourceUtils.getInstance();
 
+    //security
+    private static final SecurityManager secmngr = SecurityManager.getInstance();
+
     public static QueryHandler getInstance(){
         if(qh == null)
             qh = new QueryHandler();
@@ -33,19 +37,38 @@ public class QueryHandler{
 
     public void executeQuery(Request request, Response response, String method, String path, String type, boolean internalCall, JSONObject internalResp){
         logger.info("path=" + path + "\tmethod="+ method + "\ttype=" + type);
-        if(method.equalsIgnoreCase("get")){
+
+        //if it's a secure connection, the user id must be included
+        long userid = -1;
+        try {
+            if(request.isSecure())
+                userid = request.getValue("uid").parseLong();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            if(!internalCall){
+                //method not allowed error should be returned to the user
+                response.set("Allow", ""); //no methods allowed
+                utils.sendResponse(request, response, 405, null, false, null);
+            }
+            return;
+        }
+
+        //get the operation type
+        Operation op = decipherOperation(request, method);
+
+        //toggle the right handler
+        if(method.equalsIgnoreCase("get") && secmngr.hasPermission(uid, op, path)){
             if(type.equalsIgnoreCase("default")){
                 Default.get(request, response, path, internalCall, internalResp);
             } else if(type.equalsIgnoreCase("stream") || type.equalsIgnoreCase("generic_publisher")){
-                
             } else if(type.equalsIgnoreCase("control")){
             } else if(type.equalsIgnoreCase("subscription")){
             } else if(type.equalsIgnoreCase("symlink")){
             } else if(type.equalsIgnoreCase("process")){
             } else if(type.equalsIgnoreCase("process_code")){
-            } else{
+            } else {
             }
-        } else if(method.equalsIgnoreCase("put")){
+        } else if(method.equalsIgnoreCase("put") && secmngr.hasPermission(uid, op, path)){
             if(type.equalsIgnoreCase("default")){
                 try {
                     Default.put(request, response, path, request.getContent(), false, null);
@@ -356,6 +379,47 @@ public class QueryHandler{
 			return false;
 		}
 	}
+
+    private Operation decipherOperation(Request request, String method){
+
+        //get request translation
+        if(method.equalsIgnoreCase("get") && request.getValue("ts_timestamp")!=null){
+            return Operation.EXECUTE;
+        } else if(method.equalsIgnoreCase("get") && request.getValue("ts_timestamp")==null){
+            return Operation.READ;
+        }
+
+        //put request translation
+        else if(method.equalsIgnoreCase("put")){
+            return Operation.WRITE;
+        }
+
+        //post request translation
+        else if(method.equalsIgnoreCase("post")){
+            return Operation.WRITE;
+        }
+
+        //delete request translation
+        else if(method.equalsIgnoreCase("post")){
+            if(request.getContentLength()>0){
+                try {
+                    JSONObject contentObj = parser.parse(request.getContent());
+                    if(contentObj.containsKey("props_query")){
+                        return Operation.EXECUTE;
+                    }
+                } catch(Exception e){
+                    logger.log(Level.WARNING, "", e);
+                }
+            }
+            return Operation.WRITE;
+        }
+
+        //move request translation
+        else if(method.equalsIgnoreCase("move")){
+            return Operation.WRITE;
+        }
+    }
+
 
 
 
