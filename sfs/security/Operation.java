@@ -2,7 +2,7 @@ package sfs.security;
 
 public enum Operation {
     //actions performed on objects
-    READ, WRITE, EXECUTE, ALL_ACTIONS,//GET, PUT, POST, DELETE, MOVE,
+    READ, WRITE, EXECUTE, ALL_ACTIONS, NONE,//GET, PUT, POST, DELETE, MOVE,
     
     //manamgent of actions on objects
     GRANT_PERMISSION,

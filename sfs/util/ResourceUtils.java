@@ -205,6 +205,8 @@ public class ResourceUtils {
         //clean up the path
         if(path == null)
             return path;
+        if(path.equals("") || path.equals("/"))
+            return path;
 
         if(!path.startsWith("/"))
             path = "/" + path;

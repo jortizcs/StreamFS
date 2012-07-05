@@ -2,7 +2,8 @@ package sfs.query;
 
 import sfs.types.*;
 import sfs.db.*;
-import sfs.security.*;
+import sfs.security.Operation;
+import sfs.security.SecurityManager;
 import sfs.util.ResourceUtils;
 
 import org.simpleframework.http.Response;
@@ -42,7 +43,7 @@ public class QueryHandler{
         long userid = -1;
         try {
             if(request.isSecure())
-                userid = request.getValue("uid").parseLong();
+                userid = Long.parseLong(request.getValue("uid"));
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
             if(!internalCall){
@@ -57,7 +58,7 @@ public class QueryHandler{
         Operation op = decipherOperation(request, method);
 
         //toggle the right handler
-        if(method.equalsIgnoreCase("get") && secmngr.hasPermission(uid, op, path)){
+        if(method.equalsIgnoreCase("get") && secmngr.hasPermission(userid, op, path)){
             if(type.equalsIgnoreCase("default")){
                 Default.get(request, response, path, internalCall, internalResp);
             } else if(type.equalsIgnoreCase("stream") || type.equalsIgnoreCase("generic_publisher")){
@@ -68,10 +69,14 @@ public class QueryHandler{
             } else if(type.equalsIgnoreCase("process_code")){
             } else {
             }
-        } else if(method.equalsIgnoreCase("put") && secmngr.hasPermission(uid, op, path)){
+        } else if(method.equalsIgnoreCase("put") && secmngr.hasPermission(userid, op, path)){
             if(type.equalsIgnoreCase("default")){
                 try {
-                    Default.put(request, response, path, request.getContent(), false, null);
+                    if(path.equals("/login")) {
+                        SecurityManager.put(request, response, path, request.getContent(), false, null);
+                    } else {
+                        Default.put(request, response, path, request.getContent(), false, null);
+                    }
                 } catch(Exception e){
                     logger.log(Level.WARNING, "", e);
                     utils.sendResponse(request, response, 500, null, false, null);
@@ -403,7 +408,7 @@ public class QueryHandler{
         else if(method.equalsIgnoreCase("post")){
             if(request.getContentLength()>0){
                 try {
-                    JSONObject contentObj = parser.parse(request.getContent());
+                    JSONObject contentObj = (JSONObject)parser.parse(request.getContent());
                     if(contentObj.containsKey("props_query")){
                         return Operation.EXECUTE;
                     }
@@ -418,6 +423,8 @@ public class QueryHandler{
         else if(method.equalsIgnoreCase("move")){
             return Operation.WRITE;
         }
+
+        return Operation.NONE;
     }
 
 

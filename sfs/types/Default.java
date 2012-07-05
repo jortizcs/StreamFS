@@ -41,7 +41,7 @@ public class Default{
                     logger.info("Handling PROPERTIES query");
                     qh.query(request, response, path, q, internalCall, internalResp);
                 }
-			} else if(path.equals("/")) {
+			} else if(path.equals("/") || path.equals("")) {
                 JSONObject respObj = new JSONObject();
                 logger.fine("GETTING RESOURCES: " + path);
                 respObj.put("status", "success");
@@ -164,10 +164,13 @@ public class Default{
 	}
 
 
-	/*public static void post(Request request, Response response, String path, String data, boolean internalCall, JSONObject internalResp){
-	}*/
+	public static void post(Request request, Response response, String path, String data, 
+            boolean internalCall, JSONObject internalResp){
+        handlePropsReq(request, response, path, data, internalCall, internalResp);
+	}
 
-	public static void delete(Request request, Response response, String path, boolean internalCall, JSONObject internalResp){
+	public static void delete(Request request, Response response, String path, 
+            boolean internalCall, JSONObject internalResp){
         try {
 			logger.info("Handling DELETE command for " + path);
 			JSONArray children = mysqlDB.rrGetChildren(path);
@@ -194,6 +197,75 @@ public class Default{
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		} 
+	}
+
+    private static void handlePropsReq(Request request, Response response,String path,String data, 
+            boolean internalCall, JSONObject internalResp){
+		try{
+			JSONObject dataObj = (JSONObject) parser.parse(data);
+			String op = (String)dataObj.get("operation");
+            String oidStr = mysqlDB.getOidFromPath(path).toString();
+			if (op.equalsIgnoreCase("update_properties")){
+				logger.info("processing update_properties");
+				JSONObject resp = new JSONObject();
+				JSONObject currentProps = mysqlDB.rrGetProperties(path);
+				JSONObject properties = null;
+				try{
+                    properties = (JSONObject) parser.parse((String)dataObj.get("properties"));
+				} catch(Exception e){
+					logger.log(Level.WARNING, "", e);
+					resp.put("status", "fail");
+					JSONArray errors = new JSONArray();
+					errors.add("Missing properties object");
+					resp.put("errors", errors);
+					utils.sendResponse(request, response, 412, resp.toString(), internalCall, internalResp);
+					return;
+				}
+
+				if(currentProps != null){
+					Iterator keys = properties.keySet().iterator();
+					while(keys.hasNext()){
+						String thisKey = (String) keys.next();
+						currentProps.put(thisKey, properties.get(thisKey));
+					}
+					mysqlDB.rrPutProperties(path, currentProps);
+					updateProperties(currentProps, path, oidStr);
+				} else {
+					mysqlDB.rrPutProperties(path, properties);
+					updateProperties(properties, path, oidStr);
+				}
+				resp.put("status", "success");
+				utils.sendResponse(request, response, 200, resp.toString(), internalCall, internalResp);
+			}
+
+			else if (op.equalsIgnoreCase("overwrite_properties")){
+				logger.info("processing overwrite_properties");
+				JSONObject resp = new JSONObject();
+				JSONObject properties = null;
+				try{
+					properties = (JSONObject)dataObj.get("properties");
+				} catch(Exception e){
+					logger.log(Level.WARNING, "", e);
+					resp.put("status", "fail");
+					JSONArray errors = new JSONArray();
+					errors.add("Missing properties object");
+					resp.put("errors", errors);
+					utils.sendResponse(request, response, 200, resp.toString(), internalCall, internalResp);
+				}
+
+				mysqlDB.rrPutProperties(path, properties);
+				updateProperties(properties, path, oidStr);
+				resp.put("status", "success");
+				utils.sendResponse(request, response, 200, resp.toString(), internalCall, internalResp);
+			}
+
+			else{
+				utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+			}
+		} catch (Exception e){
+			//silent fail
+			utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+		}
 	}
 
     public static void updateProperties(JSONObject propsObj, String path, String oid){

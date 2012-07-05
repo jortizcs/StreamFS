@@ -44,7 +44,7 @@ public class SFSServer implements Container {
     //core paths
     private static final String[] corepaths = {"/ibus", "/", "/pub", "/sub", "/pub/all", "/time", 
                         "/sub/all", "/proc", "/admin", "/admin/data", "/admin/properties",
-                        "/admin/data/indices", "/admin/properties/indices", "/admin/listrsrcs"};
+                        "/admin/data/indices", "/admin/properties/indices", "/admin/listrsrcs", "/login"};
 
     //parameters to set up https connection handling
     public static String EMTPY_STRING = "";

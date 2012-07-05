@@ -1,16 +1,96 @@
 package sfs.security;
 
 import sfs.db.MySqlDriver;
+import sfs.types.Default;
+import sfs.util.ResourceUtils;
 
-public class SecurityManager{
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
+public class SecurityManager extends Default {
     private static SecurityManager secmngr = null;
-    private MySqlDriver db = MySqlDriver.getInstance();
+    private static MySqlDriver mysqlDB = MySqlDriver.getInstance();
+    private static final JSONParser parser = new JSONParser();
+    private static final ResourceUtils utils = ResourceUtils.getInstance();
+    
+    
     private SecurityManager(){}
 
     public static SecurityManager getInstance(){
         if(secmngr==null)
             secmngr = new SecurityManager();
         return secmngr;
+    }
+
+    //overwritten methods inherited from the Default type object
+    public static void get(Request request, Response response, String path, 
+            boolean internalCall, JSONObject internalResp){
+        utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+    }
+
+    public static void put(Request request, Response response, String path, String data,
+            boolean internalCall, JSONObject internalResp){
+        try {
+            JSONArray errors = new JSONArray();
+            JSONObject retObj = new JSONObject();
+            Query query = request.getQuery();
+            String op = null;
+            if(query!=null)
+                op = (String)request.getQuery().get("op");
+            if(path.equals("/login") && op!=null && op.equals("create") && data != null){
+                JSONObject dataObj = (JSONObject) parser.parse(data);
+                if(dataObj.containsKey("username") && dataObj.containsKey("password") &&
+                        dataObj.containsKey("email"))
+                {
+                    String username = (String)dataObj.get("username");
+                    String pw = (String) dataObj.get("password");
+                    String email = (String) dataObj.get("email");
+                    long userid = mysqlDB.createNewUser(username,pw,email);
+                    if(userid>0){
+                        long sid = createNewSession(userid);
+                        retObj.put("status", "success");
+                        retObj.put("session_id", sid);
+                        utils.sendResponse(request, response, 201, retObj.toString(), 
+                                internalCall, internalResp);
+                    } else {
+                        errors.add("Conflict while creating new user, check username; it must be unique");
+                        retObj.put("status","fail");
+                        retObj.put("errors", errors);
+                        utils.sendResponse(request, response, 400, retObj.toString(), 
+                                internalCall, internalResp);
+                        return;
+                    }
+                } else {
+                    errors.add("Request must include `username`, `password`, and `email`");
+                    retObj.put("status", "fail");
+                    retObj.put("errors", errors);
+                    utils.sendResponse(request, response, 400, retObj.toString(), 
+                            internalCall, internalResp);
+                    return;
+                }
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+        utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+    }
+
+    public static void delete(Request request, Response response, String path, String data,
+            boolean internalCall, JSONObject internalResp){
+        utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+    }
+
+    public static void delete(Request request, Response response, String path, 
+            boolean internalCall, JSONObject internalResp){
+        utils.sendResponse(request, response, 200, null, internalCall, internalResp);
     }
 
     /**
@@ -96,6 +176,11 @@ public class SecurityManager{
      */
     public boolean setCanGrantPermission(String requestorUid, String uid, boolean set){
         return true;
+    }
+
+    //Session management
+    private static long createNewSession(long userid){
+        return 1L;
     }
 
 }

@@ -1781,7 +1781,7 @@ public class MySqlDriver {
                             logger.info("Checking path: \n\t" + path + nToken + "\n\tpath: " +
                                     path + nToken + "/");
                             
-                            if(!childrenAdded.containsKey(nToken) && (rrPathExists(path + nToken + "/") || rrPathExists(path + nToken))) {
+                            if(!childrenAdded.containsKey(nToken) && (rrPathExists(path + nToken) || rrPathExists(path + nToken))) {
                                 children.add(nToken);
                                 childrenAdded.put(nToken, "");
                             }
@@ -3400,4 +3400,12 @@ public class MySqlDriver {
         
         return retArray;
     }
+
+    /** Family of function dealing with security **/
+    public long createNewUser(String username, String password, String email){
+        //add user to user table and create a file with their username is /users
+        return 1L;
+    }
+
+
 }
