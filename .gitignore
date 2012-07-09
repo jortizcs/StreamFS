@@ -6,3 +6,5 @@ is4app.jar
 *.tmp
 *.log
 *.swo
+*.swp
+temp

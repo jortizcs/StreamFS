@@ -42,9 +42,16 @@ public class SecurityManager extends Default {
             JSONArray errors = new JSONArray();
             JSONObject retObj = new JSONObject();
             Query query = request.getQuery();
+
+            //fetch the necessary URL query parameters
             String op = null;
             if(query!=null)
                 op = (String)request.getQuery().get("op");
+            String sid = null;
+            if(query!=null)
+                sid = (String)request.getQuery().get("sid");
+
+            //process the request
             if(path.equals("/login") && op!=null && op.equals("create") && data != null){
                 JSONObject dataObj = (JSONObject) parser.parse(data);
                 if(dataObj.containsKey("username") && dataObj.containsKey("password") &&
@@ -76,6 +83,7 @@ public class SecurityManager extends Default {
                             internalCall, internalResp);
                     return;
                 }
+            } else if(path.equals("/users")){
             }
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);

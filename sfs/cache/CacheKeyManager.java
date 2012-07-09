@@ -25,6 +25,7 @@ public class CacheKeyManager {
 
     private void addKey(String key){
         keys.add(key);
+        logger.info("\tcache_key::" + key);
     }
 
     private void removeKey(String key){
@@ -33,13 +34,18 @@ public class CacheKeyManager {
 
     private Vector<String> getKeys(String pattern){
         try {
+            logger.info("Pattern= " + pattern);
             Pattern p = Pattern.compile(pattern);
             Vector<String> allmatches = new Vector<String>();
             for(int i=0; i<keys.size(); i++){
                 String thiskey = keys.get(i);
                 Matcher m = p.matcher(thiskey);
-                if(m.matches())
+                if(m.matches()) {
                     allmatches.add(thiskey);
+                    logger.info("Checking if " + thiskey + " matches regex " + pattern + "? YES!");
+                } else {
+                    logger.info("Checking if " + thiskey + " matches regex " + pattern + "? NO_MATCH");
+                }
             }
             return allmatches;
         } catch(Exception e){
@@ -54,6 +60,7 @@ public class CacheKeyManager {
             for(int i=0; i<keysToRemove.size(); i++){
                 mcc.delete(keysToRemove.get(i));
                 keys.remove(keysToRemove.get(i));
+                logger.info("\tInvalidating key=" + keysToRemove.get(i));
             }
         }
     }

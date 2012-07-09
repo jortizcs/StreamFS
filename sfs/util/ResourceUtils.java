@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import java.util.Vector;
 import java.io.PrintStream;
 import java.util.zip.GZIPOutputStream;
+import java.util.StringTokenizer;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
@@ -214,6 +215,26 @@ public class ResourceUtils {
         if(path.endsWith("/"))
             path = path.substring(0,path.length()-1);
         return path;
+    }
+
+    public static String getParentPath(String path){
+        logger.info("Getting parent of " + path);
+        if(path==null || path.equals("/")){
+            logger.info("Returning NULL::" + path + " has no parent");
+            return null;
+        }
+        StringTokenizer tokenizer = new StringTokenizer(path, "/");
+        Vector<String> tokens = new Vector<String>();
+        while(tokenizer.hasMoreElements())
+            tokens.add(tokenizer.nextToken());
+        StringBuffer parentPathBuffer = new StringBuffer();
+        if(tokens.size()==1)
+            parentPathBuffer.append("/");
+        else 
+            for(int i=0; i<tokens.size()-1; i++)
+                parentPathBuffer.append("/").append(tokens.elementAt(i));
+        logger.info("Parent_path=" + parentPathBuffer.toString());
+        return parentPathBuffer.toString();
     }
 
     public static void sendResponse(Request request, Response response, int code, String data, 

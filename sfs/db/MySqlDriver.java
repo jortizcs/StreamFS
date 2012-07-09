@@ -1,6 +1,6 @@
 package sfs.db;
 
-import sfs.util.DBQueryTypes;
+import sfs.util.*;
 import sfs.cache.CacheKeyManager;
 import sfs.SFSServer;
 
@@ -43,6 +43,7 @@ public class MySqlDriver {
 	private static int openConns =0;
 
     private static MySqlDriver mysqlDB=null;
+    private final static ResourceUtils utils = ResourceUtils.getInstance();
 
 	private static Hashtable<String, String> validSchemas = null;
 
@@ -383,6 +384,17 @@ public class MySqlDriver {
 			int count = s.executeUpdate (
 				"DELETE from `paths` where `path`=\"" + resourcePath + "\"");
 			s.close();
+
+            if(count>0){
+                ccm.invalidateAllEntries(memcachedClient, ".*_" +resourcePath + ".*");
+                //invalidate the memcached entries associated with this update
+                String parentPath = utils.getParentPath(resourcePath);
+                if(parentPath!=null)
+                    ccm.invalidateAllEntries(memcachedClient, ".*_" +parentPath + ".*");
+                if(resourcePath.equals("/") || (parentPath!=null && parentPath.equals("/")))
+                    ccm.invalidateAllEntries(memcachedClient, DBQueryTypes.ALL_PATHS);
+            }
+
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
 		} finally {
@@ -1647,13 +1659,15 @@ public class MySqlDriver {
     public int numPaths(UUID oid){
         Connection conn = null;
         try {
-            conn = openConnLocal();
-            String query = "select count(*) as c from `paths` where `oid`=?";
-            PreparedStatement ps = conn.prepareStatement(query);
-            ps.setString(1, oid.toString());
-            ResultSet rs = ps.executeQuery();
-            if(rs.next())
-                return rs.getInt("c");
+            if(oid!=null){
+                conn = openConnLocal();
+                String query = "select count(*) as c from `paths` where `oid`=?";
+                PreparedStatement ps = conn.prepareStatement(query);
+                ps.setString(1, oid.toString());
+                ResultSet rs = ps.executeQuery();
+                if(rs.next())
+                    return rs.getInt("c");
+            }
         } catch(Exception e){
             logger.log(Level.WARNING, "",e);
             System.exit(1);
@@ -1695,20 +1709,14 @@ public class MySqlDriver {
 				Statement s = conn.createStatement ();
 				int count = s.executeUpdate ("INSERT INTO `paths`(`path`, `oid`) VALUES(\"" + path + "\", \"" + oid + "\")");
 				s.close();
+                logger.info("Rows_inserted=" + count);
                 if(count>0){
                     //get this path's parent
-                    StringBuffer parent = new StringBuffer();
-                    StringTokenizer tokenizer =new StringTokenizer(path, "/");
-                    Vector<String> tokens = new Vector<String>();
-                    while(tokenizer.hasMoreTokens())
-                        tokens.add(tokenizer.nextToken());
-                    if(tokens.size()==1)
-                        parent.append("/");
-                    else
-                        for(int i=0; i<tokens.size()-1; i++)
-                            parent.append("/").append(tokens.get(i));
-                    //invalidate associated cache entries in memcached
-                    ccm.invalidateAllEntries(memcachedClient, "[*]" + parent.toString() + "[*]");
+                    String parent = utils.getParentPath(path);
+                    if(parent!=null)
+                        ccm.invalidateAllEntries(memcachedClient, ".*_" + parent + ".*");
+                    if(path.equals("/") || (parent!=null && parent.equals("/")))
+                        ccm.invalidateAllEntries(memcachedClient, DBQueryTypes.ALL_PATHS);
                 }
 			}
 		} catch (Exception e) {
@@ -1816,6 +1824,7 @@ public class MySqlDriver {
                 while(rs.next())
                     allpaths.add(rs.getString("path"));
                 s.close();
+
                 memcachedClient.set(DBQueryTypes.ALL_PATHS, allpaths.toJSONString());
             } else {
                 allpaths = (JSONArray) parser.parse(allpathstr);
@@ -2273,7 +2282,6 @@ public class MySqlDriver {
 			String query=null;
 			if(src_pubid !=null){
 				query = "DELETE FROM `subscriptions` where `subid`=? AND `src_pubid`=?";
-
 				PreparedStatement ps = conn.prepareStatement(query);
 				ps.setString(1, subid.toString());
 				ps.setString(2, src_pubid.toString());
@@ -3401,10 +3409,83 @@ public class MySqlDriver {
         return retArray;
     }
 
+
+
+    /**********************************************/
     /** Family of function dealing with security **/
+    /**********************************************/
+   
     public long createNewUser(String username, String password, String email){
         //add user to user table and create a file with their username is /users
-        return 1L;
+        String query0 = "select `id` from `users` where `username`=?";
+        String query1 = "insert into `groups` (`groupname`) values(?)";
+        String query2 = "select `id` from `groups` where `groupname`=?";
+        String query3 = "insert into `users` (`username`, `password`,`email`,`gid`) values(?,?,?,?)";
+        String query4 = "remove from `groups` where `groupname`=?";
+
+        Connection conn = null;
+        try {
+            //check if the username is unique
+            PreparedStatement ps  = conn.prepareStatement(query0);
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return -1L;}
+
+            //check if there's a group already with this name
+            ps.close();
+            ps = conn.prepareStatement(query2);
+            ps.setString(1, username);
+            rs = ps.executeQuery();
+            if(rs.next()){
+                return -1L;}
+
+            //create a new group
+            ps.close();
+            ps = conn.prepareStatement(query1);
+            ps.setString(1, username);
+            if(ps.executeUpdate()<=0){
+                return -1L;}
+
+            //create a new user
+            ps.close();
+            ps = conn.prepareStatement(query3);
+            ps.setString(1, username);
+            ps.setString(2, password);
+            ps.setString(3, email);
+            if(ps.executeUpdate()<=0){
+                ps.close();
+                ps = conn.prepareStatement(query4);
+                ps.setString(1, username);
+                ps.executeUpdate();
+                return -1L;
+            }
+
+            //fetch the userid and return it
+            ps.close();
+            ps = conn.prepareStatement(query0);
+            ps.setString(1,username);
+            rs = ps.executeQuery();
+            if(rs.next()){
+                return rs.getInt("id");}
+            else {
+                logger.severe("Not id associated with the newly insert user: (" + 
+                        username + ")");
+                System.exit(1);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e );
+        } finally{
+            closeConn(conn);
+        }
+        return -1L;
+    }
+
+    public boolean setPrimaryGroup(String username, String groupname){
+        String query5 = "update `users` set `is_gid_primary`=? where `gid=?`";
+        String query6= "select `gid` from `users` where `is_gid_primary`=true and `username`=?";
+
+        return true;
     }
 
 
