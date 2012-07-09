@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Jun 28, 2012 at 07:21 AM
+-- Generation Time: Jul 10, 2012 at 05:44 AM
 -- Server version: 5.1.63
 -- PHP Version: 5.3.2-1ubuntu4.15
 
@@ -18,6 +18,19 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Database: `sfs_state_scale`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `groups`
+--
+
+CREATE TABLE IF NOT EXISTS `groups` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `groupname` varchar(25) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `groupname` (`groupname`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -80,6 +93,27 @@ CREATE TABLE IF NOT EXISTS `subscriptions` (
   KEY `subid` (`subid`),
   KEY `src_pubid` (`src_pubid`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=195 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `username` varchar(25) NOT NULL,
+  `password` varchar(200) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `sid` int(200) DEFAULT NULL,
+  `gid` int(10) DEFAULT NULL,
+  `is_gid_primary` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  KEY `email` (`email`,`sid`),
+  KEY `group` (`gid`),
+  KEY `is_gid_primary` (`is_gid_primary`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Users table' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 

@@ -33,7 +33,8 @@ public class SecurityManager extends Default {
     //overwritten methods inherited from the Default type object
     public static void get(Request request, Response response, String path, 
             boolean internalCall, JSONObject internalResp){
-        utils.sendResponse(request, response, 200, null, internalCall, internalResp);
+        response.set("Allow", "PUT, POST, DELETE");
+        utils.sendResponse(request, response, 405, null, internalCall, internalResp);
     }
 
     public static void put(Request request, Response response, String path, String data,
@@ -47,9 +48,9 @@ public class SecurityManager extends Default {
             String op = null;
             if(query!=null)
                 op = (String)request.getQuery().get("op");
-            String sid = null;
+            String sidStr = null;
             if(query!=null)
-                sid = (String)request.getQuery().get("sid");
+                sidStr = (String)request.getQuery().get("sid");
 
             //process the request
             if(path.equals("/login") && op!=null && op.equals("create") && data != null){

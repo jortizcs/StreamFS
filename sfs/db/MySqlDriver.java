@@ -3425,6 +3425,7 @@ public class MySqlDriver {
 
         Connection conn = null;
         try {
+            conn = openConn();
             //check if the username is unique
             PreparedStatement ps  = conn.prepareStatement(query0);
             ps.setString(1, username);
@@ -3440,12 +3441,27 @@ public class MySqlDriver {
             if(rs.next()){
                 return -1L;}
 
+            long gid = -1L;
+
             //create a new group
             ps.close();
             ps = conn.prepareStatement(query1);
             ps.setString(1, username);
             if(ps.executeUpdate()<=0){
                 return -1L;}
+            else{
+                //get the gid
+                ps.close();
+                ps = conn.prepareStatement(query2);
+                ps.setString(1, username);
+                rs = ps.executeQuery();
+                if(rs.next())
+                    gid=rs.getLong("id");
+                else{
+                    logger.warning("The newly create group " + username + " has no id");
+                    System.exit(1);
+                }
+            }
 
             //create a new user
             ps.close();
@@ -3453,6 +3469,7 @@ public class MySqlDriver {
             ps.setString(1, username);
             ps.setString(2, password);
             ps.setString(3, email);
+            ps.setLong(4, gid);
             if(ps.executeUpdate()<=0){
                 ps.close();
                 ps = conn.prepareStatement(query4);

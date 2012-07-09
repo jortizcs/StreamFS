@@ -59,8 +59,11 @@ public class QueryHandler{
 
         //toggle the right handler
         if(method.equalsIgnoreCase("get") && secmngr.hasPermission(userid, op, path)){
-            if(type.equalsIgnoreCase("default")){
-                Default.get(request, response, path, internalCall, internalResp);
+            if(type.equalsIgnoreCase("default") ){
+                if(!path.equals("/login"))
+                    Default.get(request, response, path, internalCall, internalResp);
+                else
+                    SecurityManager.get(request, response, path, internalCall, internalResp);
             } else if(type.equalsIgnoreCase("stream") || type.equalsIgnoreCase("generic_publisher")){
             } else if(type.equalsIgnoreCase("control")){
             } else if(type.equalsIgnoreCase("subscription")){
