@@ -1,0 +1,32 @@
+#!/bin/bash
+export JAVA_HOME=${JAVAHOME}
+export DISPLAY=localhost:0.0
+CLASSPATH=.:${CLASSPATH}
+#CLASSPATH=":/home/ubuntu/StreamFS/lib:/home/ubuntu/StreamFS/lib/commons-beanutils.jar:/home/ubuntu/StreamFS/lib/commons-codec-1.3.jar:/home/ubuntu/StreamFS/lib/commons-collections.jar:/home/ubuntu/StreamFS/lib/commons-lang.jar:/home/ubuntu/StreamFS/lib/commons-logging-1.1.jar:/home/ubuntu/StreamFS/lib/commons-httpclient-3.0.jar:/home/ubuntu/StreamFS/lib/ezmorph-1.0.3.jar:/home/ubuntu/StreamFS/lib/httpclient-4.0-beta2.jar:/home/ubuntu/StreamFS/lib/httpcore-4.0-beta2.jar:/home/ubuntu/StreamFS/lib/json-lib-2.2.3-MODIFIED-jdk15.jar:/home/ubuntu/StreamFS/lib/mongo-2.7.3.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-api-1.5.11.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-ext-1.5.11.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-jdk14-1.5.11.jar:/home/ubuntu/StreamFS/lib/mysql-connector-java-5.0.8/mysql-connector-java-5.0.8-bin.jar:/home/ubuntu/StreamFS/lib/DBPool-5.0.jar:/home/ubuntu/StreamFS/lib/rhino_js/js-14.jar:/home/ubuntu/StreamFS/lib/rhino_js/js.jar:/home/ubuntu/StreamFS/lib/jdsl-2.1.1/lib/jdsl.jar:/home/ubuntu/StreamFS/lib/local/analytics:/home/ubuntu/StreamFS/lib:/home/ubuntu/StreamFS/lib/commons-beanutils.jar:/home/ubuntu/StreamFS/lib/commons-codec-1.3.jar:/home/ubuntu/StreamFS/lib/commons-collections.jar:/home/ubuntu/StreamFS/lib/commons-lang.jar:/home/ubuntu/StreamFS/lib/commons-logging-1.1.jar:/home/ubuntu/StreamFS/lib/commons-httpclient-3.0.jar:/home/ubuntu/StreamFS/lib/ezmorph-1.0.3.jar:/home/ubuntu/StreamFS/lib/httpclient-4.0-beta2.jar:/home/ubuntu/StreamFS/lib/httpcore-4.0-beta2.jar:/home/ubuntu/StreamFS/lib/json-lib-2.2.3-MODIFIED-jdk15.jar:/home/ubuntu/StreamFS/lib/mongo-2.7.3.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-api-1.5.11.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-ext-1.5.11.jar:/home/ubuntu/StreamFS/lib/slf4j-1.5.11/slf4j-jdk14-1.5.11.jar:/home/ubuntu/StreamFS/lib/mysql-connector-java-5.0.8/mysql-connector-java-5.0.8-bin.jar:/home/ubuntu/StreamFS/lib/DBPool-5.0.jar:/home/ubuntu/StreamFS/lib/rhino_js/js-14.jar:/home/ubuntu/StreamFS/lib/rhino_js/js.jar:/home/ubuntu/StreamFS/lib/jdsl-2.1.1/lib/jdsl.jar:/home/ubuntu/StreamFS/lib/local/analytics"
+
+#echo $CLASSPATH
+
+#echo `cat /home/ubuntu/StreamFS/runis4`
+
+case $1 in
+# output seen if 'tools/build/make_.sh verbose' is called before -- 
+# verbose write to ./log directory
+start_verbose)
+pid=$(($$))
+echo $pid > /tmp/sfs.pid;
+exec 2>&1 `cat /home/ubuntu/StreamFS/runis4` \
+1>/tmp/sfs.out 
+;;
+# if verbose option not run on make_.sh, all output is re-direct 
+# to /dev/null
+start)  
+pid=$(($$ + 1))
+echo $pid > /tmp/sfs.pid;
+exec 2>&1 nohup `cat /home/ubuntu/StreamFS/runis4` >/dev/null 2>&1 & \
+1>/tmp/sfs.out 
+;;
+stop)  
+kill `cat /tmp/sfs.pid` ;;
+*)  
+echo "usage: sfs {start|start_verbose|stop}" ;;
+esac
