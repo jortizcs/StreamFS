@@ -62,10 +62,18 @@ public class SFSServer implements Container {
     //json parser
     private static JSONParser parser = new JSONParser();
 
+    //connections
+    protected static Connection connection = null;
+    protected static Connection connectionHttps = null;
+
     public static void main(String[] list) throws Exception {
         //set server
         SFSServer server = new SFSServer();
         server.executor = Executors.newCachedThreadPool();
+
+        //register shutdown hook
+        SFSShutdown shutdown = new SFSShutdown(server);
+        Runtime.getRuntime().addShutdownHook(shutdown);
 
         //setup db
         mysqlDB = MySqlDriver.getInstance();
@@ -77,7 +85,7 @@ public class SFSServer implements Container {
         utils = ResourceUtils.getInstance();
 
         //http
-        Connection connection = new SocketConnection((Container)server);
+        connection = new SocketConnection((Container)server);
         SocketAddress address = new InetSocketAddress(8080);
         connection.connect(address);
         logger.info("Listening for connection on 8080");
@@ -87,9 +95,24 @@ public class SFSServer implements Container {
         System.setProperty(KEYSTORE_PASSWORD_PROPERTY, "123456");
         SocketAddress address2 = new InetSocketAddress(8081);
         SSLContext sslContext = createSSLContext();
-        Connection connectionHttps = new SocketConnection((Container)server);
+        connectionHttps = new SocketConnection((Container)server);
         connectionHttps.connect(address2, sslContext);
         logger.info("Listening for connection on 8081");
+    }
+
+    public void shutdown(){
+        try {
+            if(connection != null)
+                connection.close();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+        try {
+            if(connectionHttps!=null)
+                connectionHttps.close();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
     }
 
     public void handle(Request request, Response response) {
@@ -205,5 +228,15 @@ public class SFSServer implements Container {
         }
     }
 
-    
+    public static class SFSShutdown extends Thread{
+        SFSServer server = null;
+        public SFSShutdown(SFSServer svr){
+            server = svr;
+        }
+
+        public void run(){
+            server.shutdown();
+        }
+    }
+
 }

@@ -64,13 +64,27 @@ public class MySqlDriver {
 				String url = "jdbc:mysql://localhost/" + dbName + "?holdResultsOpenOverStatementClose=true";
 				Driver driver = (Driver)Class.forName ("com.mysql.jdbc.Driver").newInstance ();
 				DriverManager.registerDriver(driver);
-				pool = new ConnectionPool("local", 0, 0, 0, 10, url, LOGIN, PW);
+                pool = new ConnectionPool("sfs",            /*poolname*/
+                                            5,              /*minpool*/ 
+                                            150,            /*maxpool: mysql has a max of 151 connections*/
+                                            150,            /*maxsize*/
+                                            5000,           /*timeout*/ 
+                                            url, LOGIN, PW);
+                if(pool == null){
+                    logger.severe("Connection pool could not be created_1");
+                    System.exit(1);
+                } 
                 pool.setCaching(true);
+                pool.setAsyncDestroy(true);
+                AutoCommitValidator validator = new AutoCommitValidator();
+                pool.setValidator(validator);
+                ConnectionPoolManager.registerGlobalShutdownHook();
 			} else {
 				logger.info("Pool already created");
 			}
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
+            System.exit(1);
 		}
 	}
 
@@ -84,12 +98,27 @@ public class MySqlDriver {
 				String url = "jdbc:mysql://localhost/" + dbName;
 				Driver driver = (Driver)Class.forName ("com.mysql.jdbc.Driver").newInstance ();
 				DriverManager.registerDriver(driver);
-				pool = new ConnectionPool("local", 5, 10, 20, 0, url, LOGIN, PW);
+				pool = new ConnectionPool("sfs",            /*poolname*/
+                                            5,              /*minpool*/ 
+                                            150,            /*maxpool: mysql has a max of 151 connections*/
+                                            150,            /*maxsize*/
+                                            5000  ,         /*timeout*/ 
+                                            url, LOGIN, PW);
+                if(pool == null){
+                    logger.severe("Connection pool could not be created_2");
+                    System.exit(1);
+                }
+                pool.setCaching(true);
+                pool.setAsyncDestroy(true);
+                AutoCommitValidator validator = new AutoCommitValidator();
+                pool.setValidator(validator);
+                ConnectionPoolManager.registerGlobalShutdownHook();
 			} else {
 				logger.info("Pool already created");
 			}
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
+            System.exit(1);
 		}
 	}
 
@@ -164,7 +193,7 @@ public class MySqlDriver {
 	}
 
 	private Connection openConnLocal(){
-		Connection conn = null;
+		/*Connection conn = null;
 		try {
 			conn =  pool.getConnection(10000);
 			logger.info ("Database connection established");
@@ -177,7 +206,8 @@ public class MySqlDriver {
 			logger.log(Level.SEVERE, "Cannot connect to database server", e);
 		}
 
-		return conn;
+		return conn;*/
+        return openConn();
 	}
 
 

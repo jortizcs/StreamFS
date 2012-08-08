@@ -45,7 +45,6 @@ public class MongoDBDriver {
 	//Configuration file
 	private String dbConfigFile = "sfs/db/db_config/db_info.json";
 
-
 	private static Mongo m = null;
 	private static DB dataRepos = null; 
 	private static DBCollection dataCollection = null;
@@ -64,9 +63,20 @@ public class MongoDBDriver {
         return driver;
     }
 
+    protected void shutdown(){
+        try {
+            if(m!=null)
+                m.close();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+    }
+
 	private MongoDBDriver(){
 		if(!inited){
 			setupGlobals();
+            ShutdownHook shutdown = new ShutdownHook(this);
+            Runtime.getRuntime().addShutdownHook(shutdown);
 		}
 
 		if(!inited){
@@ -314,7 +324,6 @@ public class MongoDBDriver {
 				dataRepos.requestStart();
 				//result = dataCollection.insert(dataObj);
 				result = tsDataCollection.save(dataObj);
-				dataRepos.requestDone();
 				dataObj = null;
 				logger.info("Inserted mongo entry in main data collection: " + entry.toString());
 			} else {
@@ -324,7 +333,9 @@ public class MongoDBDriver {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		} finally {
+	        dataRepos.requestDone();
+        }
 	}
 
 	public void putTsEntry(JSONObject entry){
@@ -336,7 +347,6 @@ public class MongoDBDriver {
 				if(m != null){
 					dataRepos.requestStart();
 					result = tsDataCollection.save(dataObj);
-					dataRepos.requestDone();
 					dataObj = null;
 					logger.info("Inserted mongo entry in Ts data collection: " + strippedEntry.toString());
 				} else {
@@ -347,7 +357,9 @@ public class MongoDBDriver {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		} finally {
+			dataRepos.requestDone();
+        }
 	}
 
 	public void putTsEntries(ArrayList<JSONObject> entries){
@@ -368,7 +380,6 @@ public class MongoDBDriver {
 			if(m != null){
 				dataRepos.requestStart();
 				result = tsDataCollection.insert(bulkEntry);
-				dataRepos.requestDone();
 				logger.info("Inserted bulk Ts entry in Ts data collection: " + bulkBytes + " bytes");
 			} else {
 				logger.warning("Mongo connection came back NULL");
@@ -378,7 +389,9 @@ public class MongoDBDriver {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		} finally {
+			dataRepos.requestDone();
+        }
 	}
 
 	private JSONObject stripEntry(JSONObject entry){
@@ -1040,5 +1053,18 @@ public class MongoDBDriver {
 		}
 		return count;
 	}
+
+    public class ShutdownHook extends Thread{
+        MongoDBDriver driver = null;
+        public ShutdownHook(MongoDBDriver mdriver){
+            driver = mdriver;
+        }
+
+        public void run(){
+            if(driver!=null){
+                driver.shutdown();
+            }
+        }
+    }
 	
 }
