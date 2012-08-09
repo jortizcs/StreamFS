@@ -68,7 +68,7 @@ public class MySqlDriver {
                                             5,              /*minpool*/ 
                                             150,            /*maxpool: mysql has a max of 151 connections*/
                                             150,            /*maxsize*/
-                                            5000,           /*timeout*/ 
+                                            500,           /*timeout*/ 
                                             url, LOGIN, PW);
                 if(pool == null){
                     logger.severe("Connection pool could not be created_1");
@@ -102,7 +102,7 @@ public class MySqlDriver {
                                             5,              /*minpool*/ 
                                             150,            /*maxpool: mysql has a max of 151 connections*/
                                             150,            /*maxsize*/
-                                            5000  ,         /*timeout*/ 
+                                            500  ,         /*timeout*/ 
                                             url, LOGIN, PW);
                 if(pool == null){
                     logger.severe("Connection pool could not be created_2");
@@ -214,14 +214,7 @@ public class MySqlDriver {
 	private Connection openConn() {
 		Connection conn = null;
 		try {
-			/*String url = "jdbc:mysql://" + HOST + "/" + dbName;
-			Class.forName ("com.mysql.jdbc.Driver").newInstance ();
-			conn = DriverManager.getConnection (url, LOGIN, PW);*/
-
-			/*JDCConnectionDriver driver = new JDCConnectionDriver("com.mysql.jdbc.Driver", url, LOGIN, PW);
-			conn = driver.connect(url, null);*/
-
-			conn =  pool.getConnection(1000);
+			conn =  pool.getConnection();
 			logger.finer("Free_count: " + pool.getFreeCount());
 			logger.info ("Database connection established");
 
@@ -238,13 +231,17 @@ public class MySqlDriver {
 
 	private void closeConn(Connection conn){
 		try {
-			if (conn != null && !conn.isClosed()){
-				conn.close ();
-				logger.finer("Free_count_close: " + pool.getFreeCount());
-				logger.info("Database connection terminated");
+			if (conn != null){
+                conn.close ();
+                logger.finer("\tPool_Free_count: " + pool.getFreeCount());
+                logger.finer("\tPool_Checked_out: " + pool.getCheckedOut());
+                logger.finer("\tPool_Request_count: " + pool.getRequestCount());
+                logger.finer("\tPool_Hit_Rate: " + pool.getPoolHitRate());
+                logger.finer("\tPool_Miss_Rate: " + pool.getPoolMissRate());
+                logger.info("\tDatabase connection terminated");
 
-				openConns -= 1;
-				logger.info("Close: conn_count=" + openConns);
+                openConns -= 1;
+                logger.info("Close: conn_count=" + openConns);
 			}
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Error while closing database connection", e);
@@ -282,8 +279,6 @@ public class MySqlDriver {
 			return created;
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
-			if(conn != null)
-				closeConn(conn);
 			return created;
 		} finally {
 			closeConn(conn);
@@ -306,11 +301,8 @@ public class MySqlDriver {
 				"DELETE from `publishers` where `smap_server`=" + smapServer +
 				" `smap_port`= " + smapPort +  "`smap_uri`=" + smapUri);
 			s.close();
-			closeConn(conn);
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
-			if(conn != null)
-				closeConn(conn);
 		} finally {
 			closeConn(conn);
 		}
@@ -323,11 +315,8 @@ public class MySqlDriver {
 			Statement s = conn.createStatement ();
 			s.executeUpdate ("DELETE from `publishers` where `pubid`=\"" + pubid.toString() + "\"");
 			s.close();
-			closeConn(conn);
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
-			if(conn != null)
-				closeConn(conn);
 		} finally {
 			closeConn(conn);
 		}
@@ -1727,6 +1716,8 @@ public class MySqlDriver {
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
             System.exit(1);
+        } finally{
+            closeConn(conn);
         }
         return null;
     }
@@ -1797,6 +1788,7 @@ public class MySqlDriver {
         String value = null;
         Connection conn = null;
         try{
+            path = utils.cleanPath(path);
             if((value=(String)memcachedClient.get(key)) == null){
                 JSONArray children = new JSONArray();
                 Hashtable<String, String> childrenAdded = new Hashtable<String, String>();
@@ -1816,10 +1808,10 @@ public class MySqlDriver {
                         if(!thisPath.equalsIgnoreCase(path) && pathTokenizer.countTokens()>0){
                             String nToken = pathTokenizer.nextToken();
                             logger.fine("Checking:\n\tbase: " + path + "\n\ttoken:" +  nToken);
-                            logger.info("Checking path: \n\t" + path + nToken + "\n\tpath: " +
+                            logger.info("Checking path: \n\t" + path + "/" +  nToken + "\n\tpath: " +
                                     path + nToken + "/");
                             
-                            if(!childrenAdded.containsKey(nToken) && (rrPathExists(path + nToken) || rrPathExists(path + nToken))) {
+                            if(!childrenAdded.containsKey(nToken) && (rrPathExists(path + "/" + nToken) || rrPathExists(path + "/" + nToken))) {
                                 children.add(nToken);
                                 childrenAdded.put(nToken, "");
                             }
