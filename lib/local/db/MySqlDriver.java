@@ -39,12 +39,27 @@ public class MySqlDriver implements Is4Database {
 				String url = "jdbc:mysql://localhost/" + dbName;
 				Driver driver = (Driver)Class.forName ("com.mysql.jdbc.Driver").newInstance ();
 				DriverManager.registerDriver(driver);
-				pool = new ConnectionPool("local", 5, 100, 200, 10L, url, LOGIN, PW);
+                pool = new ConnectionPool("sfs",            /*poolname*/
+                                            5,              /*minpool*/ 
+                                            150,  /*maxpool: mysql has a max of 151 connections*/
+                                            150,            /*maxsize*/
+                                            500,           /*timeout*/ 
+                                            url, LOGIN, PW);
+                if(pool == null){
+                    logger.severe("Connection pool could not be created_1");
+                    System.exit(1);
+                } 
+                pool.setCaching(true);
+                pool.setAsyncDestroy(true);
+                AutoCommitValidator validator = new AutoCommitValidator();
+                pool.setValidator(validator);
+                ConnectionPoolManager.registerGlobalShutdownHook();
 			} else {
 				logger.info("Pool already created");
 			}
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
+            System.exit(1);
 		}
 	}
 
@@ -58,12 +73,27 @@ public class MySqlDriver implements Is4Database {
 				String url = "jdbc:mysql://localhost/" + dbName;
 				Driver driver = (Driver)Class.forName ("com.mysql.jdbc.Driver").newInstance ();
 				DriverManager.registerDriver(driver);
-				pool = new ConnectionPool("local", 5, 10, 20, 0, url, LOGIN, PW);
+                pool = new ConnectionPool("sfs",            /*poolname*/
+                                            5,              /*minpool*/ 
+                                            150,  /*maxpool: mysql has a max of 151 connections*/
+                                            150,            /*maxsize*/
+                                            500,           /*timeout*/ 
+                                            url, LOGIN, PW);
+                if(pool == null){
+                    logger.severe("Connection pool could not be created_1");
+                    System.exit(1);
+                } 
+                pool.setCaching(true);
+                pool.setAsyncDestroy(true);
+                AutoCommitValidator validator = new AutoCommitValidator();
+                pool.setValidator(validator);
+                ConnectionPoolManager.registerGlobalShutdownHook();
 			} else {
 				logger.info("Pool already created");
 			}
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
+            System.exit(1);
 		}
 	}
 
@@ -74,13 +104,6 @@ public class MySqlDriver implements Is4Database {
 	private Connection openConnLocal(){
 		Connection conn = null;
 		try {
-			/*String url = "jdbc:mysql://localhost/" + dbName;
-			Class.forName ("com.mysql.jdbc.Driver").newInstance ();
-			conn = DriverManager.getConnection (url, LOGIN, PW);*/
-			
-			/*JDCConnectionDriver driver = new JDCConnectionDriver("com.mysql.jdbc.Driver", url, LOGIN, PW);
-			conn = driver.connect(url, null);*/
-		
 			conn =  pool.getConnection(1000);
 			logger.info ("Database connection established");
 			

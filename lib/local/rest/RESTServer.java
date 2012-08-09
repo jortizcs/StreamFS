@@ -56,6 +56,10 @@ public class RESTServer {
 		port = p;
 	}
 
+    public static void shutdown(){
+        httpServer.stop(1);
+    }
+
 	public static void main(String[] args){
 		RESTServer.logger = Logger.getLogger(RESTServer.class.getPackage().getName());
 		RESTServer restSvr = new RESTServer();
@@ -66,7 +70,7 @@ public class RESTServer {
 
 		try {
 			System.setProperty("http.keepAlive", "false");
-			System.setProperty("http.maxConnections", "1");
+			System.setProperty("http.maxConnections", "150");
 			System.setProperty("sun.net.http.errorstream.enableBuffering", "true");
 
 			logger.config("Starting RESTServer on HOST " + bindAddress + " PORT " + port);
@@ -220,6 +224,10 @@ public class RESTServer {
 			
 			httpServer.setExecutor(Executors.newCachedThreadPool());
 			//httpServer.setExecutor(Executors.newFixedThreadPool(1));
+
+            //register a shutdown hook
+            ShutdownProc shutdown = new ShutdownProc(this);
+            Runtime.getRuntime().addShutdownHook(shutdown);
 
 			logger.info("Binding to port: " + port);
 			InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(bindAddress), port);
@@ -618,5 +626,16 @@ public class RESTServer {
 			return streamIdsJSONObj;
 		}
 	}
+
+    public static class ShutdownProc extends Thread{
+        RESTServer server = null;
+        public ShutdownProc(RESTServer svr){
+            server = svr;
+        }
+
+        public void run(){
+            server.shutdown();
+        }
+    }
 
 }

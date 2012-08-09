@@ -90,6 +90,8 @@ jar ufv ../is4app.jar local/rest/resources/proc/ProcessManagerResource.class
 jar ufv ../is4app.jar local/rest/resources/proc/ProcessManagerResource\$ConnectionCheckerTask.class
 jar ufv ../is4app.jar local/rest/resources/proc/ProcessPublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/proc/ProcessResource.class
+jar ufv ../is4app.jar local/rest/RESTServer\$ShutdownProc.class
+jar ufv ../is4app.jar local/db/MongoDBDriver\$ShutdownHook.class
 
 cd ../
 jar tf is4app.jar

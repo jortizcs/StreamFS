@@ -78,6 +78,8 @@ public class MongoDBDriver implements Is4Database {
 	public MongoDBDriver(){
 		if(!inited){
 			setupGlobals();
+            ShutdownHook shutdown = new ShutdownHook(this);
+            Runtime.getRuntime().addShutdownHook(shutdown);
 		}
 
 		/*try {
@@ -219,6 +221,15 @@ public class MongoDBDriver implements Is4Database {
 	public static String getDataCollName(){
 		return mainCollection;
 	}
+
+    protected void shutdown(){
+        try {
+            if(m!=null)
+                m.close();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+    }
 
 	public static String getRsrcPropsCollName(){
 		return rsrcPropsCollection;
@@ -1101,5 +1112,18 @@ public class MongoDBDriver implements Is4Database {
 		}
 		return count;
 	}
-	
+
+
+    public class ShutdownHook extends Thread{
+        MongoDBDriver driver = null;
+        public ShutdownHook(MongoDBDriver mdriver){
+            driver = mdriver;
+        }
+
+        public void run(){
+            if(driver!=null){
+                driver.shutdown();
+            }
+        }
+    }	
 }

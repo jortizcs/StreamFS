@@ -77,7 +77,7 @@ export JAVAHOME=java
 #export IS4_HOSTNAME="is4server.com"
 #export IS4_PORT=8080
 #export IS4_HOSTNAME="localhost"
-export IS4_HOSTNAME="127.0.0.1"
+export IS4_HOSTNAME="ec2-184-169-204-224.us-west-1.compute.amazonaws.com"
 export IS4_PORT=8080
 export IS4_SUB_BUFFER="http://$IS4_HOSTNAME/buffer.php"
 

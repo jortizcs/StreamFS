@@ -394,7 +394,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			sendResponse(exchange, 500, null, internalCall, internalResp);
 			return;
 		} finally {
-			try {
+			/*try {
 				if(exchange != null){
 					exchange.getRequestBody().close();
 					exchange.getResponseBody().close();
@@ -402,7 +402,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				} 
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}
+			}*/
 		}
 
 		//no content
@@ -479,6 +479,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
+            sendResponse(exchange, 500, null, internalCall, internalResp);
 		} /*finally {
 			try {
 				if(exchange != null){
@@ -519,8 +520,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			} 
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
+            sendResponse(exchange, 500, null, internalCall, internalResp);
 		} finally {
-			try {
+			/*try {
 				if(exchange != null){
 					exchange.getRequestBody().close();
 					exchange.getResponseBody().close();
@@ -528,7 +530,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				} 
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}
+			}*/
 		}
 
 	}
@@ -539,6 +541,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		logger.info("exchange handler: " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" +
 					exchange.getRemoteAddress());
 		try {
+            String obj = getPutPostData(exchange.getRequestMethod(), exchange);
 			//get the uri and remove the parameters
 			String eUri = exchangeJSON.getString("requestUri");
 			if(eUri.contains("?"))
@@ -588,14 +591,12 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					} else if (requestMethod.equalsIgnoreCase("put")){
 						logger.info("handling PUT");
 						sfsStats.incPut();
-						String obj = getPutPostData(exchange);
 						this.put(exchange, obj, false, null);
 						sfsStats.docReceived(obj);
 						return;
 					} else if (requestMethod.equalsIgnoreCase("post")) {
 						logger.info("handling POST");
 						sfsStats.incPost();
-						String obj = getPutPostData(exchange);
 						this.post(exchange, obj, false, null);
 						sfsStats.docReceived(obj);
 						return;
@@ -622,15 +623,16 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
+            sendResponse(exchange, 500, null, false, null);
 		} finally {
-			try {
+			/*try {
 				if(exchange !=null){
 					exchange.getRequestBody().close();
 					exchange.close();
 				} 
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}
+			}*/
 		}
 	}
 
@@ -681,9 +683,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		return true;
 	}
 
-	protected String getPutPostData(HttpExchange exchange){
+	protected String getPutPostData(String method, HttpExchange exchange){
+        InputStream ist= null;
 		try {
-			InputStream ist= exchange.getRequestBody();
+			ist= exchange.getRequestBody();
 			InputStreamReader ir = new InputStreamReader(ist);
 			BufferedReader is = new BufferedReader(ir);
 			String line="";
@@ -696,8 +699,14 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			return bodyBuf.toString();
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Exception thrown while processing put/post data", e);
-		}
-		exchange= null;
+		} finally{
+            try {
+                ist.close();
+            } catch(Exception e2){
+                logger.log(Level.WARNING, "", e2);
+            }
+        }
+		//exchange= null;
 		return null;
 	}
 
@@ -1160,7 +1169,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		String requestMethod =  exchange.getRequestMethod();
 		String putPostData = null;
 		if(requestMethod.equalsIgnoreCase("put") || requestMethod.equalsIgnoreCase("post"))
-			putPostData = getPutPostData(exchange);
+			putPostData = getPutPostData(requestMethod, exchange);
 
 		JSONObject responses = new JSONObject();
 		try{

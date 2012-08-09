@@ -96,6 +96,8 @@ rm -f local/rest/resources/proc/ProcessManagerResource.class
 rm -f local/rest/resources/proc/ProcessManagerResource\$ConnectionCheckerTask.class
 rm -f local/rest/resources/proc/ProcessPublisherResource.class
 rm -f local/rest/resources/proc/ProcessResource.class
+rm -f local/rest/RESTServer\$ShutdownProc.class
+rm -f local/db/MongoDBDriver\$ShutdownHook.class
 
 cd ../
 
