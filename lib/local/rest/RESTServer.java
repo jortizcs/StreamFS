@@ -52,7 +52,7 @@ public class RESTServer implements Container{
     private static OutputStream routerOutput = null;
     private static Router router =null;
 	private static MetadataGraph metadataGraph = null;
-    public static boolean tellRouter = true;
+    public static boolean tellRouter = false;
 
     public static String EMTPY_STRING = "";
     public static String KEYSTORE_PROPERTY = "javax.net.ssl.keyStore";
@@ -68,11 +68,9 @@ public class RESTServer implements Container{
     //private static ConcurrentHashMap<String, Container> urlRouteTable = new ConcurrentHashMap<String, Container>();
     protected static Connection connection = null;
     protected static Connection connectionHttps = null;
-    protected static ExecutorService executor = null;
+    public static ExecutorService executor=null;
     
-	public RESTServer(){
-        executor = Executors.newCachedThreadPool();
-    }
+	public RESTServer(){}
 
 	public RESTServer(String address, int p){
 		logger = Logger.getLogger(RESTServer.class.getPackage().getName());
@@ -97,9 +95,11 @@ public class RESTServer implements Container{
 
     public void handle(Request request, Response response){
         logger.info("Heard something");
-        //AsyncTask t = new AsyncTask(request, response);
+        AsyncTask t = new AsyncTask(request, response);
+        System.out.println("Async task initalized");
         //executor.submit(t);
-        routeToResource(request, response);
+        executor.execute(t);
+        //routeToResource(request, response);
     }
 
 	public void start(){
@@ -113,14 +113,10 @@ public class RESTServer implements Container{
 			DBAbstractionLayer dbAbstractionLayer = new DBAbstractionLayer();
 			
 			//Root handler
-			RootHandler handler = new RootHandler(rootPath);
-			RESTServer.addResource(handler);
-			baseResources.put(rootPath,"");
+			RootHandler roothandler = new RootHandler(rootPath);
 			
 			//Information bus resource
-			InfoBusResource ibus = InfoBusResource.getInstance(rootPath + "ibus/");
-			RESTServer.addResource(ibus);
-			baseResources.put(rootPath + "ibus/","");
+			InfoBusResource ibus = InfoBusResource.getInstance(rootPath + "ibus");
 
 			//action handlers
 			/*StreamHandler streamHdlr = new StreamHandler();
@@ -131,15 +127,11 @@ public class RESTServer implements Container{
 			baseResources.put(rootPath + "streamtest/","");*/
 			
 			//Resync smap
-			ResyncSmapStreams resyncResource = new ResyncSmapStreams(rootPath + "resync/");
-			baseResources.put(rootPath + "resync/", "");
-			RESTServer.addResource(resyncResource);
+			ResyncSmapStreams resyncResource = new ResyncSmapStreams(rootPath + "resync");
 
 			//Add filter for parsing URL parameters
-			String pubPath = rootPath + "pub/";
+			String pubPath = rootPath + "pub";
 			PubHandler pubHandler = new PubHandler(pubPath);
-			RESTServer.addResource(pubHandler);
-			baseResources.put(rootPath + "pub/","");
 
 			//Add filter for parsing URL parameters
 			/*HttpContext context2 = httpServer.createContext(rootPath + "pub/smap/", smapSourceHandler);
@@ -147,66 +139,136 @@ public class RESTServer implements Container{
 			baseResources.put(rootPath + "pub/smap/", "");*/
 			
 			//httpServer.createContext(rootPath + "sub", subHandler);
-			SubHandler subHandler = new SubHandler(rootPath +"sub/");
-			RESTServer.addResource(subHandler);
-			baseResources.put(rootPath + "sub/","");
+			SubHandler subHandler = new SubHandler(rootPath +"sub");
 
 			//information handlers
-			StreamInfoHandler streamInfoHandler = new StreamInfoHandler(rootPath + "pub/all/");
-			RESTServer.addResource(streamInfoHandler);
+			StreamInfoHandler streamInfoHandler = new StreamInfoHandler(rootPath + "pub/all");
 
 			//get the current time from this resource, for time-series queries
-			TimeResource timeResource = new TimeResource(rootPath + "time/");
-			RESTServer.addResource(timeResource);
-			baseResources.put(rootPath + "time/","");
+			TimeResource timeResource = new TimeResource(rootPath + "time");
 
 			//SubInfoHandler subInfoHandler = new SubInfoHandler();
-			SubInfoHandler subInfoHandler = new SubInfoHandler(rootPath + "sub/all/");
-			RESTServer.addResource(subInfoHandler);
-			baseResources.put(rootPath + "sub/all","");
+			SubInfoHandler subInfoHandler = new SubInfoHandler(rootPath + "sub/all");
 		
 			//httpServer.createContext(rootPath + "sub/mypublist",subInfoHandler);
-			baseResources.put(rootPath + "pub/all","");
-			baseResources.put(rootPath + "sub/mypublist", "");
-
-
 			//Smap Message Demultiplexer for smap reports
 			DemuxResource demuxResource = new DemuxResource();
-			RESTServer.addResource(demuxResource);
 
 			//Smap2 Message Demultiplexer for smap reports
 			DemuxResource2 demuxResource2 = new DemuxResource2();
-			RESTServer.addResource(demuxResource2);
 			
 			//Model manager
 			ModelManagerResource mmr = new ModelManagerResource();
-			baseResources.put(mmr.getURI(),"");
-			RESTServer.addResource(mmr);
 
             //Process manager
             ProcessManagerResource pmr = new ProcessManagerResource();
-            baseResources.put(pmr.getURI(), "");
-            RESTServer.addResource(pmr);
 
 			//setup admin resources
-			Resource adminResource = new Resource(rootPath + "admin/");
-			Resource tsResource = new Resource(adminResource.getURI() + "data/");
-			Resource propsResource = new Resource(adminResource.getURI() + "properties/");
+			Resource adminResource = new Resource(rootPath + "admin");
+			Resource tsResource = new Resource(adminResource.getURI() + "data");
+			Resource propsResource = new Resource(adminResource.getURI() + "properties");
 			Resource dataAdminResource = new AdminDataReposIndexesResource();
 			Resource propsAdminResource = new AdminPropsReposIndexesResource();
-			Resource allNodesResource = new AllNodesResource(rootPath + "admin/listrsrcs/");
-			baseResources.put(adminResource.getURI(), "");
-			baseResources.put(tsResource.getURI(), "");
-			baseResources.put(propsResource.getURI(), "");
-			baseResources.put(dataAdminResource.getURI(),"");
-			baseResources.put(propsAdminResource.getURI(),"");
-			baseResources.put(allNodesResource.getURI(),"");
-			RESTServer.addResource(adminResource);
+			Resource allNodesResource = new AllNodesResource(rootPath + "admin/listrsrcs");
+            
+			RESTServer.addResource(mmr);
+			RESTServer.addResource(pubHandler);
+			RESTServer.addResource(resyncResource);
+			RESTServer.addResource(streamInfoHandler);
+			RESTServer.addResource(subHandler);
+			RESTServer.addResource(timeResource);
+			RESTServer.addResource(ibus);
+			RESTServer.addResource(subInfoHandler);
+			RESTServer.addResource(demuxResource);
+			RESTServer.addResource(demuxResource2);
+            RESTServer.addResource(pmr);
+            RESTServer.addResource(adminResource);
 			RESTServer.addResource(tsResource);
 			RESTServer.addResource(propsResource);
 			RESTServer.addResource(dataAdminResource);
 			RESTServer.addResource(propsAdminResource);
 			RESTServer.addResource(allNodesResource);
+            RESTServer.addResource(roothandler);
+
+            String timepath = 	timeResource.getURI();
+            String timepath2 = timeResource.getURI().substring(0, timeResource.getURI().length()-1);
+            baseResources.put(timeResource.getURI(), "");	
+            baseResources.put(timeResource.getURI().substring(0, timeResource.getURI().length()-1), "");
+            logger.info("type=" + timeResource.getClass().getName() + "\ttimepath=" + timepath + "\ttimestamp2=" + timepath2);
+            //System.exit(1);
+            baseResources.put(roothandler.getURI(),"");
+            baseResources.put(roothandler.getURI().substring(0, roothandler.getURI().length()-1), "");
+
+            baseResources.put(demuxResource.getURI(),"");
+            baseResources.put(demuxResource.getURI().substring(0, demuxResource.getURI().length()-1), "");
+
+            baseResources.put(demuxResource2.getURI(),"");
+            baseResources.put(demuxResource2.getURI().substring(0, demuxResource2.getURI().length()-1), "");
+
+            baseResources.put(subHandler.getURI(),"");
+            baseResources.put(subHandler.getURI().substring(0, subHandler.getURI().length()-1), "");
+
+            baseResources.put(resyncResource.getURI(),"");
+            baseResources.put(resyncResource.getURI().substring(0, resyncResource.getURI().length()-1), "");
+
+            baseResources.put(streamInfoHandler.getURI(),"");
+            baseResources.put(streamInfoHandler.getURI().substring(0, streamInfoHandler.getURI().length()-1), "");
+
+            baseResources.put(pubHandler.getURI(),"");
+            baseResources.put(pubHandler.getURI().substring(0, pubHandler.getURI().length()-1), "");
+
+            baseResources.put(subInfoHandler.getURI(),"");
+            baseResources.put(subInfoHandler.getURI().substring(0, subInfoHandler.getURI().length()-1), "");
+
+			baseResources.put(mmr.getURI(),"");
+            baseResources.put(mmr.getURI().substring(0, mmr.getURI().length()-1), "");
+
+            baseResources.put(pmr.getURI(), "");
+            baseResources.put(pmr.getURI().substring(0, pmr.getURI().length()-1), "");        
+
+            baseResources.put(rootPath,"");
+
+			baseResources.put(adminResource.getURI(), "");
+            baseResources.put(adminResource.getURI().substring(0, adminResource.getURI().length()-1),"");
+
+			baseResources.put(tsResource.getURI(), "");
+            baseResources.put(tsResource.getURI().substring(0, tsResource.getURI().length()-1), "");
+
+			baseResources.put(propsResource.getURI(), "");
+            baseResources.put(propsResource.getURI().substring(0, propsResource.getURI().length()-1),"");
+
+			baseResources.put(dataAdminResource.getURI(),"");
+            baseResources.put(dataAdminResource.getURI().substring(0, dataAdminResource.getURI().length()-1), "");
+
+			baseResources.put(propsAdminResource.getURI(),"");
+            baseResources.put(propsAdminResource.getURI().substring(0, propsAdminResource.getURI().length()-1),"");
+
+			baseResources.put(allNodesResource.getURI(),"");
+            baseResources.put(allNodesResource.getURI().substring(0, allNodesResource.getURI().length()-1), "");
+
+            baseResources.put(rootPath + "pub/all","");
+            baseResources.put(rootPath + "pub/all/","");
+
+			baseResources.put(rootPath + "sub/mypublist", "");
+            baseResources.put(rootPath + "sub/mypublist/", "");
+
+			baseResources.put(rootPath + "time","");
+            baseResources.put(rootPath + "time/","");
+
+			baseResources.put(rootPath + "sub/all","");
+            baseResources.put(rootPath + "sub/all/","");
+
+			baseResources.put(rootPath + "sub","");
+            baseResources.put(rootPath + "sub/","");
+
+            baseResources.put(rootPath + "resync", "");
+			baseResources.put(rootPath + "resync/", "");
+
+            baseResources.put(rootPath + "pub","");
+			baseResources.put(rootPath + "pub/","");
+
+            baseResources.put(rootPath + "ibus","");
+			baseResources.put(rootPath + "ibus/","");
 
 			//load saved resources
 			loadResources();
@@ -283,7 +345,7 @@ public class RESTServer implements Container{
 	}*/
 
 	public static void addResource(Resource resource){
-		if(resource != null && !baseResources.contains(resource.getURI()) && 
+		if(resource != null && !baseResources.containsKey(resource.getURI()) && 
 				!resource.getURI().equals("") ){
 
 			//add it to local resourceTree hashtable
@@ -304,7 +366,7 @@ public class RESTServer implements Container{
 				resourceTree.put(otherUrl, resource);
 				logger.info("resourceTree.add: " + otherUrl);
 			}
-		}
+		} 
 	}
 
 	public static void removeResource(Resource resource){
@@ -687,7 +749,7 @@ public class RESTServer implements Container{
         return keyStore;
     }
 
-    protected void routeToResource(Request request, Response response){
+    /*protected void routeToResource(Request request, Response response){
         try {
             logger.info("Running async task");
             String path = ResourceUtils.cleanPath(request.getPath().getPath());
@@ -705,9 +767,9 @@ public class RESTServer implements Container{
             }
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
-            Resource.sendResponse(request, response, 404, null, false, null);
+            Resource.sendResponse(request, response, 500, null, false, null);
         }
-    }
+    }*/
 
     public class AsyncTask implements Runnable{
         private Request request = null;
@@ -715,26 +777,31 @@ public class RESTServer implements Container{
         public AsyncTask(Request req, Response resp){
             request = req;
             response =resp;
+            logger.info("Async task created: path=" + request.getPath().getPath());
         }
         public void run(){
+            logger.info("Running async task");
             try {
-                logger.info("Running async task");
                 String path = ResourceUtils.cleanPath(request.getPath().getPath());
                 logger.info("Path=" + path);
                 Query query = request.getQuery();
                 logger.info("query_string=" + query.toString().length());
                 Resource r = resourceTree.get(path);
+                //logger.info(r.getClass().getName());
+                /*if(path.equals("/time") || path.equals("/time/"))
+                    System.exit(1);*/
                 if(path.contains("*")){
                     Resource root = resourceTree.get(rootPath);
                     root.handle(request, response);
                 } else if(r!=null){
+                    logger.info("Invoking handler: " + r.getURI());
                     r.handle(request, response);
                 } else {
                     Resource.sendResponse(request, response, 404, null, false, null);
                 }
             } catch(Exception e){
                 logger.log(Level.WARNING, "", e);
-                Resource.sendResponse(request, response, 404, null, false, null);
+                Resource.sendResponse(request, response, 500, null, false, null);
             }
         }
     }

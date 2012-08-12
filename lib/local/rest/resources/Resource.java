@@ -501,7 +501,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
 
 	//////////////// HttpHandler function implemention ////////////////
 	public synchronized void handle(Request m_request, Response m_response){
-		logger.info("exchange handler: " + m_request.getMethod() + " " + 
+		logger.info("handler: " + m_request.getMethod() + " " + 
                         URI  + " <- " + m_request.getAddress());
 		try {
             Query query= m_request.getQuery();

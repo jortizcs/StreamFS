@@ -423,11 +423,12 @@ public class Router implements Runnable{
     public void run(){
         ObjectInputStream incoming = null;
         ObjectOutputStream outgoing = null;
+        Socket s=null;
         try {
             boolean keepRunning = true;
             while(keepRunning){
                 logger.info("Listening for incoming connections");
-                Socket s = server.accept();
+                s = server.accept();
                 incoming = new ObjectInputStream(s.getInputStream());
                 outgoing = new ObjectOutputStream(s.getOutputStream());
                 RouterCommand cmd = (RouterCommand) incoming.readObject();
@@ -506,8 +507,15 @@ public class Router implements Runnable{
             logger.log(Level.SEVERE, "", e);
             System.exit(1);
         } finally {
-            try {incoming.close();}catch(Exception i){}
-            try {outgoing.close();}catch(Exception o){}
+            try {incoming.close();}catch(Exception i){
+                logger.log(Level.WARNING, "", i);
+            }
+            try {outgoing.close();}catch(Exception o){
+                logger.log(Level.WARNING, "", o);
+            }
+            try {s.close();}catch(Exception se){
+                logger.log(Level.WARNING, "", se);
+            }
         }
         return;
     }

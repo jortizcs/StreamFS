@@ -1,6 +1,4 @@
 /*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation for any purpose, without fee, and without written agreement is
@@ -52,7 +50,7 @@ public class TimeResource extends Resource{
 		super(uri);
 	}
 
-	public  void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+    public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
 		Date date = new Date();
 		response.put("Now", date.getTime()/1000);

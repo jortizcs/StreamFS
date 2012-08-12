@@ -32,6 +32,7 @@ import local.rest.*;
 import local.db.*;
 import java.lang.Integer;
 import java.util.logging.Logger;
+import java.util.concurrent.*;
 
 public class IS4DataStore{
 	private static Registrar registrar = null;
@@ -67,7 +68,7 @@ public class IS4DataStore{
 			restServer = new RESTServer();
 		}
 
-
+        restServer.executor = Executors.newCachedThreadPool();
 		restServer.start();
 	}
 }

@@ -35,6 +35,8 @@ jar ufv ../is4app.jar local/rest/handlers/SmapSourceHandler.class
 jar ufv ../is4app.jar local/rest/RESTServer.class
 jar ufv ../is4app.jar local/rest/RESTServer\$StreamInfoHandler.class
 jar ufv ../is4app.jar local/rest/RESTServer\$SubInfoHandler.class
+jar ufv ../is4app.jar local/rest/RESTServer\$AsyncTask.class
+jar ufv ../is4app.jar local/rest/RESTServer\$ShutdownProc.class
 jar ufv ../is4app.jar local/metadata/MetadataMngr.class
 jar ufv ../is4app.jar local/metadata/BindStateMngr.class
 jar ufv ../is4app.jar local/metadata/Binding.class

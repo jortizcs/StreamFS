@@ -41,6 +41,8 @@ rm -f local/rest/handlers/SmapSourceHandler.class
 rm -f local/rest/RESTServer.class
 rm -f local/rest/RESTServer\$StreamInfoHandler.class
 rm -f local/rest/RESTServer\$SubInfoHandler.class
+rm -f local/rest/RESTServer\$AsyncTask.class
+rm -f local/rest/RESTServer\$ShutdownProc.class
 rm -f local/metadata/MetadataMngr.class
 rm -f local/metadata/BindStateMngr.class
 rm -f local/metadata/Binding.class
