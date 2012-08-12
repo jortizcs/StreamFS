@@ -40,22 +40,27 @@ import java.util.logging.Level;
 import java.lang.StringBuffer;
 import java.util.zip.GZIPOutputStream;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
 import java.util.regex.Pattern;
 
-public class Resource extends Filter implements HttpHandler, Serializable, Is4Resource{
+import org.simpleframework.transport.connect.Connection;
+import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+
+public class Resource implements Container{//extends Filter implements HttpHandler, Serializable, Is4Resource{
 
 	protected static transient final Logger logger = Logger.getLogger(Resource.class.getPackage().getName());
 	protected String URI = null;
-	protected static HttpServer httpServer = null;
 	protected static MySqlDriver database = (MySqlDriver) DBAbstractionLayer.database;
 	protected static MongoDBDriver mongoDriver = new MongoDBDriver();
 	protected static SFSStatistics sfsStats = null;
 
 	//Query structures	
-	protected JSONObject exchangeJSON = new JSONObject();
 	protected static final String[] props_ops = {"props_like", "props_and", "props_or", "props_not"};
 	protected static final String[] ts_ops = {"ts_gt", "ts_lt", "ts_ge", "ts_le"};
 	protected static Vector<String> propsOpsVec = new Vector<String>();
@@ -65,11 +70,6 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	protected static MetadataGraph metadataGraph = null;
 
 	public int TYPE= ResourceUtils.DEFAULT_RSRC;
-
-	//This addresses the HttpContext switch bug
-	//For every call to create a context in the httpServer after the root, the HttpContext object changes, and the filter
-	//is no longer used in the new object.
-	protected HttpContext thisContext = null;
 
     protected String objectIdentifier = null;
     protected String versionNumber = null;
@@ -150,42 +150,45 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
     }
 
 	//////////////// REST-accessible functions ////////////////
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		try {
-			if(exchangeJSON.containsKey("query") && 
-				((String)exchangeJSON.getString("query")).equalsIgnoreCase("true") &&
-				exchangeJSON.getString("requestUri").contains("props_")){
+            Query query = m_request.getQuery();
+			if(query.containsKey("query") && 
+				((String)query.get("query")).equalsIgnoreCase("true") &&
+				((String)query.toString()).contains("props")){
 				logger.info("Handling PROPERTIES query");
-				query(exchange, null, internalCall, internalResp);
+				query_(m_request, m_response, null, internalCall, internalResp);
 			} 
             
-            else if(exchangeJSON.containsKey("agg") && exchangeJSON.containsKey("units")){
+            else if(query.containsKey("agg") && query.containsKey("units")){
                 logger.info("OLAP_QUERY: aggregate data query");
-                boolean queryQ = exchangeJSON.containsKey("query");
-                String queryVal = exchangeJSON.optString("query");
+                boolean queryQ = query.containsKey("query");
+                String queryVal = "";
+                if(queryQ)
+                    queryVal = (String)query.get("query");
                 queryQ &= (queryVal!=null && queryVal.equalsIgnoreCase("true"));
                 if(queryQ){
-                    handleTSAggQuery(exchange, null, internalCall, internalResp);
+                    handleTSAggQuery(m_request, m_response, null, internalCall, internalResp);
                 } else {
-                    String aggStr = exchangeJSON.getString("agg");
-                    String units = exchangeJSON.getString("units");
+                    String aggStr = (String)query.get("agg");
+                    String units = (String)query.get("units");
                     String queryRes =metadataGraph.queryAgg(URI, aggStr, units, null);
                     if(queryRes != null){
                         JSONObject response = (JSONObject)JSONSerializer.toJSON(queryRes);
-                        sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+                        sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
                     } else {
-                        sendResponse(exchange, 200, null, internalCall, internalResp);
+                        sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
                     }
                 }
             }
 
-            else if(exchangeJSON.containsKey("incident_paths") && 
-                    exchangeJSON.getString("incident_paths").equalsIgnoreCase("true")){
+            else if(query.containsKey("incident_paths") && 
+                    ((String)query.get("incident_paths")).equalsIgnoreCase("true")){
                 JSONArray pathList = metadataGraph.getAllPathsTo(URI);
                 JSONObject response = new JSONObject();
                 response.put("status", "success");
                 response.put("paths", pathList);
-                sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
             }
             
             else {
@@ -202,27 +205,17 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				response.put("properties", p.toString());
 				findSymlinks(subResourceNames);
 				response.put("children",subResourceNames);
-				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			}
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Error while responding to GET request",e);
-		} /*finally {
-			try {
-				if(exchange !=null && !internalCall){
-					exchange.getRequestBody().close();
-					exchange.getResponseBody().close();
-					exchange.close();
-				}
-			} catch(Exception e){
-				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}
-		}*/
+		}
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		try{
 			logger.info("PUT " + this.URI);
-			if(data != null){// && !isScriptRequest(exchange)){
+			if(data != null){// && !isScriptRequest(m_request, m_response)){
 				JSONObject dataObj = (JSONObject) JSONSerializer.toJSON(data);
 				String op = dataObj.optString("operation");
 
@@ -237,7 +230,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						myPath += "/";
 					metadataGraph.addNode(myPath + resourceName);
 
-					sendResponse(exchange, 201, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
 				}
 
 				else if ((op.equalsIgnoreCase("create_generic_publisher") || 
@@ -252,9 +245,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						response.put("is4_uri", 
 								this.URI + dataObj.optString("resourceName"));
 						response.put("PubId", newPubId.toString());
-						sendResponse(exchange, 201, response.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 201, response.toString(), internalCall, internalResp);
 					} else {
-						sendResponse(exchange, 500, null, internalCall, internalResp);
+						sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
 					}
 				}
 
@@ -276,10 +269,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 							errors.add("possible cycle on adding: " + symlink.getURI());
 							resp.put("status", "fail");
 							resp.put("errors", errors);
-							sendResponse(exchange, 500, resp.toString(), internalCall, internalResp);
+							sendResponse(m_request, m_response, 500, resp.toString(), internalCall, internalResp);
 						} else {
 							logger.info("added symlink: " + metadataGraph.addNode(URI + name + "/"));
-							sendResponse(exchange, 201, null, internalCall, internalResp);
+							sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
 						}
 					}
 
@@ -289,15 +282,15 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 							SymlinkResource symlink = new SymlinkResource(URI + name + "/", is4URL);
 							RESTServer.addResource(symlink);
 							logger.info("added symlink: " + metadataGraph.addNode(URI + name + "/"));
-							sendResponse(exchange, 201, null, internalCall, internalResp);
+							sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
 						} catch(Exception e){
 							logger.log(Level.WARNING, "", e);
-							sendResponse(exchange, 400, "Invalid URL format", internalCall, internalResp);
+							sendResponse(m_request, m_response, 400, "Invalid URL format", internalCall, internalResp);
 						}
 					}
 					
 					else {
-						sendResponse(exchange, 400, 
+						sendResponse(m_request, m_response, 400, 
 								"Missing name, url, and/uri fields; Invalid request", 
 								internalCall, internalResp);
 					}
@@ -341,22 +334,22 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					logger.info("Data Object:" + dataObj.toString());	
 					logger.info("Device Request:" + deviceRequest.toString());	
 					//check if smap urls are set	
-					if(smapurlsSet){
+					/*if(smapurlsSet){
 						DevicesResource.addSmapPublishersToDevice(this.URI, deviceRequest, errors, newUris);
 					} else {
 						errors.add("smap_url(s) not set in request");
-					}
+					}*/
 
 					//send response
 					JSONObject resp = new JSONObject();
 					if(errors.size()>0){
 						resp.put("status", "fail");
 						resp.put("errors", errors.toString());
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					} else {
 						resp.put("status", "success");
 						resp.put("new_pubs", newUris);
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					}
 				}
 
@@ -380,60 +373,51 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                         resp.put("status", "fail");
                         resp.put("errors", errors);
                     }
-                    sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+                    sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
                 }
 
 				else {
-					sendResponse(exchange, 200, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 				}
 				return;
 			}
 
 		} catch (Exception e){
 			logger.log(Level.WARNING, "Request document not in proper JSON format", e);
-			sendResponse(exchange, 500, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
 			return;
-		} finally {
-			/*try {
-				if(exchange != null){
-					exchange.getRequestBody().close();
-					exchange.getResponseBody().close();
-					exchange.close();
-				} 
-			} catch(Exception e){
-				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}*/
 		}
 
 		//no content
-		sendResponse(exchange, 204, null, internalCall, internalResp);
+		sendResponse(m_request, m_response, 204, null, internalCall, internalResp);
 	}
 
-	private boolean isScriptRequest(HttpExchange exchange){
+	/*private boolean isScriptRequest(Request m_request, Response m_response){
 		boolean scriptReq = false;
 		scriptReq = exchange.getAttribute("script") != null && 
 				((String) exchange.getAttribute("script")).equalsIgnoreCase("true");
 		if(scriptReq)
 			exchange.setAttribute("script", "");
 		return true;
-	}
+	}*/
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		try {
-		    logger.info("POST called: " + exchangeJSON.getString("requestUri"));
-			if(exchangeJSON.containsKey("query")  && 
-					exchangeJSON.getString("query").equalsIgnoreCase("true") &&
-					exchangeJSON.getString("requestUri").contains("props_")){
+            Query query = m_request.getQuery();
+		    logger.info("POST called: " + (String)query.get("requestUri"));
+			if(query.containsKey("query")  && 
+					((String)query.get("query")).equalsIgnoreCase("true") &&
+					query.toString().contains("props_")){
 				logger.info("Handling PROPERTIES query");
-				query(exchange, data, internalCall, internalResp);
+				query_(m_request, m_response, data, internalCall, internalResp);
 			}
-			else if(exchangeJSON.containsKey("query")  && 
-					exchangeJSON.getString("query").equalsIgnoreCase("true")) {
-				query(exchange, data, internalCall, internalResp);
+			else if(query.containsKey("query")  && 
+					((String)query.get("query")).equalsIgnoreCase("true")) {
+				query_(m_request, m_response, data, internalCall, internalResp);
 			} 
-            else if(exchangeJSON.containsKey("set_agg") && exchangeJSON.containsKey("units")){
-                String setAggStr = exchangeJSON.getString("set_agg");
-                String unitsStr = exchangeJSON.getString("units");
+            else if(query.containsKey("set_agg") && query.containsKey("units")){
+                String setAggStr = (String)query.get("set_agg");
+                String unitsStr = (String)query.get("units");
                 boolean setAggBool = false;
                 if(setAggStr.equalsIgnoreCase("true"))
                     setAggBool = true;
@@ -471,30 +455,20 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                     database.rrPutProperties(URI, currentProps);
                     updateProperties(currentProps);
                 }
-                sendResponse(exchange, 200, null, internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
             } 
 			else {
-				handlePropsReq(exchange, data, internalCall, internalResp);
-				//sendResponse(exchange, 200, null, internalCall, internalResp);
+				handlePropsReq(m_request, m_response, data, internalCall, internalResp);
+				//sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-            sendResponse(exchange, 500, null, internalCall, internalResp);
-		} /*finally {
-			try {
-				if(exchange != null){
-					exchange.getRequestBody().close();
-					exchange.getResponseBody().close();
-					exchange.close();
-				} 
-			} catch(Exception e){
-				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}
-		}*/
+            sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
+		}
 
 	}
 
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		try {
 			logger.info("Handling DELETE command for " + this.URI);
 			JSONArray children = database.rrGetChildren(this.URI);
@@ -509,43 +483,31 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				//remove from internal graph
 				metadataGraph.removeNode(this.URI);
 				
-				sendResponse(exchange, 200, null, internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 			} else {
 				JSONObject response = new JSONObject();
 				JSONArray errors = new JSONArray();
 				response.put("status", "fail");
 				errors.add("Cannot delete resource with children");
 				response.put("errors", errors);
-				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			} 
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-            sendResponse(exchange, 500, null, internalCall, internalResp);
-		} finally {
-			/*try {
-				if(exchange != null){
-					exchange.getRequestBody().close();
-					exchange.getResponseBody().close();
-					exchange.close();
-				} 
-			} catch(Exception e){
-				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}*/
+            sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
 		}
-
 	}
 
 
 	//////////////// HttpHandler function implemention ////////////////
-	public synchronized void handle(HttpExchange exchange){
-		logger.info("exchange handler: " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" +
-					exchange.getRemoteAddress());
+	public synchronized void handle(Request m_request, Response m_response){
+		logger.info("exchange handler: " + m_request.getMethod() + " " + 
+                        URI  + " <- " + m_request.getAddress());
 		try {
-            String obj = getPutPostData(exchange.getRequestMethod(), exchange);
+            Query query= m_request.getQuery();
+            String obj = m_request.getContent();
 			//get the uri and remove the parameters
-			String eUri = exchangeJSON.getString("requestUri");
-			if(eUri.contains("?"))
-				eUri = eUri.substring(0, eUri.indexOf("?"));
+            String eUri = ResourceUtils.cleanPath(m_request.getPath().getPath());
 
 			if(!eUri.contains("*")){
 
@@ -558,7 +520,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						URI2 = this.URI.substring(0, this.URI.length()-1);
 					else 
 						URI2 = this.URI + "/";
-					logger.info("URI=" + this.URI + "\nURI2=" + URI2 + "\nREQ_URI=" + exchangeJSON.getString("requestUri"));
+					logger.info("URI=" + this.URI + "\nURI2=" + URI2 + "\nREQ_URI=" + m_request.getPath().getPath());
 					String myUri = null;
 					if(eUri.contains("?")){
 						myUri = eUri.substring(0, eUri.indexOf("?"));
@@ -568,163 +530,66 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 
 					if((!myUri.equalsIgnoreCase(this.URI) && !myUri.equalsIgnoreCase(URI2)) ||
 							!isActiveResource(this.URI)){
-						sendResponse(exchange, 404, null, false, null);
+						sendResponse(m_request, m_response, 404, null, false, null);
 						return;
 					}
 				}
-				//This addresses the HttpContext switch bug in the library
-				//The filter must be called BEFORE the handler
-				if (exchange.getHttpContext() != thisContext && exchange.getHttpContext().getFilters().size()==0) {
-					this.parseParams(exchange);
-					thisContext = exchange.getHttpContext();
-					thisContext.getFilters().add(this);
-					logger.warning("HttpContext switch bug in the httpserver library");
-				}
 
+                String path = ResourceUtils.cleanPath(m_request.getPath().getPath());
 				try {
-					String requestMethod = exchange.getRequestMethod();
+					String requestMethod = m_request.getMethod();
 					if(requestMethod.equalsIgnoreCase("get")){
 						logger.info("handling GET");
 						sfsStats.incGet();
-						this.get(exchange, false, null);
+						this.get(m_request, m_response, path, false, null);
 						return;
 					} else if (requestMethod.equalsIgnoreCase("put")){
 						logger.info("handling PUT");
 						sfsStats.incPut();
-						this.put(exchange, obj, false, null);
+						this.put(m_request, m_response, path, obj, false, null);
 						sfsStats.docReceived(obj);
 						return;
 					} else if (requestMethod.equalsIgnoreCase("post")) {
 						logger.info("handling POST");
 						sfsStats.incPost();
-						this.post(exchange, obj, false, null);
+						this.post(m_request, m_response, path, obj, false, null);
 						sfsStats.docReceived(obj);
 						return;
 					} else if (requestMethod.equalsIgnoreCase("delete")) {
 						logger.info("handling DELETE");
 						sfsStats.incDelete();
-						this.delete(exchange, false, null);
+						this.delete(m_request, m_response, path, false, null);
 						return;
 					}
 				} catch (Exception e){
 					logger.log(Level.WARNING, "Could not carry out the Filter operation", e);
 				}
 			} else {
-				//This address the HttpContext switch bug in the library
-				//The filter must be called BEFORE the handler
-				if (exchange.getHttpContext() != thisContext && exchange.getHttpContext().getFilters().size()==0) {
-					this.parseParams(exchange);
-					thisContext = exchange.getHttpContext();
-					thisContext.getFilters().add(this);
-				}
-
-                logger.info("Calling handleRecursiveFSQuery; exchangeJSON::" + exchangeJSON.toString());
-				handleRecursiveFSQuery(exchange, false, null);//, myUri);
+                logger.info("Calling handleRecursiveFSQuery");//; exchangeJSON::" + exchangeJSON.toString());
+				handleRecursiveFSQuery(m_request, m_response, false, null);
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
-            sendResponse(exchange, 500, null, false, null);
-		} finally {
-			/*try {
-				if(exchange !=null){
-					exchange.getRequestBody().close();
-					exchange.close();
-				} 
-			} catch(Exception e){
-				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
-			}*/
-		}
+            sendResponse(m_request, m_response, 500, null, false, null);
+		} 
 	}
 
-	public String description(){
-		StringBuffer strBuf = new StringBuffer().append("Filter GET and POST requests for ").append(URI);
-		return strBuf.toString();
-	}
 
-	public synchronized void doFilter(HttpExchange exchange, Filter.Chain chain) throws IOException {
-		boolean paramsOk = false;
-		if((paramsOk = parseParams(exchange)) && chain==null)
-			this.handle(exchange);
-		else if (!paramsOk) 
-			sendResponse(exchange, 404, null, false, null);
-		else
-			chain.doFilter(exchange);
-	}
-
-	protected synchronized boolean parseParams(HttpExchange exchange) {
-		logger.info("Request URI: " + exchange.getRequestURI().toString());
-		exchangeJSON.clear();
-		exchangeJSON.put("header", exchange.getRequestHeaders());
-        exchangeJSON.put("requestUri", exchange.getRequestURI().toString());
-		StringTokenizer tokenizer = new StringTokenizer(exchange.getRequestURI().toString(), "?");
-		if(tokenizer != null && tokenizer.hasMoreTokens()){
-			String thisResourcePath = tokenizer.nextToken();
-			if(URI == null && !thisResourcePath.equals(URI) && !thisResourcePath.equals(URI + "/"))
-				return false;
-			if(tokenizer.countTokens()>0) {
-				StringTokenizer paramStrTokenizer = new StringTokenizer(tokenizer.nextToken(), "&");
-				if(paramStrTokenizer !=null && paramStrTokenizer.hasMoreTokens()){
-					while (paramStrTokenizer.hasMoreTokens()){
-						StringTokenizer paramPairsTokenizer = new StringTokenizer(paramStrTokenizer.nextToken(),"=");
-						if(paramPairsTokenizer != null && paramPairsTokenizer.hasMoreTokens()){
-							String attr = paramPairsTokenizer.nextToken();
-							String val = paramPairsTokenizer.nextToken();
-							exchange.setAttribute(attr, val);
-							exchangeJSON.put(attr, val);
-							logger.info("Added (" + attr + ", " + val + ") pair to exchange session");
-						}
-					}
-				}
-			} else{
-				logger.fine("Not enough tokens");
-			}
-		}
-		logger.finer("ExchangeJSON:  \n\t" + exchangeJSON.toString());
-		return true;
-	}
-
-	protected String getPutPostData(String method, HttpExchange exchange){
-        InputStream ist= null;
-		try {
-			ist= exchange.getRequestBody();
-			InputStreamReader ir = new InputStreamReader(ist);
-			BufferedReader is = new BufferedReader(ir);
-			String line="";
-			StringBuffer bodyBuf = new StringBuffer();
-			while((line=is.readLine())!=null){
-				line = line.trim();
-				bodyBuf.append(line).append(" ");
-			}
-			//is.close();
-			return bodyBuf.toString();
-		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Exception thrown while processing put/post data", e);
-		} finally{
-            try {
-                ist.close();
-            } catch(Exception e2){
-                logger.log(Level.WARNING, "", e2);
-            }
-        }
-		//exchange= null;
-		return null;
-	}
-
-	public void sendResponse(HttpExchange exchange, int errorCode, String response, boolean internalCall, JSONObject internalResp){
-		OutputStream responseBody=null;
+	public static void sendResponse(Request m_request, Response m_response, int code, String data, boolean internalCall, JSONObject internalResp){
 		GZIPOutputStream gzipos = null; 
+        PrintStream body = null;
 		try{
 			if(internalCall){
-				copyResponse(response, internalResp);
+				copyResponse(data, internalResp);
 				return;
 			}
 
-			logger.info("Sending Response: " + response);
-            logger.info(exchangeJSON.toString());
+			logger.info("Sending Response: " + data);
+            /*logger.info(m_request, m_responseJSON.toString());
 			JSONObject header = exchangeJSON.getJSONObject("header");
 			boolean gzipResp = header.containsKey("Accept-encoding") && 
 						header.getJSONArray("Accept-encoding").getString(0).contains("gzip");
-            if(exchange !=null && !internalCall){
+            if(m_response !=null && !internalCall){
                 Headers responseHeaders = exchange.getResponseHeaders();
                 responseHeaders.set("Connection", "close");
                 responseHeaders.set("Content-Type", "application/json");
@@ -744,35 +609,38 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
                         responseBody.close();
                     }
                 }
-            }
+            }*/
 
-			sfsStats.docSent(response);
-		}catch(Exception e){
+            long time = System.currentTimeMillis();
+            String enc = m_request.getValue("Accept-encoding");
+            boolean gzipResp = false;
+            if(enc!=null && enc.indexOf("gzip")>-1)
+                gzipResp = true;
+            m_response.set("Content-Type", "application/json");
+            m_response.set("Server", "StreamFS/2.0 (Simple 4.0)");
+            m_response.set("Connection", "close");
+            m_response.setDate("Date", time);
+            m_response.setDate("Last-Modified", time);
+            m_response.setCode(code);
+            body = m_response.getPrintStream();
+            if(data!=null && !gzipResp)
+                body.println(data);
+            else if(data!=null && gzipResp){
+                m_response.set("Content-Encoding", "gzip");
+                gzipos = new GZIPOutputStream((OutputStream)body);
+                gzipos.write(data.getBytes());
+                gzipos.close();
+            }
+		} catch(Exception e) {
 			logger.log(Level.WARNING, "Exception thrown while sending response, closing exchange object",e);
 		} finally {
-			if(!internalCall){
-				try {
-					if(responseBody !=null){
-						responseBody.close();
-						logger.info("closing responseBody");
-					}
-					if(exchange !=null) {
-						exchange.getResponseBody().close();
-						logger.info("closing exchange: " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
-								exchange.getRemoteAddress());
-						exchange.close();
-					}
-					exchange = null;
-				} catch(Exception e){
-					logger.log(Level.WARNING, "", e);
-				}
-			}
-            exchangeJSON.clear();
+            if(body!=null)
+                body.close();
 		}
 
 	}
 
-	private void copyResponse(String response, JSONObject internalResp){
+	private static void copyResponse(String response, JSONObject internalResp){
 		try{
 			if(internalResp != null){
 				if(response != null){
@@ -974,10 +842,11 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	}
 
 	//evaluate query
-	public void query(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void query_(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
+            Query query = m_request.getQuery();
 			JSONObject propsQueryObj = new JSONObject();
 
 			//get query object from input data
@@ -991,14 +860,14 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				}
 			}
 
-			Iterator keys = exchangeJSON.keys();
+			Iterator keys = query.keySet().iterator();
 			logger.fine("REQUEST_KEYS::" + keys.toString());
 			Vector<String> attributes = new Vector<String>();
 			Vector<String> values = new Vector<String>();
 			while(keys.hasNext()){
 				String thisKey = (String) keys.next();
 				logger.fine("Keys found!; thisKey=" + thisKey);
-				exchange.setAttribute(thisKey, "");
+				//exchange.setAttribute(thisKey, "");
 				/*if(thisKey.startsWith("props_like_")){
 					String str = "props_like_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
@@ -1016,7 +885,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				} else*/ if(thisKey.startsWith("props_")){
 					String str = "props_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);//exchangeJSON.optString(thisKey);
 
 					logger.info("Query Value: " + queryValue);
 
@@ -1028,7 +897,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 						propsQueryObj.put(queryKey, queryValue);
 
 				} else if(thisKey.startsWith("props")){
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);//exchangeJSON.optString(thisKey);
 
 					JSONObject conditions = Resource.genJSONClause(queryValue);
 					if(conditions!=null)
@@ -1074,11 +943,11 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			if(e instanceof JSONException){
 				errors.add("Invalid JSON for POST data; url params ignored");
 				resp.put(errors, errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				return;
 			}
 		}
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
 
 	public UUID createPublisher(String pubName){
@@ -1115,10 +984,10 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			logger.log(Level.WARNING, "",e); } return null;
 	}
 
-	protected void setExchangeJSON(JSONObject params){
+	/*protected void setExchangeJSON(JSONObject params){
         logger.fine("Setting exchangeJSON==" + params.toString());
 		exchangeJSON.putAll(params);
-	}
+	}*/
 
 	/**
 	 * Resolves the uri.  If query has been posted, it is applied to each resource that the uri
@@ -1130,46 +999,33 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 	 *
 	 * The attribute is the uri, the value is the results of applying the query to that uri.
 	 */
-	protected void handleRecursiveFSQuery(HttpExchange exchange, boolean internalCall, JSONObject internalResp){//, String uri){
-		/*String requestUri= null;
-		if(internalCall)// && exchange.getAttribute("request_uri") != null && 
-			//!((String) exchange.getAttribute("request_uri")).equals(""))
-		{
-			requestUri = exchangeJSON.getString("requestUri");
-			//exchange.setAttribute("request_uri", "");
-		}
-		else{
-            try{
-			    requestUri =  exchangeJSON.getString("requestUri");
-            } catch(Exception e){
-                logger.log(Level.WARNING, "", e);
-                return;
-            }
-                
-		}*/
-        String requestUri =  exchangeJSON.getString("requestUri");
-		exchange.setAttribute("query","");
+	protected void handleRecursiveFSQuery(Request m_request, Response m_response, boolean internalCall, JSONObject internalResp){//, String uri){
+        
+        Query query = m_request.getQuery();
+        String requestUri =  m_request.getPath().getPath();
 
 		logger.info("FSQuery:: requestUri=" + requestUri + " internalCall: " + internalCall);
 
-		//logger.info("FSQuery Uri: " + uri + " Request URI: " + requestUri);
 		JSONArray resolvedUris = new JSONArray();
 
 		String uriOnly = requestUri;	
-		if(requestUri.contains("?")){	
-			uriOnly = requestUri.substring(0, uriOnly.indexOf("?"));
-			logger.info("Request URI, no params: " + uriOnly + " \ttype=" + (String) exchange.getAttribute("type"));
-			resolvedUris.addAll( database.resolveStarredUri(uriOnly, (String) exchange.getAttribute("type")) );
+        if(!query.toString().equals("")){
+			logger.info("Request URI, no params: " + uriOnly + " \ttype=" + (String) query.get("type"));
+			resolvedUris.addAll( database.resolveStarredUri(uriOnly, (String) query.get("type")) );
 		} else{
 			resolvedUris.addAll( database.resolveStarredUri(uriOnly, null) );
 		}
 		logger.info("Resolved Uris: " + resolvedUris.toString());
 
 		//get the request method
-		String requestMethod =  exchange.getRequestMethod();
+		String requestMethod =  m_request.getMethod();
 		String putPostData = null;
-		if(requestMethod.equalsIgnoreCase("put") || requestMethod.equalsIgnoreCase("post"))
-			putPostData = getPutPostData(requestMethod, exchange);
+        try {
+            if(requestMethod.equalsIgnoreCase("put") || requestMethod.equalsIgnoreCase("post"))
+                putPostData = m_request.getContent();
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
 
 		JSONObject responses = new JSONObject();
 		try{
@@ -1178,12 +1034,9 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					Resource thisResource = RESTServer.getResource(resolvedUris.getString(i));
 					if(thisResource != null){
 						JSONObject respBuffer = new JSONObject();
-                        this.exchangeJSON.put("requestUri", resolvedUris.getString(i));
-						thisResource.setExchangeJSON(this.exchangeJSON);
-						thisResource.get(exchange, true, respBuffer);
+						thisResource.get(m_request, m_response, resolvedUris.getString(i), 
+                                            true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							//processResponse(thisResource, respBuffer);
-							//responses.putAll(respBuffer);
                             respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
                             responses.put(thisResource.URI, respBuffer);
 						} else {
@@ -1196,9 +1049,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					Resource thisResource = RESTServer.getResource(resolvedUris.getString(i));
 					if(thisResource != null){
 						JSONObject respBuffer = new JSONObject();
-                        this.exchangeJSON.put("requestUri", resolvedUris.getString(i));
-						thisResource.setExchangeJSON(this.exchangeJSON);
-						thisResource.put(exchange, putPostData, true, respBuffer);
+						thisResource.put(m_request, m_response, resolvedUris.getString(i), 
+                                            putPostData, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
 							//processResponse(thisResource, respBuffer);
 							//responses.putAll(respBuffer);
@@ -1214,12 +1066,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					Resource thisResource = RESTServer.getResource(resolvedUris.getString(i));
 					if(thisResource != null){
 						JSONObject respBuffer = new JSONObject();
-                        this.exchangeJSON.put("requestUri", resolvedUris.getString(i));
-						thisResource.setExchangeJSON(this.exchangeJSON);
-						thisResource.post(exchange, putPostData, true, respBuffer);
+						thisResource.post(m_request, m_response,resolvedUris.getString(i), putPostData, true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
-							//processResponse(thisResource, respBuffer);
-							//responses.putAll(respBuffer);
                             respBuffer.put("links_to", database.getSymlinkAlias(thisResource.URI));
                             responses.put(thisResource.URI, respBuffer);
 						} else {
@@ -1234,9 +1082,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					Resource thisResource = RESTServer.getResource(resolvedUris.getString(i));
 					if(thisResource != null){
 						JSONObject respBuffer = new JSONObject();
-                        this.exchangeJSON.put("requestUri", resolvedUris.getString(i));
-						thisResource.setExchangeJSON(this.exchangeJSON);
-						thisResource.delete(exchange, true, respBuffer);
+						thisResource.delete(m_request, m_response, resolvedUris.getString(i), true, respBuffer);
 						if(thisResource.TYPE == ResourceUtils.SYMLINK_RSRC){
 							//processResponse(thisResource, respBuffer);
 							//responses.putAll(respBuffer);
@@ -1252,7 +1098,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			logger.log(Level.WARNING, "", e);
 		}
 
-		sendResponse(exchange, 200, responses.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, responses.toString(), internalCall, internalResp);
 	}
 
 	private void processResponse(Resource resource, JSONObject buffer){
@@ -1376,7 +1222,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			database.updatePropertiesInBuffer(URI, propsObj);*/
 	}
 
-	public void handlePropsReq(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void handlePropsReq(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
 		try{
 			JSONObject dataObj = (JSONObject) JSONSerializer.toJSON(data);
 			String op = dataObj.getString("operation");
@@ -1393,7 +1239,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					JSONArray errors = new JSONArray();
 					errors.add("Missing properties object");
 					response.put("errors", errors);
-					sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 					return;
 				}
 
@@ -1410,7 +1256,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					updateProperties(properties);
 				}
 				response.put("status", "success");
-				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			}
 
 			else if (op.equalsIgnoreCase("overwrite_properties")){
@@ -1425,21 +1271,21 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					JSONArray errors = new JSONArray();
 					errors.add("Missing properties object");
 					response.put("errors", errors);
-					sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 				}
 
 				database.rrPutProperties(URI, properties);
 				updateProperties(properties);
 				response.put("status", "success");
-				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			}
 
 			else{
-				sendResponse(exchange, 200, null, internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 			}
 		} catch (Exception e){
 			//silent fail
-			sendResponse(exchange, 200, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		}
 	}
 
@@ -1491,7 +1337,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 		return queryResults;
 	}
 
-    private JSONObject genTSQueryObject(HttpExchange exchange, String data){
+    private JSONObject genTSQueryObject(Request m_request, Response m_response, String data){
 		JSONObject tsQueryObj2 = new JSONObject();
 		try{
 		
@@ -1502,7 +1348,8 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				tsQueryObj2.putAll(dataTsQuery);
 			}
 
-			Iterator keys = exchangeJSON.keys();
+            Query query = m_request.getQuery();
+			Iterator keys = query.keySet().iterator();
 			Vector<String> attributes = new Vector<String>();
 			Vector<String> values = new Vector<String>();
 			while(keys.hasNext()){
@@ -1511,7 +1358,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 				if(thisKey.startsWith("ts_")){
 					String str = "ts_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);
 
 					logger.info("Query Value: " + queryValue);
 
@@ -1532,7 +1379,7 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 					}
 
 				} else if(thisKey.startsWith("ts")){
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);
 
 					JSONObject conditions = Resource.genJSONClause(queryValue);
 					if(conditions!=null){
@@ -1559,15 +1406,16 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
         return tsQueryObj2;
     }
 
-    private void handleTSAggQuery(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+    private void handleTSAggQuery(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		resp.put("path", URI);
 		try{
-            JSONObject tsQueryObj2 = genTSQueryObject(exchange, data);
+            Query query = m_request.getQuery();
+            JSONObject tsQueryObj2 = genTSQueryObject(m_request, m_response, data);
 			if(!tsQueryObj2.toString().equals("{}")){
-                String aggStr = exchangeJSON.getString("agg");
-                String units = exchangeJSON.getString("units");
+                String aggStr = (String)query.get("agg");
+                String units = (String)query.get("units");
 				JSONArray mqResp2 = queryAggTimeseries(aggStr, units, tsQueryObj2);
 				logger.fine("mqResp2: " + mqResp2.toString());
 				resp.put("ts_query_results", mqResp2);
@@ -1581,11 +1429,11 @@ public class Resource extends Filter implements HttpHandler, Serializable, Is4Re
 			if(e instanceof JSONException){
 				errors.add("Invalid JSON for POST data; url params ignored");
 				resp.put(errors, errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				return;
 			}
 		}
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
     }
 
     public static String cleanPath(String path){

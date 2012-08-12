@@ -40,6 +40,15 @@ import com.sun.net.httpserver.*;
 
 import javax.naming.InvalidNameException;
 
+//import org.simpleframework.transport.connect.Connection;
+//import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+
+
 //public class PubHandler extends Filter implements HttpHandler {
 public class PubHandler extends Resource {
 	protected static Logger logger = Logger.getLogger(PubHandler.class.getPackage().getName());
@@ -59,14 +68,15 @@ public class PubHandler extends Resource {
 		return "PubHandler filter";		
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		logger.info("put");
-		post(exchange, data, internalCall, internalResp);
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		logger.info("Handling post to " + URI);
-			
+        Query query = m_request.getQuery();
+
 		//check that the id is registered
 		Registrar registrar = Registrar.registrarInstance();
 
@@ -76,11 +86,11 @@ public class PubHandler extends Resource {
 		if(jsonObj!=null) {
 
 			//if pubid provided as url paramter, override the pubid in the jsonobject request
-			String pubidParam = (String) exchange.getAttribute("pubid");
+			String pubidParam = (String) query.get("pubid");//exchange.getAttribute("pubid");
 			if(pubidParam != null){
 				try {
 					UUID u = UUID.fromString(pubidParam);
-					exchange.setAttribute("pubid", null);
+					//exchange.setAttribute("pubid", null);
 					jsonObj.put("PubId", pubidParam);
 				} catch(IllegalArgumentException e){}
 			}
@@ -106,7 +116,7 @@ public class PubHandler extends Resource {
 
 				//put in database
 				Is4Database dbLayer = (Is4Database) new DBAbstractionLayer();
-				if(DBAbstractionLayer.DBTYPE == DBAbstractionLayer.MYSQL && !tagEntry(exchange, jsonObj)){
+				if(DBAbstractionLayer.DBTYPE == DBAbstractionLayer.MYSQL && !tagEntry(m_request, m_response, jsonObj)){
 					JSONArray errors = new JSONArray();
 					errors.add("Unknown request data type");
 
@@ -116,7 +126,7 @@ public class PubHandler extends Resource {
 					sendFail.put("status", "failed");
 					sendFail.put("ident",regId);
 					sendFail.put("errors", errors);
-					sendResponse(exchange, 202, sendFail.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 202, sendFail.toString(), internalCall, internalResp);
 
 					return;
 				} else {
@@ -129,7 +139,7 @@ public class PubHandler extends Resource {
 				sendSuccessDoc.put("operation", "pub");
 				sendSuccessDoc.put("status", "success");
 				sendSuccessDoc.put("ident",regId);
-				sendResponse(exchange, 202, sendSuccessDoc.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 202, sendSuccessDoc.toString(), internalCall, internalResp);
 				return;
 			} else{
 				//System.out.println("pub FAILED");
@@ -151,7 +161,7 @@ public class PubHandler extends Resource {
 				sendFail.put("status", "failed");
 				sendFail.put("ident",regId);
 				sendFail.put("errors", errors);
-				sendResponse(exchange, 202, sendFail.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 202, sendFail.toString(), internalCall, internalResp);
 			}
 			//exchange.sendResponseHeaders(202, 0);
 		}
@@ -160,7 +170,7 @@ public class PubHandler extends Resource {
 			exchange.sendResponseHeaders(400, 0);
 			responseBody.write((new String("JSON Syntax Error")).getBytes());
 			responseBody.close();*/
-			sendResponse(exchange, 200, "JSON Syntac Error", internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, "JSON Syntac Error", internalCall, internalResp);
 		}
 	}
 	//public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp);
@@ -319,9 +329,11 @@ public class PubHandler extends Resource {
 		  }
 	}*/
 
-	private boolean tagEntry(HttpExchange exchange, JSONObject jsonObj){
+	private boolean tagEntry(Request m_request, Response m_response, JSONObject jsonObj){
 		logger.info("Tagging the entry");
-		String schemaName = (String) exchange.getAttribute("schema");
+		//String schemaName = (String) exchange.getAttribute("schema");
+        Query query = m_request.getQuery();
+        String schemaName = (String)query.get("schema");
 		if(schemaName != null && MySqlDriver.isValidSchema(schemaName)){
 			logger.info("Schema-name: " + schemaName);
 			if(schemaName.equalsIgnoreCase("context")){
@@ -365,7 +377,7 @@ public class PubHandler extends Resource {
 		return false;
 	}
 
-	protected void sendResponse(HttpExchange exchange, int errorCode, String response){
+	/*protected void sendResponse(HttpExchange exchange, int errorCode, String response){
 		try{
 			logger.info("Sending Response");
 			Headers responseHeaders = exchange.getResponseHeaders();
@@ -379,9 +391,9 @@ public class PubHandler extends Resource {
 		}catch(Exception e){
 			logger.log(Level.WARNING, "Exception thrown while sending response",e);
 		}
-	}
+	}*/
 
-	private void sendPubSuccessReply(HttpExchange exchange, String regId){
+	/*private void sendPubSuccessReply(HttpExchange exchange, String regId){
 		logger.info("Sending publish success reply");
 		try {
 			OutputStream responseBody = exchange.getResponseBody();
@@ -427,5 +439,5 @@ public class PubHandler extends Resource {
 		} catch (Exception e){
 			logger.log(Level.WARNING, "Error while sending publish-fail reply", e);
 		}
-	}
+	}*/
 }

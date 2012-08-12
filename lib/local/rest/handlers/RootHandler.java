@@ -38,6 +38,14 @@ import local.rest.resources.*;
 import local.db.*;
 import local.rest.*;
 
+//import org.simpleframework.transport.connect.Connection;
+//import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+//import org.simpleframework.http.Query;
+
+
 public class RootHandler extends Resource{
 	private static Logger logger= Logger.getLogger(RootHandler.class.getPackage().getName());
 
@@ -46,7 +54,7 @@ public class RootHandler extends Resource{
 		super(path);
 	}
 
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		try {
 			logger.fine("GETTING RESOURCES: " + URI);
 			JSONObject response = new JSONObject();
@@ -57,12 +65,12 @@ public class RootHandler extends Resource{
 			response.put("uptime", ((new Date()).getTime()/1000) - RESTServer.start_time);
 			response.put("uptime_units", "seconds");
 			response.put("activeResources", database.rrGetAllPaths().size());
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			return;
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Error while responding to GET request",e);
-			sendResponse(exchange, 200, null, internalCall, internalResp);
-		} finally {
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
+		} /*finally {
 			try {
 				if(exchange !=null){
 					exchange.getRequestBody().close();
@@ -72,7 +80,7 @@ public class RootHandler extends Resource{
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in RootHandler", e);
 			}
-		}
+		}*/
 	}
 
 	/*public void handle(HttpExchange exchange) throws IOException{

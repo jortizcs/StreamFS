@@ -5,7 +5,6 @@ import local.db.*;
 import local.rest.smap.*;
 import local.rest.*;
 
-import com.sun.net.httpserver.*;
 import net.sf.json.*;
 import java.net.*;
 import java.util.*;
@@ -16,6 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import javax.naming.InvalidNameException;
+
+//import org.simpleframework.transport.connect.Connection;
+//import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class DemuxResource2 extends Resource {
 	private static transient final Logger logger = Logger.getLogger(DemuxResource.class.getPackage().getName());
@@ -29,28 +35,30 @@ public class DemuxResource2 extends Resource {
 		executorService = Executors.newCachedThreadPool();
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		String rootPathParam = exchangeJSON.optString("root");
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+        Query query = m_request.getQuery();
+        String rootPathParam=null;
+        try {rootPathParam = (String)query.get("root");} catch(Exception e){}
 		if(rootPathParam !=null){
 			ROOT=rootPathParam;
 			logger.info("SMAP_ROOT_PATH CHANGED::" + ROOT);
 			
 		}
 		if(data!=null && data.length()>0)
-			post(exchange, data, internalCall, internalResp);
+			post(m_request, m_response, path, data, internalCall, internalResp);
 		else
-			sendResponse(exchange, 200, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		logger.info("PUT/POST Smap2 Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
-					exchange.getRemoteAddress() + ":" + exchange.getRemoteAddress().getPort() );//+ "\nDataPosted::" + data);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		/*logger.info("PUT/POST Smap2 Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
+					exchange.getRemoteAddress() + ":" + exchange.getRemoteAddress().getPort() );//+ "\nDataPosted::" + data);*/
 		JSONArray errors =  new JSONArray();
 		JSONObject response = new JSONObject();
 
 		try {
 			//submit post data task here and reply
-			PostBulkDataTask postDataTask = new PostBulkDataTask(exchange, data, ROOT);
+			PostBulkDataTask postDataTask = new PostBulkDataTask(m_request, m_response, path, data, ROOT);
 			executorService.submit(postDataTask);
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
@@ -59,10 +67,10 @@ public class DemuxResource2 extends Resource {
 		try {
 			
 			response.put("status", "success");
-			super.sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			super.sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
-		} finally {
+		} /*finally {
 			try {
 				if(exchange !=null){
 					exchange.getRequestBody().close();
@@ -73,19 +81,23 @@ public class DemuxResource2 extends Resource {
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
 			}
-		}
+		}*/
 
 	}
 
 	private class PostBulkDataTask implements Runnable{
 
 		private String bulkReport = null;
-		private HttpExchange xchg = null;
 		private String rootPath = "/inventory";
+        private Request request = null;
+        private Response response = null;
+        private String path =null;
 
-		public PostBulkDataTask(HttpExchange exchange,String dataStr, String root){
+		public PostBulkDataTask(Request m_request, Response m_response, String ppath, String dataStr, String root){
+            request = m_request;
+            response = m_response;
+            path =ppath;
 			bulkReport = dataStr;
-			xchg = exchange;
 			if(root!=null && !root.equals(""))
 				rootPath=root;
 		}
@@ -170,7 +182,7 @@ public class DemuxResource2 extends Resource {
 						crtReqObj.put("resourceName", spName);
 						crtReqObj.put("resourceType", "default");
 						JSONObject internalResp = new JSONObject();
-						rootRsrc.put(xchg, crtReqObj.toString(), true, internalResp);
+						rootRsrc.put(request, response, path, crtReqObj.toString(), true, internalResp);
 
 						// check if creating it was successful
 						devRsrc = RESTServer.getResource(rootPath + spName);
@@ -186,7 +198,7 @@ public class DemuxResource2 extends Resource {
 						crtReqObj.put("operation", "create_generic_publisher");
 						crtReqObj.put("resourceName", chanName);
 						JSONObject internalResp = new JSONObject();
-						devRsrc.put(xchg, crtReqObj.toString(), true, internalResp);
+						devRsrc.put(request, response, path, crtReqObj.toString(), true, internalResp);
 						pubid = internalResp.getString("PubId");
 						
 						// check if creating it was successful
@@ -213,7 +225,7 @@ public class DemuxResource2 extends Resource {
 					propsReq.put("properties", props);
 
 					JSONObject internalResp = new JSONObject();
-					chanRsrc.handlePropsReq(xchg, propsReq.toString(), true, internalResp);
+					chanRsrc.handlePropsReq(request, response, propsReq.toString(), true, internalResp);
 					logger.info(path + ", setProps::" + props.toString());
 					
 					JSONArray data = thisReportObj.getJSONArray("Readings");

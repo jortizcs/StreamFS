@@ -28,7 +28,6 @@ import is4.*;
 import local.db.*;
 import local.rest.smap.*;
 
-import com.sun.net.httpserver.*;
 import net.sf.json.*;
 import java.net.*;
 import java.util.*;
@@ -36,6 +35,11 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import javax.naming.InvalidNameException;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class AdminPropsReposIndexesResource extends Resource {
 	private static transient final Logger logger = Logger.getLogger(AdminPropsReposIndexesResource.class.getPackage().getName());
@@ -46,7 +50,7 @@ public class AdminPropsReposIndexesResource extends Resource {
 		super("/admin/properties/indexes/");
 	}
 
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		try {
 			resp.put("status", "success");
@@ -54,15 +58,15 @@ public class AdminPropsReposIndexesResource extends Resource {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		}
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try {
 			JSONObject dataObj = (JSONObject) JSONSerializer.toJSON(data);
-			addRemoveIndexes(dataObj);
+			addRemoveIndexes(m_request, dataObj);
 			resp.put("status", "success");
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
@@ -71,19 +75,20 @@ public class AdminPropsReposIndexesResource extends Resource {
 			resp.put("status","fail");
 			resp.put("errors", errors);
 		}
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		put(exchange, data, internalCall, internalResp);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		put(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 504, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 504, null, internalCall, internalResp);
 	}
 
-	protected void addRemoveIndexes(JSONObject dataObj){
-		Iterator keys = exchangeJSON.keys();
+	protected void addRemoveIndexes(Request m_request, JSONObject dataObj){
+        Query query = m_request.getQuery();
+		Iterator keys = query.keySet().iterator();
 		JSONObject addIndices = new JSONObject();
 
 		while(keys.hasNext()){
@@ -92,7 +97,7 @@ public class AdminPropsReposIndexesResource extends Resource {
 			if(thisKey.startsWith("idx_")){
 				String str = "idx_";
 				String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
-				String queryValue = exchangeJSON.optString(thisKey);
+				String queryValue = (String)query.get(thisKey);
 				logger.info("Query Value: " + queryValue);
 				if(isNumber(queryValue)){
 					int val = Integer.parseInt(queryValue);
@@ -117,7 +122,7 @@ public class AdminPropsReposIndexesResource extends Resource {
 		keys = dataObj.keys();
 		while(keys.hasNext()){
 			String queryKey = (String) keys.next();
-			String queryValue = exchangeJSON.optString(queryKey);
+			String queryValue = (String)query.get(queryKey);
 			logger.info("Query Value: " + queryValue);
 			if(isNumber(queryValue)){
 				int val = Integer.parseInt(queryValue);

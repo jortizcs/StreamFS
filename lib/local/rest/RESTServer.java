@@ -11,27 +11,38 @@ import local.analytics.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
 import is4.*;
 import net.sf.json.*;
-import com.sun.net.httpserver.*;
 
 import javax.naming.InvalidNameException;
 
-public class RESTServer {
+import org.simpleframework.transport.connect.Connection;
+import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.KeyManagerFactory;
+import java.security.KeyStore;
+
+
+public class RESTServer implements Container{
 
 	private String bindAddress = "localhost";
 	private int port = 8080;
 	protected static Logger logger = Logger.getLogger(RESTServer.class.getPackage().getName());
-	private static HttpServer httpServer = null;
 
-	private static Hashtable<String, String> baseResources =  new Hashtable<String, String>();
-	private static Hashtable<String, Resource> resourceTree = new Hashtable<String, Resource>();
+	private static ConcurrentHashMap<String, String> baseResources =  
+                                                        new ConcurrentHashMap<String, String>();
+	private static ConcurrentHashMap<String, Resource> resourceTree = 
+                                                        new ConcurrentHashMap<String, Resource>();
 
-	public static final long start_time = (new Date().getTime())/1000;
+	public static final long start_time = System.currentTimeMillis()/1000;
 	
 	private static final String rootPath = "/";
 	
@@ -43,12 +54,25 @@ public class RESTServer {
 	private static MetadataGraph metadataGraph = null;
     public static boolean tellRouter = true;
 
+    public static String EMTPY_STRING = "";
+    public static String KEYSTORE_PROPERTY = "javax.net.ssl.keyStore";
+    public static String KEYSTORE_PASSWORD_PROPERTY = "javax.net.ssl.keyStorePassword";
+    public static String KEYSTORE_TYPE_PROPERTY = "javax.net.ssl.keyStoreType";
+    public static String KEYSTORE_ALIAS_PROPERTY = "javax.net.ssl.keyStoreAlias";
+
     PipedInputStream myEnd_pipedInput = null;
     PipedOutputStream myEnd_pipedOut = null;
 
     private static Object lock = new Object();
+
+    //private static ConcurrentHashMap<String, Container> urlRouteTable = new ConcurrentHashMap<String, Container>();
+    protected static Connection connection = null;
+    protected static Connection connectionHttps = null;
+    protected static ExecutorService executor = null;
     
-	public RESTServer(){}
+	public RESTServer(){
+        executor = Executors.newCachedThreadPool();
+    }
 
 	public RESTServer(String address, int p){
 		logger = Logger.getLogger(RESTServer.class.getPackage().getName());
@@ -57,7 +81,12 @@ public class RESTServer {
 	}
 
     public static void shutdown(){
-        httpServer.stop(1);
+        try { connection.close();} catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+        try { connectionHttps.close();} catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
     }
 
 	public static void main(String[] args){
@@ -65,6 +94,13 @@ public class RESTServer {
 		RESTServer restSvr = new RESTServer();
 		restSvr.start();
 	}
+
+    public void handle(Request request, Response response){
+        logger.info("Heard something");
+        //AsyncTask t = new AsyncTask(request, response);
+        //executor.submit(t);
+        routeToResource(request, response);
+    }
 
 	public void start(){
 
@@ -74,9 +110,6 @@ public class RESTServer {
 			System.setProperty("sun.net.http.errorstream.enableBuffering", "true");
 
 			logger.config("Starting RESTServer on HOST " + bindAddress + " PORT " + port);
-			//InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(bindAddress), port);
-			//httpServer = HttpServer.create(addr, 0);
-			httpServer = HttpServer.create();
 			DBAbstractionLayer dbAbstractionLayer = new DBAbstractionLayer();
 			
 			//Root handler
@@ -90,12 +123,12 @@ public class RESTServer {
 			baseResources.put(rootPath + "ibus/","");
 
 			//action handlers
-			StreamHandler streamHdlr = new StreamHandler();
+			/*StreamHandler streamHdlr = new StreamHandler();
 			SmapSourceHandler smapSourceHandler = new SmapSourceHandler(rootPath + "pub/smap/");
 			baseResources.put(rootPath + "pub/smap", "");
 
 			httpServer.createContext(rootPath + "streamtest", streamHdlr);
-			baseResources.put(rootPath + "streamtest/","");
+			baseResources.put(rootPath + "streamtest/","");*/
 			
 			//Resync smap
 			ResyncSmapStreams resyncResource = new ResyncSmapStreams(rootPath + "resync/");
@@ -109,9 +142,9 @@ public class RESTServer {
 			baseResources.put(rootPath + "pub/","");
 
 			//Add filter for parsing URL parameters
-			HttpContext context2 = httpServer.createContext(rootPath + "pub/smap/", smapSourceHandler);
+			/*HttpContext context2 = httpServer.createContext(rootPath + "pub/smap/", smapSourceHandler);
 			context2.getFilters().add(smapSourceHandler);
-			baseResources.put(rootPath + "pub/smap/", "");
+			baseResources.put(rootPath + "pub/smap/", "");*/
 			
 			//httpServer.createContext(rootPath + "sub", subHandler);
 			SubHandler subHandler = new SubHandler(rootPath +"sub/");
@@ -132,22 +165,10 @@ public class RESTServer {
 			RESTServer.addResource(subInfoHandler);
 			baseResources.put(rootPath + "sub/all","");
 		
-			httpServer.createContext(rootPath + "sub/mypublist",subInfoHandler);
+			//httpServer.createContext(rootPath + "sub/mypublist",subInfoHandler);
 			baseResources.put(rootPath + "pub/all","");
 			baseResources.put(rootPath + "sub/mypublist", "");
 
-			//unpub and unsub
-			/*UnpubHandler unpubHandler = new UnpubHandler();
-			UnsubHandler unsubHandler = new UnsubHandler();
-			httpServer.createContext(rootPath + "unpub", unpubHandler);
-			httpServer.createContext(rootPath + "unsub", unsubHandler);
-			baseResources.put(rootPath + "unpub", "");
-			baseResources.put(rootPath + "unsub", "");
-
-			//sub control
-			SubControlHandler subCtrlHdlr = new SubControlHandler();
-			httpServer.createContext(rootPath + "sub/control", subCtrlHdlr);
-			baseResources.put(rootPath + "sub/control", "");*/
 
 			//Smap Message Demultiplexer for smap reports
 			DemuxResource demuxResource = new DemuxResource();
@@ -222,7 +243,7 @@ public class RESTServer {
             metadataGraph.populateInternalGraph(tellRouter);
             logger.info("DONE POP");
 			
-			httpServer.setExecutor(Executors.newCachedThreadPool());
+			//httpServer.setExecutor(Executors.newCachedThreadPool());
 			//httpServer.setExecutor(Executors.newFixedThreadPool(1));
 
             //register a shutdown hook
@@ -230,10 +251,26 @@ public class RESTServer {
             Runtime.getRuntime().addShutdownHook(shutdown);
 
 			logger.info("Binding to port: " + port);
-			InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(bindAddress), port);
+			/*InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(bindAddress), port);
 			httpServer.bind(addr,0);
-			httpServer.start();
-			System.out.println("Server is listening on port " + port );
+			httpServer.start();*/
+
+            //http
+            //RESTServer server = new RESTServer();
+            connection = new SocketConnection((Container)this);
+            SocketAddress address = new InetSocketAddress(bindAddress, port);
+            connection.connect(address);
+            logger.info("Listening for connection on " + bindAddress + ":" + port);
+
+            //https
+            System.setProperty(KEYSTORE_PROPERTY, "mySrvKeystore");
+            System.setProperty(KEYSTORE_PASSWORD_PROPERTY, "123456");
+            SocketAddress address2 = new InetSocketAddress(bindAddress, port+1);
+            SSLContext sslContext = createSSLContext();
+            connectionHttps = new SocketConnection((Container)this);
+            connectionHttps.connect(address2, sslContext);
+            logger.info("Listening for connection on " + bindAddress + ":" + (port+1));
+			System.out.println("Server is listening on port " + (port+1) );
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "", e);
@@ -241,18 +278,13 @@ public class RESTServer {
 		}
 	}
 
-	public static HttpServer getHttpServer(){
+	/*public static HttpServer getHttpServer(){
 		return httpServer;
-	}
+	}*/
 
 	public static void addResource(Resource resource){
 		if(resource != null && !baseResources.contains(resource.getURI()) && 
 				!resource.getURI().equals("") ){
-
-			logger.config("Adding contextHandler: \"" + resource.getURI() + 
-					"\"\tLENGTH: " + resource.getURI().length());
-			HttpContext resourceContext = httpServer.createContext(resource.getURI(), resource);
-			resourceContext.getFilters().add(resource);
 
 			//add it to local resourceTree hashtable
 			resourceTree.put(resource.getURI(), resource);
@@ -261,47 +293,28 @@ public class RESTServer {
 			//handle requests that end with and without "/"
 			String otherUrl = null;
 			if(resource.getURI().endsWith("/") && !resource.getURI().equals("/")){
-				otherUrl = resource.getURI().substring(0, resource.getURI().length()-1);
-				logger.config("Adding contextHandler: " + otherUrl);
-				resourceContext = httpServer.createContext(otherUrl, resource);
-				resourceContext.getFilters().add(resource);
-
 				//add it to local resourceTree hashtable
+				otherUrl = resource.getURI().substring(0, resource.getURI().length()-1);
 				resourceTree.put(otherUrl, resource);
 				logger.info("resourceTree.add: " + otherUrl);
 
 			} else if(!resource.getURI().endsWith("/")){
-				otherUrl = resource.getURI() + "/";
-				logger.config("Adding contextHandler: " + otherUrl);
-				resourceContext = httpServer.createContext(otherUrl, resource);
-				resourceContext.getFilters().add(resource);
-
 				//add it to local resourceTree hashtable
+				otherUrl = resource.getURI() + "/";
 				resourceTree.put(otherUrl, resource);
 				logger.info("resourceTree.add: " + otherUrl);
 			}
-
 		}
 	}
 
 	public static void removeResource(Resource resource){
 		try {
 			if(resource != null && !baseResources.contains(resource.getURI()) ){
-				httpServer.removeContext(resource.getURI());
 				if(resource.getURI().endsWith("/")){
-					try{httpServer.removeContext(resource.getURI());}
-					catch(Exception e){}
-					try{httpServer.removeContext(resource.getURI().
-								substring(0, resource.getURI().length()-1));}
-					catch(Exception e){}
 					resourceTree.remove(resource.getURI());
 					resourceTree.remove(resource.getURI().
 								substring(0, resource.getURI().length()-1));
 				}else{
-					try{httpServer.removeContext(resource.getURI() + "/");}
-					catch(Exception e){}
-					try{httpServer.removeContext(resource.getURI());}
-					catch(Exception e){}
 					resourceTree.remove(resource.getURI());
 					resourceTree.remove(resource.getURI() + "/");
 				}
@@ -406,14 +419,6 @@ public class RESTServer {
 					case ResourceUtils.DEFAULT_RSRC:
 						logger.info("Loading default resource: " + thisPath);
 						resource = new Resource(thisPath);
-						break;
-					case ResourceUtils.DEVICES_RSRC:
-						logger.info("Loading devices resource: " + thisPath);
-						resource = new DevicesResource(thisPath);
-						break;
-					case ResourceUtils.DEVICE_RSRC:
-						logger.info("Loading device resource: " + thisPath);
-						resource = new DeviceInstanceResource(thisPath);
 						break;
 					case ResourceUtils.PUBLISHER_RSRC:
 						logger.info("Loading publisher resource: " + thisPath);
@@ -531,16 +536,16 @@ public class RESTServer {
 			super(path);
 		}
 
-		public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+		public void get(Request m_request, Response m_response, boolean internalCall, JSONObject internalResp){
 			JSONObject getSubsObj = new JSONObject();
 			getSubsObj.put("operation","get_all_subscribers");
 			getSubsObj.put("status", "success");
 			getSubsObj.put("subscribers",getSubsJSONArray());
 
-			sendResponse(exchange, 200, getSubsObj.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, getSubsObj.toString(), internalCall, internalResp);
 		}
 
-		public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+		public void put(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
 			
 			JSONObject infoReq = (JSONObject) JSONSerializer.toJSON(data);
 			if(infoReq.getString("name").equalsIgnoreCase("my_stream_list")){
@@ -553,22 +558,22 @@ public class RESTServer {
 					response.put("operation", "my_stream_list");
 					response.put("status","success");
 					response.put("PubList", publist);
-					sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 				}else{
 					JSONObject response = new JSONObject();
 					response.put("operation", "my_stream_list");
 					response.put("status","fail");
 					response.put("error", "Invalid subscriber id: " + thisSubId);
-					sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 				}
 
 			}else{
-				sendResponse(exchange, 401, null, internalCall, internalResp);
+				sendResponse(m_request, m_response, 401, null, internalCall, internalResp);
 			}
 		}
 
-		public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-			put(exchange, data, internalCall, internalResp);
+		public void post(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
+			put(m_request, m_response, data, internalCall, internalResp);
 		}
 
 		public JSONArray getSubsJSONArray(){
@@ -593,25 +598,25 @@ public class RESTServer {
 			super(uri);
 		}
 
-		public  void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+		public  void get(Request m_request, Response m_response, boolean internalCall, JSONObject internalResp){
 			try {
 				JSONObject getStreamsObj = new JSONObject();
 				getStreamsObj.put("operation","get_all_streams");
 				getStreamsObj.put("status", "success");
 				getStreamsObj.put("streams",getStreamIdsJSONArray());
-				sendResponse(exchange, 200, getStreamsObj.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, getStreamsObj.toString(), internalCall, internalResp);
 			} catch(Exception e){
 				logger.log(Level.WARNING, "", e);
 			}
 		}
-		public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-			sendResponse(exchange, 200, null, internalCall, internalResp);
+		public void put(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		}
-		public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-			put(exchange, data, internalCall, internalResp);
+		public void post(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
+			put(m_request, m_response, data, internalCall, internalResp);
 		}
-		public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-			sendResponse(exchange, 200, null, internalCall, internalResp);
+		public void delete(Request m_request, Response m_response, boolean internalCall, JSONObject internalResp){
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		}
 
 		public JSONArray getStreamIdsJSONArray(){
@@ -637,5 +642,103 @@ public class RESTServer {
             server.shutdown();
         }
     }
+
+    private static SSLContext createSSLContext() throws Exception {
+
+        String keyStoreFile = System.getProperty(KEYSTORE_PROPERTY);
+        String keyStorePassword = System.getProperty(KEYSTORE_PASSWORD_PROPERTY,EMTPY_STRING);
+        String keyStoreType = System.getProperty(KEYSTORE_TYPE_PROPERTY, KeyStore.getDefaultType());
+
+        KeyStore keyStore = loadKeyStore(keyStoreFile, keyStorePassword, null);
+        FileInputStream keyStoreFileInpuStream = null;
+        try {
+            if (keyStoreFile != null) {
+                keyStoreFileInpuStream = new FileInputStream(keyStoreFile);
+
+                keyStore = KeyStore.getInstance(keyStoreType);
+                keyStore.load(keyStoreFileInpuStream, keyStorePassword.toCharArray());
+            }
+        } finally {
+            if (keyStoreFileInpuStream != null) {
+                keyStoreFileInpuStream.close();
+            }
+        }
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, keyStorePassword.toCharArray());
+
+        SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+        return sslContext;
+    }
+
+    private static KeyStore loadKeyStore(final String keyStoreFilePath, final String keyStorePassword,
+            final String keyStoreType) throws Exception {
+        KeyStore keyStore = null;
+        File keyStoreFile = new File(keyStoreFilePath);
+
+        if (keyStoreFile.isFile()) {
+            keyStore = KeyStore.getInstance(keyStoreType != null ? keyStoreType : KeyStore.getDefaultType());
+            keyStore.load(new FileInputStream(keyStoreFile), keyStorePassword != null ? keyStorePassword
+                    .toCharArray() : EMTPY_STRING.toCharArray());
+        }
+
+        return keyStore;
+    }
+
+    protected void routeToResource(Request request, Response response){
+        try {
+            logger.info("Running async task");
+            String path = ResourceUtils.cleanPath(request.getPath().getPath());
+            logger.info("Path=" + path);
+            Query query = request.getQuery();
+            logger.info("query_string=" + query.toString().length());
+            Resource r = resourceTree.get(path);
+            if(path.contains("*")){
+                Resource root = resourceTree.get(rootPath);
+                root.handle(request, response);
+            } else if(r!=null){
+                r.handle(request, response);
+            } else {
+                Resource.sendResponse(request, response, 404, null, false, null);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            Resource.sendResponse(request, response, 404, null, false, null);
+        }
+    }
+
+    public class AsyncTask implements Runnable{
+        private Request request = null;
+        private Response response = null;
+        public AsyncTask(Request req, Response resp){
+            request = req;
+            response =resp;
+        }
+        public void run(){
+            try {
+                logger.info("Running async task");
+                String path = ResourceUtils.cleanPath(request.getPath().getPath());
+                logger.info("Path=" + path);
+                Query query = request.getQuery();
+                logger.info("query_string=" + query.toString().length());
+                Resource r = resourceTree.get(path);
+                if(path.contains("*")){
+                    Resource root = resourceTree.get(rootPath);
+                    root.handle(request, response);
+                } else if(r!=null){
+                    r.handle(request, response);
+                } else {
+                    Resource.sendResponse(request, response, 404, null, false, null);
+                }
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+                Resource.sendResponse(request, response, 404, null, false, null);
+            }
+        }
+    }
+
+
 
 }

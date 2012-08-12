@@ -181,15 +181,6 @@ public class ResourceUtils {
 					if(rType.equalsIgnoreCase(DEFAULT_RSRC_STR)){
 						resource = new Resource(myPath + rName);
 					}
-
-					else if (rType.equalsIgnoreCase(DEVICES_RSRC_STR)){
-						resource = new DevicesResource(myPath + rName);
-					} 
-
-					else if (rType.equalsIgnoreCase(DEVICE_RSRC_STR)){
-						logger.info("CREATEING DEVICE INSTANCE RESOURCE");
-						resource = new DeviceInstanceResource(myPath + rName);
-					}
 				}
 
 				if(resource != null) {

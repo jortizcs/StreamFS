@@ -68,6 +68,12 @@ export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/jdsl-2.1.1/lib/jdsl.jar"
 ############################
 export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/local/analytics"
 
+############################
+# Simple webserver
+############################
+export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/simple"
+export CLASSPATH="$CLASSPATH:$IS4_LIB_PATH/simple/simple.jar"
+
 ###########################
 # IS4 environment variables
 ###########################

@@ -17,6 +17,15 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import javax.naming.InvalidNameException;
 
+//import org.simpleframework.transport.connect.Connection;
+//import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+
+
 public class DemuxResource extends Resource {
 	private static transient final Logger logger = Logger.getLogger(DemuxResource.class.getPackage().getName());
 	private static ExecutorService executorService = null;
@@ -26,21 +35,22 @@ public class DemuxResource extends Resource {
 		executorService = Executors.newCachedThreadPool();
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		logger.info("PUT/POST Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
-					exchange.getRemoteAddress() + ":" + exchange.getRemoteAddress().getPort());
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		/*logger.info("PUT/POST Demultiplexor; " + exchange.getLocalAddress().getHostName() + ":" + exchange.getLocalAddress().getPort() + "->" + 
+					exchange.getRemoteAddress() + ":" + exchange.getRemoteAddress().getPort());*/
 		JSONArray errors =  new JSONArray();
 		JSONObject response = new JSONObject();
 
 		String typeParam = null;
 		String smapurlParam = null;
 		try {
-			typeParam = (String) exchange.getAttribute("type");
-			smapurlParam = (String) exchange.getAttribute("smapurl");
+            Query query = m_request.getQuery();
+			typeParam = (String) query.get("type");
+			smapurlParam = (String) query.get("smapurl");
 
 			if(typeParam != null && smapurlParam != null && typeParam.equalsIgnoreCase("smap")){
 				//submit post data task here and reply
@@ -69,11 +79,11 @@ public class DemuxResource extends Resource {
 			} else {
 				response.put("status", "success");
 			}
-			super.sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			super.sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			//super.sendResponse(exchange, 200,"", internalCall, internalResp);
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
-		} finally {
+		} /*finally {
 			try {
 				if(exchange !=null){
 					exchange.getRequestBody().close();
@@ -84,7 +94,7 @@ public class DemuxResource extends Resource {
 			} catch(Exception e){
 				logger.log(Level.WARNING, "Trouble closing exchange in Resource", e);
 			}
-		}
+		}*/
 
 	}
 

@@ -18,10 +18,16 @@ import java.lang.StringBuffer;
 import java.util.Vector;
 import java.util.StringTokenizer;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
 import java.util.*;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+
 
 public class ProcessManagerResource extends Resource {
 	
@@ -158,10 +164,9 @@ public class ProcessManagerResource extends Resource {
         return true;
     }
 	
-	//public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){}
 	
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
     private static void reconnect(String subid){
@@ -194,7 +199,7 @@ public class ProcessManagerResource extends Resource {
         }
     }
 	
-	public void post(HttpExchange exchange, String data, 
+	public void post(Request m_request, Response m_response, String path, String data, 
             boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
@@ -204,19 +209,19 @@ public class ProcessManagerResource extends Resource {
 				String op = dataObj.optString("operation");
 				
 				if(op.equalsIgnoreCase("save_proc")){
-                    handleSaveProc(data, exchange, internalCall, internalResp);
+                    handleSaveProc(data, m_request, m_response, internalCall, internalResp);
 				} 
 
                 else if(op.equalsIgnoreCase("add_server")){ //&& Security.allowed(POST, "add_server", key)
                     //adds server to the config file
                     //connects to it
-                    sendResponse(exchange, 403, null, internalCall, internalResp);
+                    sendResponse(m_request, m_response, 403, null, internalCall, internalResp);
                 } 
 
                 else if(op.equalsIgnoreCase("remove_server")){//&& Security.allowed(POST, "add_server", key)
                     //removes server to the config file
                     //connects to it
-                    sendResponse(exchange, 403, null, internalCall, internalResp);
+                    sendResponse(m_request, m_response, 403, null, internalCall, internalResp);
                 }
 
                 else if(op.equalsIgnoreCase("reinit")){
@@ -230,14 +235,14 @@ public class ProcessManagerResource extends Resource {
                         }
                     }
                     setup();
-                    sendResponse(exchange, 200, null, internalCall, internalResp);
+                    sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
                 }
 				
 				else {
 					errors.add("Unknown operation");
 					resp.put("status", "fail");
 					resp.put("errors",errors);
-					sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				}
 			}
 		} catch(Exception e){
@@ -248,16 +253,16 @@ public class ProcessManagerResource extends Resource {
 			}
 			resp.put("status","fail");
 			resp.put("errors",errors);
-			sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 			
 		}
 	}
 	
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 403, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 403, null, internalCall, internalResp);
 	}
 
-    private void handleSaveProc(String dataObjStr, HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+    private void handleSaveProc(String dataObjStr, Request m_request, Response m_response, boolean internalCall, JSONObject internalResp){
         JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
         try {
@@ -267,7 +272,7 @@ public class ProcessManagerResource extends Resource {
                 errors.add("There's already a process named " + name + "or it's an empty string; try another name");
                 resp.put("status","fail");
                 resp.put("errors",errors);
-                sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
                 return;
             }
             
@@ -276,7 +281,7 @@ public class ProcessManagerResource extends Resource {
                 errors.add("script object must have 'script' object attribute defined");
                 resp.put("status", "fail");
                 resp.put("errors",errors);
-                sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
                 return;
             }
         
@@ -284,7 +289,7 @@ public class ProcessManagerResource extends Resource {
                 errors.add("script object must have winsize and func attributes");
                 resp.put("status", "fail");
                 resp.put("errors",errors);
-                sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
                 return;
             }
         
@@ -295,10 +300,10 @@ public class ProcessManagerResource extends Resource {
             
             ProcessResource newProc = new ProcessResource(PROC_ROOT + name + "/", dataObjStr);
             RESTServer.addResource(newProc);
-            sendResponse(exchange, 201, null, internalCall, internalResp);
+            sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
         } catch(Exception e){
             logger.log(Level.WARNING, "", e);
-            sendResponse(exchange, 500, null, internalCall, internalResp);
+            sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
         }
     }
 

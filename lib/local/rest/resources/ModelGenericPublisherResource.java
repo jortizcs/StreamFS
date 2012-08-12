@@ -37,9 +37,13 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 /**
  *  Resource object for a device.
@@ -62,13 +66,12 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 		TYPE = ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC;
 	}
 
-	public synchronized void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public synchronized void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+        Query query = m_request.getQuery();
 		if(materialize){
-			if(exchange.getAttribute("query") != null &&
-				((String) exchange.getAttribute("query")).equalsIgnoreCase("true")){
-				if(!internalCall)
-					exchange.setAttribute("query", "false");
-				query(exchange, null, internalCall, internalResp);
+			if(query.get("query") != null &&
+				((String) query.get("query")).equalsIgnoreCase("true")){
+				query_(m_request, m_response, null, internalCall, internalResp);
 				return;
 			}
 
@@ -107,27 +110,27 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 					properties.put("head", lastValuesReceived.toString());
 				}
 				response.put("properties", properties);
-				sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 				return;
 			} catch (Exception e){
 				logger.log(Level.WARNING, "", e);
 			}
-			sendResponse(exchange, 200, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		} else {
 			JSONObject resp = new JSONObject();
 			resp.put("status", "success");
 			resp.put("type", ResourceUtils.translateType(TYPE));
 			resp.put("pubid", publisherId.toString());
 			resp.put("active_view", false);
-			sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 		}
 	}
 
-	public synchronized void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public synchronized void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public synchronized void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
@@ -152,7 +155,7 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 			resp.put("status", "fail");
 			resp.put("errors",errors);
 		}
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
 	
 	public void saveData(JSONObject data){
@@ -170,8 +173,8 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 		}
 	}
 
-	public void delete(HttpExchange exchange,boolean internalCall, JSONObject internalResp){
-		super.delete(exchange, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		super.delete(m_request, m_response, path, internalCall, internalResp);
 		
 		//kill the associated thread (remove associated pipe)
 		SubMngr submngr = SubMngr.getSubMngrInstance();

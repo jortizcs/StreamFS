@@ -17,7 +17,10 @@ import java.util.logging.Level;
 
 import javax.naming.InvalidNameException;
 import java.io.*; 
-import com.sun.net.httpserver.*;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class ProcessPublisherResource extends GenericPublisherResource {
 	
@@ -40,30 +43,31 @@ public class ProcessPublisherResource extends GenericPublisherResource {
         associatedSubId = subid;
     }
 
-    public synchronized void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-        boolean isQuery = (exchangeJSON.containsKey("query") && 
-                            exchangeJSON.optString("query").equalsIgnoreCase("true"))?true:false;
+    public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+        Query query = m_request.getQuery();
+        boolean isQuery = (query.containsKey("query") && 
+                            ((String)query.get("query")).equalsIgnoreCase("true"))?true:false;
         if(materialize || isQuery){
-            super.post(exchange, data, internalCall, internalResp);
+            super.post(m_request, m_response, path, data, internalCall, internalResp);
         } else {
             try {
                 JSONObject dataObj = (JSONObject)JSONSerializer.toJSON(data);
                 dataObj.put("PubId", publisherId.toString());
                 SubMngr submngr  = SubMngr.getSubMngrInstance();
                 submngr.dataReceived(dataObj);
-                sendResponse(exchange, 200, null, internalCall, internalResp);
+                sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
             } catch(Exception e){
                 JSONObject resp = new JSONObject();
                 if(e instanceof JSONException)
                     resp.put("error", "Invalid JSON");
                 logger.log(Level.WARNING, "", e);
-                sendResponse(exchange, 500, resp.toString(), 
+                sendResponse(m_request, m_response, 500, resp.toString(), 
                                     internalCall, internalResp);
             }
         }
     }
 
-    public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+    public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
         //delete the subscription associated with this publisher
         //i.e the subscription where this publisher is the destination
         if(associatedSubId != null && database.isSubscription(associatedSubId) != null){
@@ -74,7 +78,7 @@ public class ProcessPublisherResource extends GenericPublisherResource {
                     JSONObject inresp = new JSONObject();
                     SubscriptionResource sr  = (SubscriptionResource)r;
                     if(sr!=null)
-                        sr.delete(exchange, true, inresp);
+                        sr.delete(m_request, m_response, path, true, inresp);
                 }
             }
         }
@@ -85,6 +89,6 @@ public class ProcessPublisherResource extends GenericPublisherResource {
   
         //this not noly removes this resource, but also any subscriptions to this resource
         // (i.e. any subscriptions where this publisher is the source)
-        super.delete(exchange, internalCall, internalResp);
+        super.delete(m_request, m_response, path, internalCall, internalResp);
     }
 } 

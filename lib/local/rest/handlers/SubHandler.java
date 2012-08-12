@@ -20,6 +20,13 @@ import local.rest.*;
 import local.rest.resources.*;
 import javax.naming.InvalidNameException;
 
+//import org.simpleframework.transport.connect.Connection;
+//import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
 public class SubHandler extends Resource {
 	private Vector<String> errorVec = new Vector<String>();
 	private Registrar registrar = Registrar.registrarInstance();
@@ -31,7 +38,7 @@ public class SubHandler extends Resource {
 		super(path);
 	}
 
-	public void put(HttpExchange exchange, String data,boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data,boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
@@ -51,7 +58,7 @@ public class SubHandler extends Resource {
 					errors.add("Invalid \"target\" value format: absolute path or HTTP URL ONLY");
 					resp.put("status", "fail");
 					resp.put("errors",errors);
-					sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				}
 			}
 
@@ -69,7 +76,7 @@ public class SubHandler extends Resource {
 				errors.add("Must include one of [pubid | s_uri | m_uri | path] string");
 				resp.put("status", "fail");
 				resp.put("errors", errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				return;
 			} else if(pidStr.equals("") && (!sNodePathStr.equals("") || !mNodePathStr.equals(""))){
 				JSONArray paths = new JSONArray();
@@ -85,7 +92,7 @@ public class SubHandler extends Resource {
 					errors.add("Invalid path " + (String)paths.get(0));
 					resp.put("status", "fail");
 					resp.put("errors",errors);
-					sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					return;
 				}
 			}
@@ -105,7 +112,7 @@ public class SubHandler extends Resource {
 				subResp.put("status", "success");
 				subResp.put("subid", sid);
 
-				sendResponse(exchange, 200, subResp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, subResp.toString(), internalCall, internalResp);
 			} else if(initSubStat.containsKey("subid") && initSubStat.containsKey("add_to_existing")){
                 String sid = initSubStat.getString("subid");
 				logger.info("Successfully added new subscriber to existing subscription:: [" + targetStr + ", " + sid + "]");
@@ -114,14 +121,14 @@ public class SubHandler extends Resource {
 				subResp.put("status", "success");
 				subResp.put("subid", sid);
 
-				sendResponse(exchange, 200, subResp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, subResp.toString(), internalCall, internalResp);
             } else{
 				//subscription entry initialization failed, forward errors to user
 				errors.addAll(initSubStat.getJSONArray("errors"));
 				resp.put("status", "fail");
 				resp.put("operations", "subscribe");
 				resp.put("errors", errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 			}
 			
 		}catch (Exception e){
@@ -142,15 +149,15 @@ public class SubHandler extends Resource {
 			errorArray.addAll(errorVec);
 			subResp.put("error", errorArray);
 			
-			sendResponse(exchange, 200, subResp.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, subResp.toString(), internalCall, internalResp);
 			
 			//clear the error vector
 			errorVec.clear();
 		}
 	}
 	
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		put(exchange, data, internalCall, internalResp);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		put(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
 }

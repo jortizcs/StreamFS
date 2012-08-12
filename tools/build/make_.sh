@@ -30,7 +30,6 @@ jar ufv ../is4app.jar local/rest/handlers/RootHandler.class
 jar ufv ../is4app.jar local/rest/handlers/StreamHandler.class
 jar ufv ../is4app.jar local/rest/handlers/PubHandler.class
 jar ufv ../is4app.jar local/rest/handlers/SubHandler.class
-jar ufv ../is4app.jar local/rest/handlers/MetadataHandler.class
 jar ufv ../is4app.jar local/rest/handlers/SubControlHandler.class
 jar ufv ../is4app.jar local/rest/handlers/SmapSourceHandler.class
 jar ufv ../is4app.jar local/rest/RESTServer.class
@@ -41,7 +40,6 @@ jar ufv ../is4app.jar local/metadata/BindStateMngr.class
 jar ufv ../is4app.jar local/metadata/Binding.class
 jar ufv ../is4app.jar local/metadata/context/ContextGraphEdge.class
 jar ufv ../is4app.jar local/metadata/context/ContextGraphNode.class
-jar ufv ../is4app.jar local/metadata/context/ContextMngr.class
 jar ufv ../is4app.jar local/metadata/context/exceptions/InvalidContextEdgeFormatException.class
 jar ufv ../is4app.jar local/metadata/context/exceptions/InvalidContextNodeFormatException.class
 jar ufv ../is4app.jar local/metadata/context/MetadataGraph.class
@@ -49,12 +47,8 @@ jar ufv ../is4app.jar local/metadata/context/MetadataGraph\$PathFinder.class
 jar ufv ../is4app.jar local/rest/smap/SmapConnector.class
 jar ufv ../is4app.jar local/rest/interfaces/Is4Resource.class
 jar ufv ../is4app.jar local/rest/resources/Resource.class
-jar ufv ../is4app.jar local/rest/resources/LoadTreeResource.class
-jar ufv ../is4app.jar local/rest/resources/ContextResource.class
-jar ufv ../is4app.jar local/rest/resources/DevicesResource.class
-jar ufv ../is4app.jar local/rest/resources/DeviceInstanceResource.class
-jar ufv ../is4app.jar local/rest/resources/PublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/util/ResourceUtils.class
+jar ufv ../is4app.jar local/rest/resources/PublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/GenericPublisherResource.class
 jar ufv ../is4app.jar local/rest/resources/DemuxResource.class
 jar ufv ../is4app.jar local/rest/resources/DemuxResource\$PostBulkDataTask.class

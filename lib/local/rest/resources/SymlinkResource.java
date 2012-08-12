@@ -37,9 +37,13 @@ import java.util.logging.Level;
 import java.lang.StringBuffer;
 import java.net.*;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class SymlinkResource extends Resource{
 	protected static transient Logger logger = Logger.getLogger(SymlinkResource.class.getPackage().getName());
@@ -85,9 +89,10 @@ public class SymlinkResource extends Resource{
 		return null;
 	}
 
-    public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-        if(exchangeJSON.containsKey("incident_paths")){
-            super.get(exchange, internalCall, internalResp);
+    public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+        Query query = m_request.getQuery();
+        if(query.containsKey("incident_paths")){
+            super.get(m_request, m_response, path, internalCall, internalResp);
             return;
         }
 
@@ -95,8 +100,8 @@ public class SymlinkResource extends Resource{
         links_to = cleanPath(links_to);
         logger.info("links_to::" + links_to);
         if(links_to.startsWith("/")){
-            logger.info("EXCHANGE:" + exchangeJSON.toString());
-            String requestPath = exchangeJSON.getString("requestUri");
+            logger.info("EXCHANGE:" + query.toString());
+            String requestPath = (String)query.get("requestUri");
             String tail = null;
             if(requestPath.contains("?")){
                 tail = requestPath.substring(requestPath.indexOf("?"), requestPath.length());
@@ -113,29 +118,29 @@ public class SymlinkResource extends Resource{
             else 
                 r = RESTServer.getResource(links_to);
             if(r!=null){
-                r.exchangeJSON.accumulateAll(this.exchangeJSON);
+                //r.exchangeJSON.accumulateAll(this.exchangeJSON);
                 if(tail != null){
                     logger.fine("new request uri=" + translation + tail);
-                    r.exchangeJSON.put("requestUri", translation + tail);
+                    //r.exchangeJSON.put("requestUri", translation + tail);
                 } else {
                     logger.fine("new request uri=" + translation);
-                    r.exchangeJSON.put("requestUri", translation);
+                    //r.exchangeJSON.put("requestUri", translation);
                 }
-                this.exchangeJSON.clear();
-                r.get(exchange, internalCall, internalResp);
+                //this.exchangeJSON.clear();
+                r.get(m_request, m_response, path, internalCall, internalResp);
                 return;
             }
         }
 
-        sendResponse(exchange, 404, null, internalCall, internalResp);
+        sendResponse(m_request, m_response, 404, null, internalCall, internalResp);
     }
 
-	public  void get2(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public  void get2(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		//String tailResources = null;
 		//this symlink points directly to a hardlink
 		if(uri_link != null && !database.isSymlink(uri_link)){
 			logger.info(uri_link + " is not a symlink");
-			handleUriSymlinkRequest(exchange, internalCall, internalResp, uri_link);		
+			handleUriSymlinkRequest(m_request, m_response, path, internalCall, internalResp, uri_link);		
 		} 
 
 		//this symlink points to another symlink
@@ -146,20 +151,20 @@ public class SymlinkResource extends Resource{
 			}
 
 			if(linksToStr !=null && linksToStr.startsWith("/"))
-				handleUriSymlinkRequest(exchange, internalCall, internalResp, linksToStr);
+				handleUriSymlinkRequest(m_request, m_response, path, internalCall, internalResp, linksToStr);
 			//forward to the sfs instances that this symlink points to
 			else
-				handleUrlSymlinkRequest(exchange, internalCall, internalResp, linksToStr);
+				handleUrlSymlinkRequest(m_request, m_response, path, internalCall, internalResp, linksToStr);
 		}
 		
 		//forward to the sfs instances that this symlink points to
 		else if (url_link != null){
-			handleUrlSymlinkRequest(exchange, internalCall, internalResp, url_link.toString());
+			handleUrlSymlinkRequest(m_request, m_response, path, internalCall, internalResp, url_link.toString());
 		}
 	}
 
-	private void handleUriSymlinkRequest(HttpExchange exchange, boolean internalCall, JSONObject internalResp, String linksTo){
-		String tailResources = getTailResourceUri(exchange, true);
+	private void handleUriSymlinkRequest(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp, String linksTo){
+		String tailResources = getTailResourceUri(m_request, m_response, path, true);
 		logger.info("tail_resources: " + tailResources);
 		String thisUri = null;
 		if( (linksTo.endsWith("/") && !tailResources.startsWith("/")) || 
@@ -173,34 +178,34 @@ public class SymlinkResource extends Resource{
 			thisUri = linksTo + "/" +  tailResources;
 		}
 		//the request is translated
-		exchangeJSON.put("requestUri", thisUri);
+		//exchangeJSON.put("requestUri", thisUri);
 		logger.info("Setting internalExchange.requestUri=" + thisUri);
 
 		if(thisUri.contains("*")){
-			exchange.setAttribute("request_uri", thisUri);
-			handleRecursiveFSQuery(exchange, internalCall, internalResp);
+			//exchange.setAttribute("request_uri", thisUri);
+			handleRecursiveFSQuery(m_request, m_response, internalCall, internalResp);
 		} else {
 			Resource resource = RESTServer.getResource(thisUri);
 			if(resource !=null){
-				resource.exchangeJSON.putAll(this.exchangeJSON);
-				resource.get(exchange, internalCall, internalResp);
+				//resource.exchangeJSON.putAll(this.exchangeJSON);
+				resource.get(m_request, m_response, path, internalCall, internalResp);
 			} else {
 				logger.warning("could not get resource: " + thisUri);
-				sendResponse(exchange, 404, null, internalCall, internalResp);
+				sendResponse(m_request, m_response, 404, null, internalCall, internalResp);
 			}
 		}
 	}
 
-	private void handleUrlSymlinkRequest(HttpExchange exchange, boolean internalCall, JSONObject internalResp, String linksToUrl){
+	private void handleUrlSymlinkRequest(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp, String linksToUrl){
 		try {
-			String tailResources = getTailResourceUri(exchange, true);
-			tailResources = getTailResourceUri(exchange, false);
+			String tailResources = getTailResourceUri(m_request, m_response, path, true);
+			tailResources = getTailResourceUri(m_request, m_response, path, false);
 			String thisUrl = linksToUrl + tailResources;
 			logger.info("GET " + thisUrl);
 			StringBuffer serverRespBuffer = new StringBuffer();
 			HttpURLConnection is4Conn = is4ServerGet(thisUrl, serverRespBuffer);
 			if(is4Conn != null){
-				String requestUri = exchangeJSON.getString("requestUri");
+				String requestUri = path;
 				if(requestUri.contains("?"))
 					requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -208,38 +213,38 @@ public class SymlinkResource extends Resource{
 					JSONObject fixedServerResp = new JSONObject();
 					String localUri = URI + tailResources;
 					fixedServerResp.put(localUri, serverRespBuffer.toString());
-					sendResponse(exchange, is4Conn.getResponseCode(), fixedServerResp.toString(), 
+					sendResponse(m_request, m_response, is4Conn.getResponseCode(), fixedServerResp.toString(), 
 							internalCall, internalResp);
 				} else {
-					sendResponse(exchange, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
+					sendResponse(m_request, m_response, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
 							internalCall, internalResp);
 				}
 				is4Conn.disconnect();
 			} else {
-				sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+				sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 			}
 		}catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 		}
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		try {
 			String tailResources = null;
 			if(uri_link != null){
-				tailResources = getTailResourceUri(exchange, true);
+				tailResources = getTailResourceUri(m_request, m_response, path, true);
 				String thisUri = uri_link + tailResources;
 				Resource resource = RESTServer.getResource(thisUri);
-				resource.exchangeJSON.putAll(this.exchangeJSON);
-				resource.put(exchange, data, internalCall, internalResp);
+				//resource.exchangeJSON.putAll(this.exchangeJSON);
+				resource.put(m_request, m_response, path, data, internalCall, internalResp);
 			} else if (url_link != null){
-				tailResources = getTailResourceUri(exchange, false);
+				tailResources = getTailResourceUri(m_request, m_response, path, false);
 				String thisUrl = url_link.toString() + tailResources;
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerPut(thisUrl, data, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchangeJSON.getString("requestUri");
+					String requestUri = path;//exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -247,40 +252,40 @@ public class SymlinkResource extends Resource{
 						JSONObject fixedServerResp = new JSONObject();
 						String localUri = URI + tailResources;
 						fixedServerResp.put(localUri, serverRespBuffer.toString());
-						sendResponse(exchange, is4Conn.getResponseCode(), fixedServerResp.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), fixedServerResp.toString(), 
 								internalCall, internalResp);
 					} else {
-						sendResponse(exchange, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
 								internalCall, internalResp);
 					}
 					is4Conn.disconnect();
 				} else {
-					sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 				}
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 		}
 
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		try {
 			String tailResources = null;
 			if(uri_link != null){
-				tailResources = getTailResourceUri(exchange, true);
+				tailResources = getTailResourceUri(m_request, m_response, path, true);
 				String thisUri = uri_link + tailResources;
 				Resource resource = RESTServer.getResource(thisUri);
-				resource.exchangeJSON.putAll(this.exchangeJSON);
-				resource.post(exchange, data, internalCall, internalResp);
+				//resource.exchangeJSON.putAll(this.exchangeJSON);
+				resource.post(m_request, m_response, path, data, internalCall, internalResp);
 			} else if (url_link != null){
-				tailResources = getTailResourceUri(exchange, false);
+				tailResources = getTailResourceUri(m_request, m_response, path, false);
 				String thisUrl = url_link.toString() + tailResources;
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerPost(thisUrl, data, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchangeJSON.getString("requestUri");
+					String requestUri = path;//exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -288,20 +293,20 @@ public class SymlinkResource extends Resource{
 						JSONObject fixedServerResp = new JSONObject();
 						String localUri = URI + tailResources;
 						fixedServerResp.put(localUri, serverRespBuffer.toString());
-						sendResponse(exchange, is4Conn.getResponseCode(), fixedServerResp.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), fixedServerResp.toString(), 
 								internalCall, internalResp);
 					} else {
-						sendResponse(exchange, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
 								internalCall, internalResp);
 					}
 					is4Conn.disconnect();
 				} else {
-					sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 				}
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 		}
 
 	}
@@ -317,12 +322,12 @@ public class SymlinkResource extends Resource{
 	}
 
 
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		try {
 			logger.info("Symlink delete:" + URI);
 			String tailResources = null;
 			if(uri_link != null){
-				tailResources = getTailResourceUri(exchange, true);
+				tailResources = getTailResourceUri(m_request, m_response, path, true);
 				if(tailResources.equals("")){
 					database.removeSymlinkEntry(URI);
 					database.removeRestResource(URI);
@@ -331,7 +336,7 @@ public class SymlinkResource extends Resource{
 					//delete from internal presentation
 					this.metadataGraph.removeNode(this.URI);
 					
-					sendResponse(exchange, 202, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 202, null, internalCall, internalResp);
 					return;
 				}
 
@@ -349,10 +354,10 @@ public class SymlinkResource extends Resource{
 					String thisUri = uri_link + tailResources;
 					Resource resource = RESTServer.getResource(thisUri);
 					if(resource != null){
-						resource.exchangeJSON.putAll(this.exchangeJSON);
-						resource.delete(exchange, internalCall, internalResp);
+						//resource.exchangeJSON.putAll(this.exchangeJSON);
+						resource.delete(m_request, m_response, path, internalCall, internalResp);
 					}else{
-						sendResponse(exchange, 404, null, internalCall, internalResp);
+						sendResponse(m_request, m_response, 404, null, internalCall, internalResp);
 						return;
 					}
 				} 
@@ -362,7 +367,7 @@ public class SymlinkResource extends Resource{
 					StringBuffer serverRespBuffer = new StringBuffer();
 					HttpURLConnection is4Conn = is4ServerDelete(thisUrl, serverRespBuffer);
 					if(is4Conn != null){
-						String requestUri = exchangeJSON.getString("requestUri");
+						String requestUri = path;//exchangeJSON.getString("requestUri");
 						if(requestUri.contains("?"))
 							requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -370,19 +375,19 @@ public class SymlinkResource extends Resource{
 							JSONObject fixedServerResp = new JSONObject();
 							String localUri = URI + tailResources;
 							fixedServerResp.put(localUri, serverRespBuffer.toString());
-							sendResponse(exchange, is4Conn.getResponseCode(), fixedServerResp.toString(), 
+							sendResponse(m_request, m_response, is4Conn.getResponseCode(), fixedServerResp.toString(), 
 									internalCall, internalResp);
 						} else {
-							sendResponse(exchange, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
+							sendResponse(m_request, m_response, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
 									internalCall, internalResp);
 						}
 						is4Conn.disconnect();
 					} else {
-						sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+						sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 					}
 				}
 			} else if (url_link != null){
-				tailResources = getTailResourceUri(exchange, false);
+				tailResources = getTailResourceUri(m_request, m_response, path, false);
 				if(tailResources.equals("")){
 					database.removeSymlinkEntry(URI);
 					database.removeRestResource(URI);
@@ -391,14 +396,14 @@ public class SymlinkResource extends Resource{
 					//delete from internal presentation
 					this.metadataGraph.removeNode(this.URI);
 
-					sendResponse(exchange, 202, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 202, null, internalCall, internalResp);
 					return;
 				}
 				String thisUrl = url_link.toString() + tailResources;
 				StringBuffer serverRespBuffer = new StringBuffer();
 				HttpURLConnection is4Conn = is4ServerDelete(thisUrl, serverRespBuffer);
 				if(is4Conn != null){
-					String requestUri = exchangeJSON.getString("requestUri");
+					String requestUri = path;//exchangeJSON.getString("requestUri");
 					if(requestUri.contains("?"))
 						requestUri = requestUri.substring(0, requestUri.indexOf("?"));
 
@@ -406,20 +411,20 @@ public class SymlinkResource extends Resource{
 						JSONObject fixedServerResp = new JSONObject();
 						String localUri = URI + tailResources;
 						fixedServerResp.put(localUri, serverRespBuffer.toString());
-						sendResponse(exchange, is4Conn.getResponseCode(), fixedServerResp.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), fixedServerResp.toString(), 
 								internalCall, internalResp);
 					} else {
-						sendResponse(exchange, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
+						sendResponse(m_request, m_response, is4Conn.getResponseCode(), serverRespBuffer.toString(), 
 								internalCall, internalResp);
 					}
 					is4Conn.disconnect();
 				} else {
-					sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 				}
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			sendResponse(exchange, 504 /* Gateway timeout */, null, internalCall, internalResp);
+			sendResponse(m_request, m_response, 504 /* Gateway timeout */, null, internalCall, internalResp);
 		}
 
 	}
@@ -428,15 +433,15 @@ public class SymlinkResource extends Resource{
 	 * Get the piece of the string that is ahead of this URI.  Remove parameters if symlink is to local resource, 
 	 * leave the params if this symlink points to another is4 server (url_link is not null).
 	 */
-	private String getTailResourceUri(HttpExchange exchange, boolean removeParams){
-		String requestUri=null;
-		if(exchangeJSON.containsKey("requestUri")){
+	private String getTailResourceUri(Request m_request, Response m_response, String path, boolean removeParams){
+		String requestUri=ResourceUtils.cleanPath(path);
+		/*if(exchangeJSON.containsKey("requestUri")){
 			requestUri=exchangeJSON.getString("requestUri");
 			logger.info("Got internalExchange.requestUri=" + requestUri);
 			exchangeJSON.discard("requestUri");
 		}else{
 			requestUri = exchangeJSON.getString("requestUri");
-		}
+		}*/
 		String myUri = URI;
 
 		//change the request uri if it's a recursive structural query

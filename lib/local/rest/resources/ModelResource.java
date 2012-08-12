@@ -41,12 +41,16 @@ import java.util.logging.Level;
 import java.lang.StringBuffer;
 import java.lang.reflect.Array;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
 import org.mozilla.javascript.*;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class ModelResource extends Resource implements Runnable {
 	
@@ -253,7 +257,7 @@ public class ModelResource extends Resource implements Runnable {
 		//return null;
 	}
 	
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
@@ -263,21 +267,21 @@ public class ModelResource extends Resource implements Runnable {
 			response.put("children", database.rrGetChildren(URI));
 			response.put("script", database.rrGetProperties(URI));
 			//response.put("script", scriptJSON);
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 		} catch(Exception e){
 			String msg = e.getMessage();
 			errors.add(msg);
 			response.put("status", "fail");
 			response.put("errors", errors);
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 		}
 	}
 	
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 	
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		/*JSONObject response = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
@@ -285,13 +289,13 @@ public class ModelResource extends Resource implements Runnable {
 		} catch(Exception e){
 			
 		}*/
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 	
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		//delete all incoming/outgoing pipes
 		//kill all thread instances
-		super.delete(exchange, internalCall, internalResp);
+		super.delete(m_request, m_response, path, internalCall, internalResp);
 	}
 	
 	public void run(){

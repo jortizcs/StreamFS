@@ -7,7 +7,6 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.Semaphore;
 
-import com.sun.net.httpserver.*;
 import local.db.*;
 import local.rest.*;
 import local.rest.resources.*;
@@ -21,6 +20,15 @@ import java.nio.channels.Pipe.SourceChannel;
 
 import net.sf.json.*;
 import is4.exceptions.*;
+
+import org.simpleframework.transport.connect.Connection;
+import org.simpleframework.transport.connect.SocketConnection;
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
+
 
 /**
  * Subscription manager.  Maintains subscriber and flow information.
@@ -44,6 +52,9 @@ public class SubMngr {
 	//subscription source may be a wildcard
 	private static ConcurrentHashMap<UUID, Pipe> activePipesByPubId = new ConcurrentHashMap<UUID, Pipe>();
 	private static ConcurrentHashMap<UUID, Semaphore> readSemaphoresByPubId = new ConcurrentHashMap<UUID, Semaphore>();
+
+    public static void main(String[] args){
+    }
 	
 	private SubMngr(){
 	}
@@ -312,7 +323,7 @@ public class SubMngr {
                                 database.insertNewSubEntry(UUID.fromString(newId), null, null, null, path, pubid, null);
                                 if(!ProcessManagerResource.updateSubEntry(newId)){
                                     Resource resource_ = RESTServer.getResource(path);
-                                    resource_.delete(null, true, new JSONObject());
+                                    resource_.delete(null, null, path, true, new JSONObject());
                                     database.removeSubEntry(UUID.fromString(newId));
 
                                     response.clear();
@@ -445,7 +456,7 @@ public class SubMngr {
 	 *  Publisher removed.  Called when a publisher is deleted.  Remove all subscriptions
 	 *  associated with the removed pubid.
 	 */
-	public void pubRemoved(HttpExchange exchange, boolean internalCall, JSONObject internalResp, String pubId){
+	public void pubRemoved(Request m_request, Response m_response, boolean internalCall, JSONObject internalResp, String pubId){
 		try {
 			UUID pid = UUID.fromString(pubId);
 			
@@ -457,7 +468,7 @@ public class SubMngr {
 				Resource r = RESTServer.getResource(subUri);
 				if(r!=null){
                     logger.info("Deleting " + subUri);
-					r.delete(exchange, internalCall, internalResp);
+					r.delete(m_request, m_response, subUri, internalCall, internalResp);
                 }
 			}
 			
@@ -838,7 +849,7 @@ public class SubMngr {
                 UUID mpubid = database.isRRPublisher2(destStr);
                 if(mpubid!=null){
                     Resource r = (ProcessPublisherResource) RESTServer.getResource(destStr);
-                    r.delete(null, true, new JSONObject());
+                    r.delete(null, null, destStr, true, new JSONObject());
 				}
             }
 		} catch (Exception e){

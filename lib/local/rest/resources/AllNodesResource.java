@@ -37,9 +37,14 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
+
 
 public class AllNodesResource extends Resource{
 
@@ -118,20 +123,20 @@ public class AllNodesResource extends Resource{
 		return resp;
 	}
 
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 200, getResources().toString(), internalCall, internalResp);
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 200, getResources().toString(), internalCall, internalResp);
 	}
 
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 504, null, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 504, null, internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 504, null, internalCall, internalResp);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 504, null, internalCall, internalResp);
 	}
 
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 504, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 504, null, internalCall, internalResp);
 	}
 }

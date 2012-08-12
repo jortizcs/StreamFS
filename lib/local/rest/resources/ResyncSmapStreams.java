@@ -38,9 +38,13 @@ import java.util.logging.Level;
 import java.lang.StringBuffer;
 import java.net.URL;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 /**
  *  Checks each smap stream (publisher) to see if the report is still registered in the smap server.
@@ -58,12 +62,13 @@ public class ResyncSmapStreams extends Resource{
 		super(path);
 	}
 	
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
 		JSONArray errors = new JSONArray();
-		String resyncAttrStr = (String) exchange.getAttribute("resync");
+        Query query = m_request.getQuery();
+		String resyncAttrStr = (String) query.get("resync");
 		if(resyncAttrStr != null && resyncAttrStr.equalsIgnoreCase("true")){
-			exchange.setAttribute("resync", "");
+			//exchange.setAttribute("resync", "");
 			//perform the resync
 			JSONArray smapReportIds = database.getUniqueSmapReportIds();
 			logger.info("Count(SmapReports)="+ smapReportIds.size());
@@ -82,25 +87,25 @@ public class ResyncSmapStreams extends Resource{
 				}
 			}
 			response.put("status", "success");
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			
 		} else {
 			//return resync statistics
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 		}
 		timestamp = (new Date()).getTime()/1000;
 	}
 	
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 	
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 	
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 	
 	private void handleBulkReinstall(String thisReportId){

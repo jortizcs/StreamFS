@@ -37,9 +37,13 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*; 
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class ModelManagerResource extends Resource {
 	
@@ -54,11 +58,11 @@ public class ModelManagerResource extends Resource {
 	
 	//public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){}
 	
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 	
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{
@@ -72,7 +76,7 @@ public class ModelManagerResource extends Resource {
 						errors.add("There's already a model named " + name + "; try another name");
 						resp.put("status","fail");
 						resp.put("errors",errors);
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 						return;
 					}
 					
@@ -82,7 +86,7 @@ public class ModelManagerResource extends Resource {
 						errors.add("script object must have winsize and func attributes");
 						resp.put("status", "fail");
 						resp.put("errors",errors);
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 						return;
 					}
 				
@@ -96,14 +100,14 @@ public class ModelManagerResource extends Resource {
 				
 					ModelResource newModelResource = new ModelResource(MODELS_ROOT + name + "/", cleanScript, materialize);
 					RESTServer.addResource(newModelResource);
-					sendResponse(exchange, 201, null, internalCall, internalResp);
+					sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
 				}
 				
 				else {
 					errors.add("Unknown operation");
 					resp.put("status", "fail");
 					resp.put("errors",errors);
-					sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+					sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				}
 			}
 		} catch(Exception e){
@@ -114,12 +118,12 @@ public class ModelManagerResource extends Resource {
 			}
 			resp.put("status","fail");
 			resp.put("errors",errors);
-			sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 			
 		}
 	}
 	
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 }

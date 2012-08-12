@@ -29,7 +29,6 @@ import local.db.*;
 import local.rest.*;
 import local.rest.smap.*;
 
-import com.sun.net.httpserver.*;
 import net.sf.json.*;
 import java.net.*;
 import java.util.*;
@@ -37,6 +36,11 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import javax.naming.InvalidNameException;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 public class InfoBusResource extends GenericPublisherResource {
 	private static transient final Logger logger = Logger.getLogger(InfoBusResource.class.getPackage().getName());
@@ -73,23 +77,23 @@ public class InfoBusResource extends GenericPublisherResource {
 		return ibusRsrc;
 	}
 
-	public void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
 		response.put("status", "success");
 		response.put("stream_type_cnt", database.publisherCount());
-		sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 	}
 
-	public void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 
-	public void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		put(exchange, data, internalCall, internalResp);
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		put(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public void delete(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		sendResponse(exchange, 400, null, internalCall, internalResp);
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+		sendResponse(m_request, m_response, 400, null, internalCall, internalResp);
 	}
 
 }

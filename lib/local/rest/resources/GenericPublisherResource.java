@@ -38,10 +38,14 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
 
-import com.sun.net.httpserver.*;
 import javax.naming.InvalidNameException;
 import java.io.*;
 import java.net.*;
+
+import org.simpleframework.http.core.Container;
+import org.simpleframework.http.Response;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Query;
 
 /**
  *  Resource object for a device.
@@ -74,18 +78,17 @@ public class GenericPublisherResource extends Resource{
         return publisherId;
     }
 
-	public synchronized void get(HttpExchange exchange, boolean internalCall, JSONObject internalResp){
-		
-		if(exchange.getAttribute("query") != null &&
-			((String) exchange.getAttribute("query")).equalsIgnoreCase("true")){
-			if(!internalCall)
-				exchange.setAttribute("query", "false");
-			query(exchange, null, internalCall, internalResp);
+	public synchronized void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+
+        Query query = m_request.getQuery();
+		if(query.get("query") != null &&
+			((String) query.get("query")).equalsIgnoreCase("true")){
+			query_(m_request, m_response, null, internalCall, internalResp);
 			return;
 		}
 
-        if(exchangeJSON.containsKey("incident_paths")){
-            super.get(exchange, internalCall, internalResp);
+        if(query.containsKey("incident_paths")){
+            super.get(m_request, m_response, path, internalCall, internalResp);
             return;
         }
 		
@@ -130,25 +133,24 @@ public class GenericPublisherResource extends Resource{
 				response.put("head", lastValuesReceived.toString());
 			}
 			response.put("properties", properties);
-			sendResponse(exchange, 200, response.toString(), internalCall, internalResp);
+			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 			return;
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
 		}
-		sendResponse(exchange, 200, null, internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 	}
 
-	public synchronized void put(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
-		post(exchange, data, internalCall, internalResp);
+	public synchronized void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public synchronized void post(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		logger.info("Publisher handling PUT/POST data request");
-		if(exchange.getAttribute("query") != null &&
-		((String) exchange.getAttribute("query")).equalsIgnoreCase("true")){
-			if(!internalCall)
-				exchange.setAttribute("query", "false");
-			query(exchange, data, internalCall, internalResp);
+        Query query = m_request.getQuery();
+		if(query.get("query") != null &&
+		    ((String) query.get("query")).equalsIgnoreCase("true")){
+			query_(m_request, m_response, data, internalCall, internalResp);
 		} else {
 			JSONObject resp = new JSONObject();
 			JSONArray errors = new JSONArray();
@@ -158,27 +160,23 @@ public class GenericPublisherResource extends Resource{
 				String operation = dataObject.optString("operation");
 				if(operation!= null && !operation.equals("")){
 					if(operation.equalsIgnoreCase("create_symlink")){
-						super.put(exchange, data, internalCall, internalResp);
+						super.put(m_request, m_response, path, data, internalCall, internalResp);
 					} else {
-						super.handlePropsReq(exchange, data, internalCall, internalResp);
+						super.handlePropsReq(m_request, m_response, data, internalCall, internalResp);
 					}
-				}else {
-					String type = (String) exchange.getAttribute("type");
+				} else {
                     UUID pubid = null;
+					String type = (String) query.get("type");
+					String addts = (String) query.get("addts");
+                    
                     try {
-					    pubid = UUID.fromString((String) exchange.getAttribute("pubid"));
-                    } catch(Exception e){
+					    pubid = UUID.fromString((String) query.get("pubid"));
+                    } catch(Exception b){
                         logger.warning("\"pubid\" was not set");
                     }
-					String addts = (String) exchange.getAttribute("addts");
 
                     if(pubid!=null)
 				        logger.info("type: " + type +"; pubid: " + pubid.toString());
-
-					if(!internalCall){
-						exchange.setAttribute("pubid", "");
-						exchange.setAttribute("type", "");
-					}
 					
 					if(type != null && pubid != null &&  !type.equals("") && !pubid.equals("") &&
 							type.equalsIgnoreCase("generic") && pubid.compareTo(publisherId)==0){
@@ -189,7 +187,7 @@ public class GenericPublisherResource extends Resource{
 						else
 							handleIncomingData(dataObject, true);
 						resp.put("status", "success");
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					} else {
 						resp.put("status", "fail");
 						if(type == null || type.equalsIgnoreCase(""))
@@ -201,22 +199,22 @@ public class GenericPublisherResource extends Resource{
 						if(pubid !=null && pubid.compareTo(publisherId) != 0)
 							errors.add("pubid does not match that of this generic publisher");
 						resp.put("errors", errors);
-						sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					}
-				}
-			} catch(Exception e){
-				e.printStackTrace();
+                }
+            }catch(Exception e){
+                logger.log(Level.WARNING, "", e);
 				if(e instanceof JSONException){
 					errors.add("Invalid JSON");
 				}
 				resp.put("status", "fail");
 				resp.put("errors", errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 			}
 		}
 	}
 
-	public void delete(HttpExchange exchange,boolean internalCall, JSONObject internalResp){
+	public void delete(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 
 		logger.info("Handling DELETE PUBLISHER command for " + this.URI);
 
@@ -236,12 +234,12 @@ public class GenericPublisherResource extends Resource{
 		
 		//remove subscriptions to this publisher
 		SubMngr submngr = SubMngr.getSubMngrInstance();
-		submngr.pubRemoved(exchange, true, internalResp, publisherId.toString());
+		submngr.pubRemoved(m_request, m_response, true, internalResp, publisherId.toString());
 
 		//remove from internal graph
 		this.metadataGraph.removeNode(this.URI);
 
-		sendResponse(exchange, 200, null, internalCall, internalResp);
+		sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		
 	}
 
@@ -376,10 +374,11 @@ public class GenericPublisherResource extends Resource{
 		return queryResults;
 	}
 
-	public void query(HttpExchange exchange, String data, boolean internalCall, JSONObject internalResp){
+	public void query_(Request m_request, Response m_response, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		resp.put("path", URI);
+        Query query = m_request.getQuery();
 		try{
 			//JSONObject tsQueryObj = new JSONObject();
 			JSONObject tsQueryObj2 = new JSONObject();
@@ -392,8 +391,8 @@ public class GenericPublisherResource extends Resource{
 				tsQueryObj2.putAll(dataTsQuery);
 			}
 
-            logger.fine("query->exchangeJSON::" + exchangeJSON.toString());
-			Iterator keys = exchangeJSON.keys();
+            logger.fine("query::" + query.toString());
+			Iterator keys = query.keySet().iterator();
 			Vector<String> attributes = new Vector<String>();
 			Vector<String> values = new Vector<String>();
 			while(keys.hasNext()){
@@ -402,7 +401,7 @@ public class GenericPublisherResource extends Resource{
 				if(thisKey.startsWith("ts_")){
 					String str = "ts_";
 					String queryKey = thisKey.substring(thisKey.indexOf(str)+str.length(), thisKey.length());
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);
 
 					logger.info("Query Value: " + queryValue);
 
@@ -426,7 +425,7 @@ public class GenericPublisherResource extends Resource{
 					}
 
 				} else if(thisKey.startsWith("ts")){
-					String queryValue = exchangeJSON.optString(thisKey);
+					String queryValue = (String)query.get(thisKey);
 
 					JSONObject conditions = Resource.genJSONClause(queryValue);
 					if(conditions!=null){
@@ -471,15 +470,14 @@ public class GenericPublisherResource extends Resource{
 			if(e instanceof JSONException){
 				errors.add("Invalid JSON for POST data; url params ignored");
 				resp.put(errors, errors);
-				sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
+				sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 				return;
 			}
 		}
 		JSONObject propsQueryResultsBuffer = new JSONObject();
-		super.query(exchange, data, true, propsQueryResultsBuffer);
+		super.query_(m_request, m_response, data, true, propsQueryResultsBuffer);
 		resp.put("props_query_results", propsQueryResultsBuffer);
-		sendResponse(exchange, 200, resp.toString(), internalCall, internalResp);
-		exchangeJSON.clear();
+		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
 
 }

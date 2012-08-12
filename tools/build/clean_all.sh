@@ -36,7 +36,6 @@ rm -f local/rest/handlers/RootHandler.class
 rm -f local/rest/handlers/StreamHandler.class
 rm -f local/rest/handlers/PubHandler.class
 rm -f local/rest/handlers/SubHandler.class
-rm -f local/rest/handlers/MetadataHandler.class
 rm -f local/rest/handlers/SubControlHandler.class
 rm -f local/rest/handlers/SmapSourceHandler.class
 rm -f local/rest/RESTServer.class
@@ -54,9 +53,6 @@ rm -f local/metadata/context/exceptions/InvalidContextEdgeFormatException.class
 rm -f local/metadata/context/exceptions/InvalidContextNodeFormatException.class
 rm -f local/rest/resources/Resource.class
 rm -f local/rest/resources/LoadTreeResource.class
-rm -f local/rest/resources/ContextResource.class
-rm -f local/rest/resources/DevicesResource.class
-rm -f local/rest/resources/DeviceInstanceResource.class
 rm -f local/rest/resources/PublisherResource.class
 rm -f local/rest/resources/GenericPublisherResource.class
 rm -f local/rest/resources/DemuxResource.class

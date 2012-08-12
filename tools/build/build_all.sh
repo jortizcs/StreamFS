@@ -28,7 +28,6 @@ javac lib/local/rest/handlers/RootHandler.java
 javac lib/local/rest/handlers/StreamHandler.java
 javac lib/local/rest/handlers/PubHandler.java
 javac lib/local/rest/handlers/SubHandler.java
-javac lib/local/rest/handlers/MetadataHandler.java
 javac lib/local/rest/handlers/SubControlHandler.java
 javac lib/local/rest/handlers/SmapSourceHandler.java
 javac lib/local/rest/RESTServer.java
@@ -38,14 +37,9 @@ javac lib/local/metadata/Binding.java
 javac lib/local/metadata/context/MetadataGraph.java
 javac lib/local/metadata/context/ContextGraphEdge.java
 javac lib/local/metadata/context/ContextGraphNode.java
-javac lib/local/metadata/context/ContextMngr.java
 javac lib/local/metadata/context/exceptions/InvalidContextEdgeFormatException.java
 javac lib/local/metadata/context/exceptions/InvalidContextNodeFormatException.java
 javac lib/local/rest/resources/Resource.java
-javac lib/local/rest/resources/LoadTreeResource.java
-javac lib/local/rest/resources/ContextResource.java
-javac lib/local/rest/resources/DevicesResource.java
-javac lib/local/rest/resources/DeviceInstanceResource.java
 javac lib/local/rest/resources/PublisherResource.java
 javac lib/local/rest/resources/DemuxResource.java
 javac lib/local/rest/resources/DemuxResource2.java
