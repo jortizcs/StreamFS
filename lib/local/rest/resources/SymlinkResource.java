@@ -1,26 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 1.1
- */
 package local.rest.resources;
 
 import local.db.*;
@@ -101,35 +78,28 @@ public class SymlinkResource extends Resource{
         logger.info("links_to::" + links_to);
         if(links_to.startsWith("/")){
             logger.info("EXCHANGE:" + query.toString());
-            String requestPath = path;//(String)query.get("requestUri");
+            String requestPath = path;
             String tail = query.toString();
-            /*if(requestPath.contains("?")){
-                tail = requestPath.substring(requestPath.indexOf("?"), requestPath.length());
-                logger.info("TAIL::" + tail);
-                requestPath = requestPath.replace(tail, "");
-            }*/
             requestPath = cleanPath(requestPath);
-            String translation= requestPath.replace(URI, links_to);
             logger.info("REQUEST PATH::" + requestPath + ", REPLACE::" + URI + ", WITH::" + links_to);
+            String translation= requestPath.replace(URI, links_to);
             logger.info("TRANSLATION PATH::" + translation);
-            Resource r = null;
-            if(!database.isSymlink(links_to))
-                r = RESTServer.getResource(translation);
-            else 
-                r = RESTServer.getResource(links_to);
+            Resource r = RESTServer.getResource(translation);
+            String cp1 = null;
+            String cp2 = null;
             if(r!=null){
-                //r.exchangeJSON.accumulateAll(this.exchangeJSON);
-                if(tail != null){
-                    logger.fine("new request uri=" + translation + tail);
-                    //r.exchangeJSON.put("requestUri", translation + tail);
-                } else {
-                    logger.fine("new request uri=" + translation);
-                    //r.exchangeJSON.put("requestUri", translation);
-                }
-                //this.exchangeJSON.clear();
-                r.get(m_request, m_response, path, internalCall, internalResp);
-                return;
+                cp1 = cleanPath(r.getURI());
+                cp2 = cleanPath(translation);
             }
+            if(r != null && r.TYPE!=ResourceUtils.SYMLINK_RSRC && !cp1.equals(cp2) ){
+                logger.info(cp2 + " resolved to " + cp1 + "; links_to=" + links_to );
+                sendResponse(m_request, m_response, 404, null, internalCall, internalResp);
+                return;
+            } else if(r!=null){
+                logger.info(translation + " resolved to " + r.getURI() + "; links_to=" + links_to);
+                r.get(m_request, m_response, translation, internalCall, internalResp);
+                return;
+            } 
         }
 
         sendResponse(m_request, m_response, 404, null, internalCall, internalResp);

@@ -98,9 +98,8 @@ public class RESTServer implements Container{
         logger.info("Heard something");
         AsyncTask t = new AsyncTask(request, response);
         System.out.println("Async task initalized");
-        //executor.submit(t);
-        executor.execute(t);
-        //routeToResource(request, response);
+        executor.submit(t);
+        //executor.execute(t);
     }
 
 	public void start(){
@@ -456,7 +455,8 @@ public class RESTServer implements Container{
 		if(path == null)
 			return null;
 		logger.info("resourceTree.get: " + path);
-		return resourceTree.get(path);
+		//return resourceTree.get(path);
+        return longestPrefixMatch(path);
 	}
 
 	public static boolean isResource(String path){
@@ -750,38 +750,9 @@ public class RESTServer implements Container{
         return keyStore;
     }
 
-    /*protected void routeToResource(Request request, Response response){
-        try {
-            logger.info("Running async task");
-            String path = ResourceUtils.cleanPath(request.getPath().getPath());
-            logger.info("Path=" + path);
-            Query query = request.getQuery();
-            logger.info("query_string=" + query.toString().length());
-            Resource r = resourceTree.get(path);
-            if(path.contains("*")){
-                Resource root = resourceTree.get(rootPath);
-                root.handle(request, response);
-            } else if(r!=null){
-                r.handle(request, response);
-            } else {
-                Resource.sendResponse(request, response, 404, null, false, null);
-            }
-        } catch(Exception e){
-            logger.log(Level.WARNING, "", e);
-            Resource.sendResponse(request, response, 500, null, false, null);
-        }
-    }*/
-
-    public class AsyncTask implements Runnable{
-        private Request request = null;
-        private Response response = null;
-        public AsyncTask(Request req, Response resp){
-            request = req;
-            response =resp;
-            logger.info("Async task created: path=" + request.getPath().getPath());
-        }
-        private Resource longestPrefixMatch(String path){
+    private static Resource longestPrefixMatch(String path){
             Resource matchRes = null;
+
             if(path!=null){
                 StringTokenizer tokenizer = new StringTokenizer(path, "/");
                 Vector<String> tokens = new Vector<String>();
@@ -806,6 +777,17 @@ public class RESTServer implements Container{
             }
             return matchRes;
         }
+
+    public class AsyncTask implements Runnable{
+        private Request request = null;
+        private Response response = null;
+        private MySqlDriver database = (MySqlDriver)DBAbstractionLayer.database;
+        public AsyncTask(Request req, Response resp){
+            request = req;
+            response =resp;
+            logger.info("Async task created: path=" + request.getPath().getPath());
+        }
+        
         public void run(){
             logger.info("Running async task");
             try {
@@ -815,6 +797,7 @@ public class RESTServer implements Container{
                 logger.info("query_string=" + query.toString().length());
                 Resource r = longestPrefixMatch(path);
                 if(r==null){
+                    logger.info("Invoking ROOT handler");
                     Resource root = resourceTree.get(rootPath);
                     root.handle(request, response);
                 } else {
