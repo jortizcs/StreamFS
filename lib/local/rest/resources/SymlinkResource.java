@@ -92,6 +92,8 @@ public class SymlinkResource extends Resource{
                 cp2 = cleanPath(translation);
             }
             if(r != null && r.TYPE!=ResourceUtils.SYMLINK_RSRC && !cp1.equals(cp2) ){
+                //if not a symlink then the resource will not resolve when we call get and we'll be 
+                //fetching a resource that doesn't truly exist
                 logger.info(cp2 + " resolved to " + cp1 + "; links_to=" + links_to );
                 sendResponse(m_request, m_response, 404, null, internalCall, internalResp);
                 return;
