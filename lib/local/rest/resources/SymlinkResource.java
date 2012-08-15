@@ -101,13 +101,13 @@ public class SymlinkResource extends Resource{
         logger.info("links_to::" + links_to);
         if(links_to.startsWith("/")){
             logger.info("EXCHANGE:" + query.toString());
-            String requestPath = (String)query.get("requestUri");
-            String tail = null;
-            if(requestPath.contains("?")){
+            String requestPath = path;//(String)query.get("requestUri");
+            String tail = query.toString();
+            /*if(requestPath.contains("?")){
                 tail = requestPath.substring(requestPath.indexOf("?"), requestPath.length());
                 logger.info("TAIL::" + tail);
                 requestPath = requestPath.replace(tail, "");
-            }
+            }*/
             requestPath = cleanPath(requestPath);
             String translation= requestPath.replace(URI, links_to);
             logger.info("REQUEST PATH::" + requestPath + ", REPLACE::" + URI + ", WITH::" + links_to);

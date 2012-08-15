@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.lang.*;
 
 import is4.*;
 import net.sf.json.*;
@@ -779,6 +780,32 @@ public class RESTServer implements Container{
             response =resp;
             logger.info("Async task created: path=" + request.getPath().getPath());
         }
+        private Resource longestPrefixMatch(String path){
+            Resource matchRes = null;
+            if(path!=null){
+                StringTokenizer tokenizer = new StringTokenizer(path, "/");
+                Vector<String> tokens = new Vector<String>();
+                Vector<String> paths = new Vector<String>();
+                while(tokenizer.hasMoreTokens())
+                    tokens.add(tokenizer.nextToken());
+                StringBuffer s = new StringBuffer("/"); 
+                paths.add(s.toString());
+                for(int i=0; i<tokens.size(); i++){
+                    if(i==0)
+                        paths.add(s.append(tokens.get(i)).toString());
+                    else
+                        paths.add(s.append("/").append(tokens.get(i)).toString());
+                }
+                for(int j=paths.size()-1; j>=0; j--){
+                    Resource thisResource = resourceTree.get(paths.get(j));
+                    if(thisResource!=null){
+                        matchRes=thisResource;
+                        break;
+                    }
+                }
+            }
+            return matchRes;
+        }
         public void run(){
             logger.info("Running async task");
             try {
@@ -786,19 +813,15 @@ public class RESTServer implements Container{
                 logger.info("Path=" + path);
                 Query query = request.getQuery();
                 logger.info("query_string=" + query.toString().length());
-                Resource r = resourceTree.get(path);
-                //logger.info(r.getClass().getName());
-                /*if(path.equals("/time") || path.equals("/time/"))
-                    System.exit(1);*/
-                if(path.contains("*")){
+                Resource r = longestPrefixMatch(path);
+                if(r==null){
                     Resource root = resourceTree.get(rootPath);
                     root.handle(request, response);
-                } else if(r!=null){
+                } else {
                     logger.info("Invoking handler: " + r.getURI());
                     r.handle(request, response);
-                } else {
-                    Resource.sendResponse(request, response, 404, null, false, null);
                 }
+                
             } catch(Exception e){
                 logger.log(Level.WARNING, "", e);
                 Resource.sendResponse(request, response, 500, null, false, null);
