@@ -3251,6 +3251,36 @@ public class MySqlDriver implements Is4Database {
         return false;
     }
 
+    public JSONArray getSubIdToProcServerInfo(String svrname){
+        Connection conn = openConn();
+        JSONArray retArray = new JSONArray();
+        try {
+            String query = "Select `subid`, `procsvr_host`, `procsvr_port`,`procsvr_name` from `subscriptions` where `procsvr_port`>-1 and `procsvr_name`=?";
+            logger.info(query.replaceFirst("\\?", svrname));
+            PreparedStatement ps =  conn.prepareStatement(query);
+            ps.setString(1,svrname);
+            ResultSet res = ps.executeQuery();
+            while(res.next()){
+                String subid = res.getString("subid");
+                String name = res.getString("procsvr_name");
+                String host = res.getString("procsvr_host");
+                int port = res.getInt("procsvr_port");
+                JSONObject item = new JSONObject();
+                item.put("subid", subid);
+                item.put("name", name);
+                item.put("host", host);
+                item.put("port", port);
+                retArray.add(item);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "",e);
+        }
+        finally {
+            closeConn(conn);
+        }
+        return retArray;
+    }
+
     public JSONArray getSubIdToProcServerInfo(){
         Connection conn = openConn();
         JSONArray retArray = new JSONArray();
