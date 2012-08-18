@@ -500,7 +500,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
 
 
 	//////////////// HttpHandler function implemention ////////////////
-	public synchronized void handle(Request m_request, Response m_response){
+	public void handle(Request m_request, Response m_response){
 		logger.info("handler: " + m_request.getMethod() + " " + 
                         URI  + " <- " + m_request.getAddress());
 		try {
@@ -578,6 +578,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
 	public static void sendResponse(Request m_request, Response m_response, int code, String data, boolean internalCall, JSONObject internalResp){
 		GZIPOutputStream gzipos = null; 
         PrintStream body = null;
+        logger.info("Sending: " + data + "\tcode=" + code);
 		try{
 			if(internalCall){
 				copyResponse(data, internalResp);

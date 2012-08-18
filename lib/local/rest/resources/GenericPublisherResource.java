@@ -1,26 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 2.0
- */
 package local.rest.resources;
 
 import local.analytics.*;
@@ -78,7 +55,7 @@ public class GenericPublisherResource extends Resource{
         return publisherId;
     }
 
-	public synchronized void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 
         Query query = m_request.getQuery();
 		if(query.get("query") != null &&
@@ -141,11 +118,11 @@ public class GenericPublisherResource extends Resource{
 		sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 	}
 
-	public synchronized void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		logger.info("Publisher handling PUT/POST data request");
         Query query = m_request.getQuery();
 		if(query.get("query") != null &&
@@ -173,6 +150,7 @@ public class GenericPublisherResource extends Resource{
 					    pubid = UUID.fromString((String) query.get("pubid"));
                     } catch(Exception b){
                         logger.warning("\"pubid\" was not set");
+                        sendResponse(m_request, m_response, 500, null, internalCall, internalResp);
                     }
 
                     if(pubid!=null)
@@ -274,6 +252,7 @@ public class GenericPublisherResource extends Resource{
 		logger.info("SubMngr Copy: " + dataCopy.toString());
 		submngr.dataReceived(dataCopy);
 
+        logger.info("Called submngr.dataReceived() with the data copy");
 		//get the alias associated with this publisher
 		String alias = null;
 		if(URI.endsWith(publisherId.toString() + "/") ||

@@ -1,26 +1,3 @@
-/*
- * "Copyright (c) 2010-13 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * StreamFS release version 2.3
- */
 package local.db;
 
 import net.sf.json.*;
@@ -30,6 +7,8 @@ import com.mongodb.*;
 import java.util.*;
 import java.util.logging.*;
 import java.io.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MongoDBDriver implements Is4Database {
 
@@ -43,6 +22,10 @@ public class MongoDBDriver implements Is4Database {
     private static JSONArray replicas = null;
 
 	private static int openConns =0;
+
+    private static boolean WATCHDOG_ACTIVE = false;
+    private static int ACTIVE_CONN_CNT = 0;
+    private static final Lock LOCK = new ReentrantLock();
 
 	//database
 	private static String dataRepository = "is4_data_repos";
@@ -66,75 +49,66 @@ public class MongoDBDriver implements Is4Database {
 	private String dbConfigFile = "/project/eecs/tinyos/is4/lib/local/db/db_config/db_info.json";
 
 	private static Mongo m = null;
-	private static DB dataRepos = null; 
-	private static DBCollection dataCollection = null;
-	private static DBCollection propsCollection = null;
-	private static DBCollection hierCollection = null;
-	private static DBCollection mCollection=null;
-	private static DBCollection tsDataCollection = null;
 
 	protected static boolean inited = false;
 
 	public MongoDBDriver(){
-		if(!inited){
-			setupGlobals();
-            ShutdownHook shutdown = new ShutdownHook(this);
-            Runtime.getRuntime().addShutdownHook(shutdown);
-		}
+        try {
+            if(!inited){
+                setupGlobals();
+                ShutdownHook shutdown = new ShutdownHook(this);
+                Runtime.getRuntime().addShutdownHook(shutdown);
+            }
 
-		/*try {
-			if(m == null && port==27017 && login.equals("") && password.equals("")){
-				MongoOptions options = new MongoOptions();
-				options.connectionsPerHost=1000;
-				m = new Mongo(serverAddress, options);
-				dataRepos = m.getDB(dataRepository);
-				dataCollection = dataRepos.getCollection(mainCollection);
-				propsCollection = dataRepos.getCollection(rsrcPropsCollection);
-				hierCollection = dataRepos.getCollection(snapshotCollection);
-				mCollection  = dataRepos.getCollection(modelsCollection);
-				tsDataCollection  = dataRepos.getCollection(tsCollection);
-				logger.info("(1) New Mongo instance created: server= "+serverAddress + "; port= " + port);
-			}
-			//todo: add more setup code
-		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
-		}*/
+            if(!inited){
+                DB dataRepos = m.getDB(dataRepository);
+                if(!login.equals("") && !password.equals("")){
+                    boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                    if(auth != true){
+                        logger.severe("Could not authenticate on DB::" + dataRepository + 
+                                " with login=" + login + ",pw=" + password);
+                        System.exit(1);
+                    }
+                }
+                DBCollection dataCollection = dataRepos.getCollection(mainCollection);
+                DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
+                DBCollection mCollection  = dataRepos.getCollection(modelsCollection);
+                DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
+                
+                BasicDBObject indicesObj = new BasicDBObject();
+                indicesObj.append("PubId", new Integer(1));
+                indicesObj.append("timestamp", new Integer(1));
+                dataCollection.ensureIndex(indicesObj);
 
-		if(!inited){
-			//setup indices
-			//Mongo m = this.openConn();
-			//DB database = m.getDB(dataRepository);
-			//DBCollection dbCollection = database.getCollection(mainCollection);
-			BasicDBObject indicesObj = new BasicDBObject();
-			indicesObj.append("PubId", new Integer(1));
-			indicesObj.append("timestamp", new Integer(1));
-			dataCollection.ensureIndex(indicesObj);
+                //setup props indices
+                BasicDBObject propsIndicesObj = new BasicDBObject();
+                propsIndicesObj.append("is4_uri", new Integer(1));
+                propsIndicesObj.append("timestamp", new Integer(1));
+                propsIndicesObj.append("_keywords", new Integer(1));
+                propsCollection.ensureIndex(propsIndicesObj);
 
-			//Setup timeseries data collection
-			BasicDBObject tsIndicesObj = new BasicDBObject();
-			tsIndicesObj.append("pubid", new Integer(1));
-			tsIndicesObj.append("ts", new Integer(1));
-			/*BasicDBObject secondIndexObj = new BasicDBObject();
-			secondIndexObj.append("ReadingTime", new Integer(1));
-			BasicDBObject thirdIndexObj = new BasicDBObject();
-			thirdIndexObj.append("value", new Integer(1));*/
-			tsDataCollection.ensureIndex(indicesObj);
+                //setup models collection indices
+                BasicDBObject modelsIndicesObj = new BasicDBObject();
+                modelsIndicesObj.append("is4_uri", new Integer(1));
+                modelsIndicesObj.append("timestamp", new Integer(1));
+                mCollection.ensureIndex(propsIndicesObj);
 
-			//setup props indices
-			/*DBCollection propsCollection = database.getCollection(rsrcPropsCollection);*/
-			BasicDBObject propsIndicesObj = new BasicDBObject();
-			propsIndicesObj.append("is4_uri", new Integer(1));
-			propsIndicesObj.append("timestamp", new Integer(1));
-			propsIndicesObj.append("_keywords", new Integer(1));
-			propsCollection.ensureIndex(propsIndicesObj);
+                //Setup timeseries data collection
+                BasicDBObject tsIndicesObj = new BasicDBObject();
+                tsIndicesObj.append("pubid", new Integer(1));
+                tsIndicesObj.append("ts", new Integer(1));
+                tsDataCollection.ensureIndex(indicesObj);
 
-			//setup models collection indices
-			BasicDBObject modelsIndicesObj = new BasicDBObject();
-			modelsIndicesObj.append("is4_uri", new Integer(1));
-			modelsIndicesObj.append("timestamp", new Integer(1));
-			mCollection.ensureIndex(propsIndicesObj);
-			inited = true;
-		}
+                Timer t = new Timer();
+                t.scheduleAtFixedRate(new ConnectionWatchdog(), 1000000L, 1000000L);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            System.exit(1);
+        } finally {
+            inited=true;
+        }
+
 	}
 
 	private void setupGlobals(){
@@ -173,6 +147,9 @@ public class MongoDBDriver implements Is4Database {
 			if(m == null ){
 				MongoOptions options = new MongoOptions();
 				options.connectionsPerHost=1000;
+                //options.safe = true;
+                options.connectTimeout = 10000;
+                //options.socketTimeout = 500;
                 if(serverAddress != null){
                     ServerAddress serverAddr = new ServerAddress(serverAddress, port);
                     m = new Mongo(serverAddr,options);
@@ -191,7 +168,7 @@ public class MongoDBDriver implements Is4Database {
                     }
                     m = new Mongo(replicaHosts, options);
                 }
-				dataRepos = m.getDB(dataRepository);
+				/*dataRepos = m.getDB(dataRepository);
                 if(!login.equals("") && !password.equals("")){
                     boolean auth = dataRepos.authenticate(login, password.toCharArray());
                     if(auth != true){
@@ -204,7 +181,7 @@ public class MongoDBDriver implements Is4Database {
 				propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 				hierCollection = dataRepos.getCollection(snapshotCollection);
 				mCollection  = dataRepos.getCollection(modelsCollection);
-				tsDataCollection  = dataRepos.getCollection(tsCollection);
+				tsDataCollection  = dataRepos.getCollection(tsCollection);*/
 				logger.info("(2) New Mongo instance created: server= "+serverAddress + "; port= " + port);
 			}
 
@@ -239,7 +216,7 @@ public class MongoDBDriver implements Is4Database {
 		return snapshotCollection;
 	}
 
-	public static void main(String[] args){
+	/*public static void main(String[] args){
 		try{
 			MongoDBDriver mDriver = new MongoDBDriver();
 			//Mongo m = mDriver.openConn();
@@ -257,42 +234,67 @@ public class MongoDBDriver implements Is4Database {
 			JSONObject keys = new JSONObject();
 			keys.put("_id",0);
 			System.out.println( mDriver.query(queryObj.toString(), keys.toString()) );
-			mDriver.closeConn(m);
+			//mDriver.closeConn(m);
 		} catch(Exception e){
 			e.printStackTrace();
 		}
-	}
+	}*/
 
-	public synchronized Mongo openConn(){
+	public Mongo openConn(){
 		try {
 			if(m == null)
 				m = new Mongo(serverAddress);
 			
-			openConns +=1;
-			logger.info("Mongo Open: conn_count=" + openConns);
-			//}
+			/*openConns +=1;
+			logger.info("Mongo Open: conn_count=" + openConns);*/
 			return m;
 		} catch (Exception e){
 			logger.log(Level.WARNING, "", e);
+            System.exit(1);
 		}
 		return null;
 	}
 
-	public synchronized void closeConn(Mongo m_input){
+	public void closeConn(Mongo m_input){
 		//if(m != m_input && m_input != null){
 		//m_input.close();
 		//if(m == m_input)
 		//	m = null;
-		openConns -=1;
-		logger.info("Mongo Close: conn_count=" + openConns);
+		//openConns -=1;
+		//logger.info("Mongo Close: conn_count=" + openConns);
 		//}
 	}
 
-	
-	public synchronized JSONArray getIndexInfo(String collectionName){
-		JSONArray indexesArray = new JSONArray();
+	protected void enter(){
+        try {
+            if(WATCHDOG_ACTIVE == true && ACTIVE_CONN_CNT==0){
+                LOCK.lock();
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            System.exit(1);
+        }
+        synchronized(this){
+            ACTIVE_CONN_CNT +=1;
+        }
+    } 
+
+    protected void leave(){
+        synchronized(this){
+            ACTIVE_CONN_CNT -= 1;
+            if(ACTIVE_CONN_CNT<0 && WATCHDOG_ACTIVE){
+                ACTIVE_CONN_CNT=0;
+                LOCK.unlock();
+            }
+        }
+    }
+
+	public JSONArray getIndexInfo(String collectionName){
+	    enter();	
+        JSONArray indexesArray = new JSONArray();
 		try {
 			if(m != null){
+                
 				DB database = m.getDB(dataRepository);
 				DBCollection thisCollection = database.getCollection(collectionName);
 				logger.info("Getting index information from " + dataRepository + " for collection " + collectionName);
@@ -308,11 +310,16 @@ public class MongoDBDriver implements Is4Database {
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-		}
+		} finally {
+            leave();
+        }
 		return indexesArray;
 	}
 
-	public synchronized void setIndexes(String collectionName, JSONObject indexes){
+   
+
+	public void setIndexes(String collectionName, JSONObject indexes){
+        enter();
 		try {
 			if(m != null){
 				DB database = m.getDB(dataRepository);
@@ -323,10 +330,13 @@ public class MongoDBDriver implements Is4Database {
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-		}
+		} finally {
+            leave();
+        }
 	}
 
-	public synchronized void removeIndex(String collectionName, String indexName){
+	public void removeIndex(String collectionName, String indexName){
+        enter();
 		try {
 			if(m != null){
 				DB database = m.getDB(dataRepository);
@@ -337,7 +347,9 @@ public class MongoDBDriver implements Is4Database {
 			}
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-		}
+		} finally {
+            leave();
+        }
 	}
 
 	/************************************/
@@ -345,19 +357,27 @@ public class MongoDBDriver implements Is4Database {
 	/************************************/
 
 	public void putEntry(JSONObject entry){
+        enter();
 		WriteResult result = null;
+        DB dataRepos = null;
 		try {
-			/*String entryStr = entry.toString();
-			entryStr = entryStr.replaceAll("\\$", "\\_");
-			logger.finer("EntryStr: " + entryStr);
-			JSONObject entryObj  = (JSONObject) JSONSerializer.toJSON(entryStr);*/
-			BasicDBObject dataObj = new BasicDBObject((Map)entry);
+            BasicDBObject dataObj = new BasicDBObject((Map)entry);
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
+            
 			if(m != null){
 				//DB database = m.getDB(dataRepository);
 				dataRepos.requestStart();
 				//result = dataCollection.insert(dataObj);
 				result = tsDataCollection.save(dataObj);
-				dataRepos.requestDone();
 				dataObj = null;
 				logger.info("Inserted mongo entry in main data collection: " + entry.toString());
 			} else {
@@ -367,19 +387,33 @@ public class MongoDBDriver implements Is4Database {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		}finally{
+            dataRepos.requestDone();
+            leave();
+        }
 	}
 
 	public void putTsEntry(JSONObject entry){
+        enter();
 		WriteResult result = null;
+        DB dataRepos = null;
 		try {
 			JSONObject strippedEntry = stripEntry(entry);
 			if(!strippedEntry.toString().equals("{}")){
 				BasicDBObject dataObj = new BasicDBObject((Map)strippedEntry);
+                dataRepos = m.getDB(dataRepository);
+                if(!login.equals("") && !password.equals("")){
+                    boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                    if(auth != true){
+                        logger.severe("Could not authenticate on DB::" + dataRepository + 
+                                " with login=" + login + ",pw=" + password);
+                        System.exit(1);
+                    }
+                }
+                DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 				if(m != null){
 					dataRepos.requestStart();
 					result = tsDataCollection.save(dataObj);
-					dataRepos.requestDone();
 					dataObj = null;
 					logger.info("Inserted mongo entry in Ts data collection: " + strippedEntry.toString());
 				} else {
@@ -390,14 +424,29 @@ public class MongoDBDriver implements Is4Database {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		} finally {
+			dataRepos.requestDone();
+            leave();
+        }
 	}
 
 	public void putTsEntries(ArrayList<JSONObject> entries){
+        enter();
 		ArrayList<DBObject> bulkEntry=new ArrayList<DBObject>();
 		WriteResult result = null;
 		int bulkBytes = 0;
+        DB dataRepos = null;
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 			for(int i=0; i<entries.size(); ++i){
 				JSONObject entry = entries.get(i);
 				logger.info("ThisEntry: " + entry.toString());
@@ -411,7 +460,6 @@ public class MongoDBDriver implements Is4Database {
 			if(m != null){
 				dataRepos.requestStart();
 				result = tsDataCollection.insert(bulkEntry);
-				dataRepos.requestDone();
 				logger.info("Inserted bulk Ts entry in Ts data collection: " + bulkBytes + " bytes");
 			} else {
 				logger.warning("Mongo connection came back NULL");
@@ -421,31 +469,42 @@ public class MongoDBDriver implements Is4Database {
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 			if(e instanceof MongoException && result!=null)
 				logger.info("Error? " + result.getError());
-		}
+		} finally {
+            dataRepos.requestDone();
+            leave();
+        }
 	}
 
 	private JSONObject stripEntry(JSONObject entry){
+        enter();
 		JSONObject s = new JSONObject();
-		if(entry.containsKey("Reading")){
-			s.put("value", entry.get("Reading"));
-		} else if(entry.containsKey("value") && !Double.isNaN(entry.optDouble("value"))){
-			s.put("value",entry.optDouble("value"));
-		} else {
-			s.put("value", entry.optInt("value"));
-		}
+        try {
+            if(entry.containsKey("Reading")){
+                s.put("value", entry.get("Reading"));
+            } else if(entry.containsKey("value") && !Double.isNaN(entry.optDouble("value"))){
+                s.put("value",entry.optDouble("value"));
+            } else {
+                s.put("value", entry.optInt("value"));
+            }
 
-		if(entry.containsKey("ReadingTime")){
-			s.put("ReadingTime", entry.optInt("ReadingTime"));
-		} else if(entry.containsKey("timestamp")){
-			s.put("timestamp", entry.optInt("timestamp"));
-		}
+            if(entry.containsKey("ReadingTime")){
+                s.put("ReadingTime", entry.optInt("ReadingTime"));
+            } else if(entry.containsKey("timestamp")){
+                s.put("timestamp", entry.optInt("timestamp"));
+            }
 
-		try{
-			s.put("pubid", entry.getString("pubid"));
-			s.put("ts", entry.getLong("ts"));
-		} catch(Exception e){
-			logger.log(Level.WARNING, "", e);
-		}
+            try{
+                s.put("pubid", entry.getString("pubid"));
+                s.put("ts", entry.getLong("ts"));
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+        finally {
+            leave();
+        }
 		return s;
 	}
 
@@ -460,8 +519,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dataReposOpen=false;
 		boolean dbCursorOpen = false;
 		DBCursor dbCursor = null;
+        DB dataRepos = null;
+        enter();
 		try {
-			
+			dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 			if(query != null && m!= null){
 				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(query);
 				BasicDBObject dataObj = new BasicDBObject((Map)queryObj);
@@ -486,10 +556,9 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 		//closeConn(m);
 		return null;
@@ -504,7 +573,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor=null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 			if(query != null && keys!=null && m!= null){
 				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(query);
 				JSONObject keysObj = (JSONObject) JSONSerializer.toJSON(keys);
@@ -529,12 +610,11 @@ public class MongoDBDriver implements Is4Database {
 			
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			closeConn(m);
+			//closeConn(m);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 		
 		return null;
@@ -547,7 +627,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor=null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 			if(query != null && keys!=null && m!= null){
 				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(query);
 				JSONObject keysObj = (JSONObject) JSONSerializer.toJSON(keys);
@@ -571,18 +663,17 @@ public class MongoDBDriver implements Is4Database {
 			
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			closeConn(m);
+			//closeConn(m);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 		
 		return null;
 	}
 
-	public synchronized JSONObject queryWithLimit(String queryString, String orderBy, int limit_){
+	public JSONObject queryWithLimit(String queryString, String orderBy, int limit_){
 
 		JSONObject queryResults = new JSONObject();
 		JSONArray results = new JSONArray();
@@ -590,7 +681,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor =null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection tsDataCollection  = dataRepos.getCollection(tsCollection);
 			if(queryString != null && m!= null){
 				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(queryString);
 				BasicDBObject queryDBObj = new BasicDBObject((Map)queryObj);
@@ -656,10 +759,9 @@ public class MongoDBDriver implements Is4Database {
 			logger.log(Level.WARNING, "", e);
 			//closeConn(m);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 		
 		return null;
@@ -670,14 +772,26 @@ public class MongoDBDriver implements Is4Database {
 	/** Access/Query properties collection **/
 	/****************************************/
 
-	public synchronized JSONObject queryProps(String query){
+	public JSONObject queryProps(String query){
 		JSONObject queryResults = new JSONObject();
 		JSONArray results = new JSONArray();
 		//Mongo m = openConn();
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor =null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			if(query != null && m!= null){
 				JSONObject queryObj = (JSONObject) JSONSerializer.toJSON(query);
 				BasicDBObject queryDBObj = new BasicDBObject((Map)queryObj);
@@ -702,10 +816,9 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 
 		
@@ -713,7 +826,7 @@ public class MongoDBDriver implements Is4Database {
 		return null;
 	}
 
-	public synchronized JSONObject queryPropsWithLimit(String queryString, String orderBy, int limit_){
+	public JSONObject queryPropsWithLimit(String queryString, String orderBy, int limit_){
 
 		JSONObject queryResults = new JSONObject();
 		JSONArray results = new JSONArray();
@@ -721,7 +834,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dbCursorOpen=false;
 		boolean dataReposOpen=false;
 		DBCursor dbCursor =null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			if(queryString != null && m!= null){
 				dataRepos.requestStart();
 				dataReposOpen=true;
@@ -783,12 +908,11 @@ public class MongoDBDriver implements Is4Database {
 			
 		} catch(Exception e){
 			logger.log(Level.WARNING, "", e);
-			closeConn(m);
+			//closeConn(m);
 		}finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 
 		
@@ -798,10 +922,19 @@ public class MongoDBDriver implements Is4Database {
 	public long getPropsHistCount(String uri){
 		long count = 0;
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
-			if (m==null){
-				MongoDBDriver mdriver = new MongoDBDriver();
-			}
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			String uri2 = null;
 			if(uri.endsWith("/"))
 				uri2 = uri.substring(0, uri.length()-1);
@@ -821,8 +954,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return count;
 	}
@@ -830,7 +963,19 @@ public class MongoDBDriver implements Is4Database {
 	public long getMaxTsProps(String uri){
 		long maxts=0;
 		boolean dataReposOpen=false;
+        DB dataRepos =null;
+        enter();
 		try{
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			String uri2 = null;
 			if(uri.endsWith("/"))
 				uri2 = uri.substring(0, uri.length()-1);
@@ -838,8 +983,6 @@ public class MongoDBDriver implements Is4Database {
 				uri2 = uri + "/";
 			String[] inJArrayStr = {uri, uri2};
 
-			//DB database = m.getDB(dataRepository);
-			//DBCollection dbCollection = database.getCollection(rsrcPropsCollection);
 			dataRepos.requestStart();
 			dataReposOpen=true;
 			String map = "function() { emit(this.is4_uri, this.timestamp); }";
@@ -865,8 +1008,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return maxts;
 	}
@@ -875,10 +1018,22 @@ public class MongoDBDriver implements Is4Database {
 		return null;
 	}
 
-	public synchronized void putPropsEntry(JSONObject entry){
+	public void putPropsEntry(JSONObject entry){
 		//Mongo m = openConn();
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			if(m != null){
 				//DB database = m.getDB(dataRepository);
 				dataRepos.requestStart();
@@ -894,17 +1049,29 @@ public class MongoDBDriver implements Is4Database {
 		} catch (Exception e){
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		//closeConn(m);
 
 	}
 
-	public synchronized JSONObject getPropsEntry(String uri, long timestamp){
+	public JSONObject getPropsEntry(String uri, long timestamp){
 		JSONObject results = new JSONObject();
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
 			if(m != null){
 				String uri2 = null;
 				if(uri.endsWith("/"))
@@ -930,8 +1097,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch (Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return results;
 	}
@@ -941,7 +1108,19 @@ public class MongoDBDriver implements Is4Database {
 		boolean dataReposOpen=false;
 		DBCursor dbCursor =null;
         WriteResult writeResults =null;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection propsCollection = dataRepos.getCollection(rsrcPropsCollection);
             String altPath =srcPath.endsWith("/")?srcPath.substring(0, srcPath.length()-1):srcPath+"/";
 			if(m!= null){
                 JSONObject queryObj = new JSONObject();
@@ -972,10 +1151,9 @@ public class MongoDBDriver implements Is4Database {
             else
                 logger.log(Level.WARNING, "", e);
 		} finally {
-			if(dbCursorOpen)
-				dbCursor.close();
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dbCursor.close();
+            dataRepos.requestDone();
+            leave();
 		}
 	}
 	
@@ -984,9 +1162,21 @@ public class MongoDBDriver implements Is4Database {
 	/*****************************************/
 	/** Access/Query models collection     **/
 	/****************************************/
-	public synchronized void putModelEntry(JSONObject entry){
+	public void putModelEntry(JSONObject entry){
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection mCollection  = dataRepos.getCollection(modelsCollection);
 			if(m != null){
 				dataRepos.requestStart();
 				dataReposOpen=true;
@@ -1000,15 +1190,27 @@ public class MongoDBDriver implements Is4Database {
 		} catch (Exception e){
 			logger.log(Level.WARNING, "Exception thrown while inserting entry into Mongo",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 	}
 	
-	public synchronized JSONObject getModelEntry(String uri, long timestamp){
+	public JSONObject getModelEntry(String uri, long timestamp){
 		JSONObject results = new JSONObject();
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection mCollection  = dataRepos.getCollection(modelsCollection);
 			if(m != null){
 				String uri2 = null;
 				if(uri.endsWith("/"))
@@ -1033,8 +1235,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch (Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return results;
 	}
@@ -1042,7 +1244,19 @@ public class MongoDBDriver implements Is4Database {
 	public long getMaxTsModels(String uri){
 		long maxts=0;
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try{
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection mCollection  = dataRepos.getCollection(modelsCollection);
 			String uri2 = null;
 			if(uri.endsWith("/"))
 				uri2 = uri.substring(0, uri.length()-1);
@@ -1076,8 +1290,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return maxts;
 	}
@@ -1085,7 +1299,19 @@ public class MongoDBDriver implements Is4Database {
 	public long getModelHistCount(String uri){
 		long count = 0;
 		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
 		try {
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection mCollection  = dataRepos.getCollection(modelsCollection);
 			if (m==null){
 				MongoDBDriver mdriver = new MongoDBDriver();
 			}
@@ -1107,8 +1333,8 @@ public class MongoDBDriver implements Is4Database {
 		} catch(Exception e){
 			logger.log(Level.WARNING, "",e);
 		} finally {
-			if(dataReposOpen)
-				dataRepos.requestDone();
+            dataRepos.requestDone();
+            leave();
 		}
 		return count;
 	}
@@ -1126,4 +1352,46 @@ public class MongoDBDriver implements Is4Database {
             }
         }
     }	
+
+    public class ConnectionWatchdog extends TimerTask {
+        public ConnectionWatchdog(){}
+        public void run(){
+            try {
+                WATCHDOG_ACTIVE = true;
+                LOCK.lock(); 
+                if(m!=null){
+                    m.close();
+                }
+                MongoOptions options = new MongoOptions();
+				options.connectionsPerHost=1000;
+                //options.safe = true;
+                options.connectTimeout = 10000;
+                //options.socketTimeout = 500;
+                if(serverAddress != null){
+                    ServerAddress serverAddr = new ServerAddress(serverAddress, port);
+                    m = new Mongo(serverAddr,options);
+                } else {
+                    ArrayList<ServerAddress> replicaHosts = new ArrayList<ServerAddress>();
+                    for(int i=0; i<replicas.size(); i++){
+                        JSONObject thisHostEntry = replicas.getJSONObject(i);
+                        ServerAddress thisSvrAddr = null;
+                        String thisSvrAddrStr = thisHostEntry.getString("host");
+                        int port =  thisHostEntry.optInt("port");
+                        if(port !=0)
+                            thisSvrAddr = new ServerAddress(thisSvrAddrStr, port);
+                        else
+                            thisSvrAddr = new ServerAddress(thisSvrAddrStr);
+                        replicaHosts.add(thisSvrAddr);
+                    }
+                    m = new Mongo(replicaHosts, options);
+                 }
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+                System.exit(1);
+            } finally {
+                WATCHDOG_ACTIVE = false;
+                LOCK.unlock();
+            }
+        }        
+    }
 }

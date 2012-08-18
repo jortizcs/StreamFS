@@ -9,6 +9,7 @@ rm -f is4/exceptions/NoMoreRegistrantsException.class
 rm -f is4/JoinInfoTuple.class
 rm -f is4/Registrar.class
 rm -f is4/SubMngr.class
+rm -f is4/SubMngr\$ConnectionWatchdog.class
 rm -f is4/Subscriber.class
 rm -f is4/SubscriberTable.class
 rm -f is4/SubscriberTable.class
@@ -29,6 +30,7 @@ rm -f local/db/DBAbstractionLayer.class
 rm -f local/db/CouchDBDriver.class
 rm -f local/db/MySqlDriver.class
 rm -f local/db/MongoDBDriver.class
+rm -f local/db/MongoDBDriver\$ConnectionWatchdog.class
 rm -f local/json/validator/JSONSchemaValidator.class
 rm -f local/json/javascript/Js2JSONUtils.class
 rm -f local/rest/handlers/JoinHandler.class

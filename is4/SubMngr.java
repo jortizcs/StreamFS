@@ -549,7 +549,7 @@ public class SubMngr {
 	/**
 	 *  Forward this data object to the proper set of subscribers.
 	 */
-	public synchronized void dataReceived(JSONObject dataObject){
+	public void dataReceived(JSONObject dataObject){
 
 		logger.fine("dataReceived called: " + dataObject.toString());
 		try {
@@ -613,7 +613,9 @@ public class SubMngr {
                                     urlConn.setDoInput (true);
 									urlConn.setDoOutput(true);
                                     urlConn.setUseCaches (false);
-									urlConn.setRequestProperty("Content-Type", "application/json");
+                                    urlConn.setConnectTimeout(5000);
+                                    Timer watchdog = new Timer();
+                                    watchdog.schedule(new ConnectionWatchdog(urlConn), 5000L);
 									OutputStreamWriter wr = new OutputStreamWriter(urlConn.getOutputStream());
                                     String dataStr = dataObject.toString();
                                     logger.info("Length: " + dataStr.getBytes().length);
@@ -622,6 +624,7 @@ public class SubMngr {
 									BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
                                     wr.close();
 									in.close();
+                                    watchdog.cancel();
 								}
 							}
                 
@@ -761,7 +764,9 @@ public class SubMngr {
 								logger.log(Level.WARNING, "Could not connect to subscriber", e);
 							} else if(e instanceof InstantiationException){
 								logger.warning(e.getMessage());
-							}
+							} else if(e instanceof java.net.SocketTimeoutException){
+                                logger.warning("Connection establishment timed out");
+                            }
 						}
 					}
 				}
@@ -896,5 +901,33 @@ public class SubMngr {
 			logger.log(Level.WARNING, "", e);
 		}
 	}
+
+    public class ConnectionWatchdog extends TimerTask{
+        private URLConnection c=null;
+        public ConnectionWatchdog(URLConnection connection){
+            c=connection;
+        }
+        public void run(){
+            try {
+                try{
+                    c.getOutputStream().close();
+                } catch(Exception e){
+                    logger.log(Level.WARNING, 
+                        "Exception thrown while attempting to close connection outputstream", 
+                        e);
+                }
+                try{
+                    c.getInputStream().close();
+                } catch(Exception e2){
+                    logger.log(Level.WARNING, 
+                        "Exception thrown while attempting to close connection inputstream", 
+                         e2);
+                }
+            } catch(Exception e3){}
+            finally{
+                c=null;
+            }
+        }
+    }
 
 }

@@ -70,7 +70,7 @@ public class PublisherResource extends Resource{
 		database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
 	}
 
-	public synchronized void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
         Query query = m_request.getQuery();
 		if(query.get("query") != null &&
 			((String) query.get("query")).equalsIgnoreCase("true")){
@@ -142,11 +142,11 @@ public class PublisherResource extends Resource{
 		sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 	}
 
-	public synchronized void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		boolean srcalled = false;
 		logger.info("Publisher handling PUT/POST data request");
         Query query = m_request.getQuery();

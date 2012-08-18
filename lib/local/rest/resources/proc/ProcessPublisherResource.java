@@ -43,7 +43,7 @@ public class ProcessPublisherResource extends GenericPublisherResource {
         associatedSubId = subid;
     }
 
-    public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+    public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
         Query query = m_request.getQuery();
         boolean isQuery = (query.containsKey("query") && 
                             ((String)query.get("query")).equalsIgnoreCase("true"))?true:false;

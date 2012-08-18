@@ -66,7 +66,7 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 		TYPE = ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC;
 	}
 
-	public synchronized void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
+	public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
         Query query = m_request.getQuery();
 		if(materialize){
 			if(query.get("query") != null &&
@@ -126,11 +126,11 @@ public class ModelGenericPublisherResource extends GenericPublisherResource {
 		}
 	}
 
-	public synchronized void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		post(m_request, m_response, path, data, internalCall, internalResp);
 	}
 
-	public synchronized void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
+	public void post(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
 		JSONObject resp = new JSONObject();
 		JSONArray errors = new JSONArray();
 		try{

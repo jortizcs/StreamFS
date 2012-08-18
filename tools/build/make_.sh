@@ -9,6 +9,7 @@ jar ufv is4app.jar is4/exceptions/NoMoreRegistrantsException.class
 jar ufv is4app.jar is4/JoinInfoTuple.class
 jar ufv is4app.jar is4/Registrar.class
 jar ufv is4app.jar is4/SubMngr.class
+jar ufv is4app.jar is4/SubMngr\$ConnectionWatchdog.class
 jar ufv is4app.jar is4/stats/SFSStatistics.class
 
 cd lib
@@ -23,6 +24,7 @@ jar ufv ../is4app.jar local/db/Is4Database.class
 jar ufv ../is4app.jar local/db/DBAbstractionLayer.class
 jar ufv ../is4app.jar local/db/MySqlDriver.class
 jar ufv ../is4app.jar local/db/MongoDBDriver.class
+jar ufv ../is4app.jar local/db/MongoDBDriver\$ConnectionWatchdog.class
 jar ufv ../is4app.jar local/json/validator/JSONSchemaValidator.class
 jar ufv ../is4app.jar local/json/javascript/Js2JSONUtils.class
 jar ufv ../is4app.jar local/rest/handlers/JoinHandler.class
