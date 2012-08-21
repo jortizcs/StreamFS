@@ -29,7 +29,7 @@ import local.db.*;
 
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import java.util.Vector;
+import java.util.*;
 
 import net.sf.json.*;
 
@@ -218,5 +218,19 @@ public class ResourceUtils {
         if(!path.endsWith("/"))
             path += "/";
         return path;
+    }
+
+    public static String getParent(String path){
+        path = cleanPath(path);
+        if(path==null || path == "/")
+            return "/";
+        StringTokenizer tokenizer = new StringTokenizer(path, "/");
+        Vector<String> tokens = new Vector<String>();
+        while(tokenizer.hasMoreTokens())
+            tokens.add(tokenizer.nextToken());
+        StringBuffer buf = new StringBuffer();
+        for(int i=0; i<tokens.size(); i++)
+            buf.append("/").append(tokens.elementAt(i));
+        return buf.toString();
     }
 }

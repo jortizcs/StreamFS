@@ -33,7 +33,22 @@ public class ProcessPublisherResource extends GenericPublisherResource {
         throws Exception, InvalidNameException
     {
         super(path, pubid);
+
         materialize = mat;
+        try {
+            String parentStr = ResourceUtils.getParent(URI);
+            Resource parent = RESTServer.getResource(parentStr);
+            logger.info("properties::" +  parent.getProperties().toString());
+            if(parent.getProperties().getJSONObject("script").getString("materialize").equalsIgnoreCase("true")){
+                materialize = true;
+                logger.info("materialize true");
+            } else{
+                logger.info("materialize false");
+            }
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+        }
+
         //set type to generic_publisher
         TYPE= ResourceUtils.PROCESS_PUBLISHER_RSRC;
 		database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
@@ -47,8 +62,28 @@ public class ProcessPublisherResource extends GenericPublisherResource {
         Query query = m_request.getQuery();
         boolean isQuery = (query.containsKey("query") && 
                             ((String)query.get("query")).equalsIgnoreCase("true"))?true:false;
+        logger.info("materialize=" + materialize + "; isQuery=" + isQuery);
+
         if(materialize || isQuery){
-            super.post(m_request, m_response, path, data, internalCall, internalResp);
+
+            try {
+                JSONObject dataObj = (JSONObject)JSONSerializer.toJSON(data);
+                if(dataObj.containsKey("data") && dataObj.opt("data") instanceof JSONArray){
+                    JSONArray dataArray = dataObj.getJSONArray("data");
+                    boolean addts  = query.containsKey("addts")?true:false;
+                    for(int i=0; i<dataArray.size(); i++){
+                        super.handleIncomingData(dataArray.getJSONObject(i), addts);
+                        JSONObject resp = new JSONObject();
+                        resp.put("status", "success");
+                        sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
+                    }
+                } else {
+                    super.post(m_request, m_response, path, data, internalCall, internalResp);
+                }
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+                System.exit(1);
+            }
         } else {
             try {
                 JSONObject dataObj = (JSONObject)JSONSerializer.toJSON(data);

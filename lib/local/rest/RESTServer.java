@@ -319,6 +319,7 @@ public class RESTServer implements Container{
 
             //http
             //RESTServer server = new RESTServer();
+            logger.info("Address=" + bindAddress + "; port=" + port);
             connection = new SocketConnection((Container)this);
             SocketAddress address = new InetSocketAddress(bindAddress, port);
             connection.connect(address);
@@ -337,6 +338,7 @@ public class RESTServer implements Container{
 		catch (Exception e) {
 			logger.log(Level.WARNING, "", e);
 			//e.printStackTrace();
+            System.exit(1);
 		}
 	}
 
