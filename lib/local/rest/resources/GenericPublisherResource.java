@@ -39,6 +39,9 @@ public class GenericPublisherResource extends Resource{
     private ObjectInputStream routerIn = null;
     private ObjectOutputStream routerOut = null;
 
+    //last received data value
+    private JSONObject lastValuesReceived = new JSONObject();
+
 	public GenericPublisherResource(String uri, UUID pubId) throws Exception, InvalidNameException{
 		super(uri);
 		if (pubId != null)
@@ -76,28 +79,17 @@ public class GenericPublisherResource extends Resource{
 			if(properties == null){
 				properties = new JSONObject();
 			}
-			//properties.put("type", "properties");
 			response.put("status", "success");
 
 			UUID assocPubid = database.isRRPublisher2(this.URI);
 			if(assocPubid != null){
-				response.put("pubid", assocPubid.toString());
+				/*response.put("pubid", assocPubid.toString());
 				logger.info("POPULATING");
-				//properties.put("PubId", assocPubid.toString());
-				//properties.put("URI", this.URI);
-				//String dataStr = "URI: " + this.URI + "\n\nPubId: " + assocPubid.toString();
-				//properties.put("data", dataStr);
-
-				//get last few values received
-				//db.is4_main_coll.find().sort({timestamp:1}).limit(5);
 				JSONObject queryJSON = new JSONObject();
-				//queryJSON.put("PubId", publisherId.toString());
-				//queryJSON.put("timestamp", new Long(last_data_ts));
 				queryJSON.put("pubid", publisherId.toString());
 				queryJSON.put("ts", new Long(last_data_ts));
 				JSONObject sortByJSON = new JSONObject();
 				sortByJSON.put("timestamp",1);
-				//MongoDBDriver mongoDriver = new MongoDBDriver();
 				JSONObject lastValuesReceived = mongoDriver.queryWithLimit(
 									queryJSON.toString(), 
 									sortByJSON.toString(), 
@@ -106,7 +98,7 @@ public class GenericPublisherResource extends Resource{
                 if(res!=null && res.size()>0)
                     lastValuesReceived = (JSONObject) res.get(0);
                 else
-                    lastValuesReceived = new JSONObject();
+                    lastValuesReceived = new JSONObject();*/
 				response.put("head", lastValuesReceived.toString());
 			}
 			response.put("properties", properties);
@@ -297,6 +289,7 @@ public class GenericPublisherResource extends Resource{
 		//MongoDBDriver mongod = new MongoDBDriver();
 		//mongod.putEntry(dataCopy);
 		mongoDriver.putTsEntry(data);
+        lastValuesReceived = data;
 		last_data_ts = timestamp;
 	}
 
