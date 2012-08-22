@@ -83,8 +83,8 @@ public class GenericPublisherResource extends Resource{
 
 			UUID assocPubid = database.isRRPublisher2(this.URI);
 			if(assocPubid != null){
-				/*response.put("pubid", assocPubid.toString());
-				logger.info("POPULATING");
+				response.put("pubid", assocPubid.toString());
+				/*logger.info("POPULATING");
 				JSONObject queryJSON = new JSONObject();
 				queryJSON.put("pubid", publisherId.toString());
 				queryJSON.put("ts", new Long(last_data_ts));
