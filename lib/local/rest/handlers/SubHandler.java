@@ -111,6 +111,7 @@ public class SubHandler extends Resource {
 				subResp.put("operation", "subscribe");
 				subResp.put("status", "success");
 				subResp.put("subid", sid);
+                subResp.put("path", subRsrc.getURI());
 
 				sendResponse(m_request, m_response, 200, subResp.toString(), internalCall, internalResp);
 			} else if(initSubStat.containsKey("subid") && initSubStat.containsKey("add_to_existing")){
@@ -120,6 +121,7 @@ public class SubHandler extends Resource {
 				subResp.put("operation", "subscribe");
 				subResp.put("status", "success");
 				subResp.put("subid", sid);
+                subResp.put("path", database.isSubscription(UUID.fromString(sid)));
 
 				sendResponse(m_request, m_response, 200, subResp.toString(), internalCall, internalResp);
             } else{
