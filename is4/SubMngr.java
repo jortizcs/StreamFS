@@ -552,6 +552,7 @@ public class SubMngr {
 	public void dataReceived(JSONObject dataObject){
 
 		logger.fine("dataReceived called: " + dataObject.toString());
+        InfoBusResource.dataReceived(dataObject);
 		try {
 			URL thisSubUrl = null;
 			if(dataObject != null){
