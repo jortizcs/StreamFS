@@ -133,6 +133,10 @@ public class InfoBusResource extends GenericPublisherResource {
     }
 
     public static void dataReceived(JSONObject data){
+        if(data==null)
+            return;
+        if(data.containsKey("PubId"))
+            data.remove("PubId");
         Iterator<Request> keys = eavesdroppers.keySet().iterator();
         boolean error = false;
         Request m_request = null;

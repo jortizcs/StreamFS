@@ -1,5 +1,6 @@
 package local.rest.resources;
 
+
 import local.analytics.*;
 import is4.*;
 import local.db.*;
@@ -11,9 +12,11 @@ import com.mongodb.*;
 import net.sf.json.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.lang.StringBuffer;
+import java.util.zip.GZIPOutputStream;
 
 import javax.naming.InvalidNameException;
 import java.io.*;
@@ -38,6 +41,8 @@ public class GenericPublisherResource extends Resource{
 
     private ObjectInputStream routerIn = null;
     private ObjectOutputStream routerOut = null;
+
+    private ConcurrentHashMap<Request, Response> listeners = new ConcurrentHashMap<Request, Response>();
 
     //last received data value
     private JSONObject lastValuesReceived = new JSONObject();
@@ -69,6 +74,24 @@ public class GenericPublisherResource extends Resource{
 
         if(query.containsKey("incident_paths")){
             super.get(m_request, m_response, path, internalCall, internalResp);
+            return;
+        }
+
+        if(query.containsKey("listen")){
+            boolean error = false;
+            try {
+                if(sendHeaderOnly(m_response))
+                    listeners.put(m_request, m_response);
+            } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
+                error=true;
+            } finally{
+                try {
+                    if(error && m_response!=null)
+                        m_response.close();
+                } catch(Exception e2){
+                }
+            }
             return;
         }
 		
@@ -243,6 +266,10 @@ public class GenericPublisherResource extends Resource{
 		SubMngr submngr = SubMngr.getSubMngrInstance();
 		logger.info("SubMngr Copy: " + dataCopy.toString());
 		submngr.dataReceived(dataCopy);
+
+        //send it to folks tapped into this publisher
+        dataCopy.remove("PubId");
+        this.dataReceived(dataCopy);
 
         logger.info("Called submngr.dataReceived() with the data copy");
 		//get the alias associated with this publisher
@@ -451,5 +478,67 @@ public class GenericPublisherResource extends Resource{
 		resp.put("props_query_results", propsQueryResultsBuffer);
 		sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 	}
+
+    public boolean sendHeaderOnly(Response m_response){
+        try {
+            long time = System.currentTimeMillis();
+            
+            m_response.set("Content-Type", "application/json");
+            m_response.set("Server", "StreamFS/2.0 (Simple 4.0)");
+            m_response.set("Connection", "close");
+            m_response.setDate("Date", time);
+            m_response.setDate("Last-Modified", time);
+            m_response.setCode(200);
+        } catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            return false;
+        }
+        return true;
+    }
+
+    private void dataReceived(JSONObject data){
+        if(data==null)
+            return;
+        if(data.containsKey("PubId"))
+            data.remove("PubId");
+        Iterator<Request> keys = listeners.keySet().iterator();
+        boolean error = false;
+        Request m_request = null;
+        Response m_response = null;
+        while(keys.hasNext()){
+            m_request = keys.next();
+            m_response = listeners.get(m_request);
+            if(m_response!=null){
+                error = false;
+                
+                GZIPOutputStream gzipos = null; 
+                String enc = m_request.getValue("Accept-encoding");
+                boolean gzipResp = false;
+                if(enc!=null && enc.indexOf("gzip")>-1)
+                    gzipResp = true;
+
+                PrintStream body = null;
+                try{
+                    body = m_response.getPrintStream();
+                    if(data!=null && !gzipResp)
+                        body.println(data);
+                    else if(data!=null && gzipResp){
+                        m_response.set("Content-Encoding", "gzip");
+                        gzipos = new GZIPOutputStream((OutputStream)body);
+                        gzipos.write(data.toString().getBytes());
+                        gzipos.close();
+                    }
+                } catch(Exception e) {
+                    error = true;
+                    logger.log(Level.WARNING, "",e);
+                } finally {
+                    if(body!=null && error==true)
+                        body.close();
+                    else if(body!=null)
+                        body.flush();
+                }
+            }
+        }
+    }
 
 }
