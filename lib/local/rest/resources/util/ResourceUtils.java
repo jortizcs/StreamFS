@@ -229,8 +229,12 @@ public class ResourceUtils {
         while(tokenizer.hasMoreTokens())
             tokens.add(tokenizer.nextToken());
         StringBuffer buf = new StringBuffer();
-        for(int i=0; i<tokens.size(); i++)
-            buf.append("/").append(tokens.elementAt(i));
+        if(tokens.size()==1){
+            buf.append("/");
+        } else {
+            for(int i=0; i<tokens.size(); i++)
+                buf.append("/").append(tokens.elementAt(i));
+        }
         return buf.toString();
     }
 }
