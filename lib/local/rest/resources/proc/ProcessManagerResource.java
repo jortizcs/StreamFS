@@ -661,6 +661,8 @@ public class ProcessManagerResource extends Resource {
                                             respObj.getInt("code") == 1 && startProcReqStr !=null){
                                             sendToProcServer(subid, startProcReqStr);
                                             updateSubEntry(subid);
+                                            properties.put("status", "active");
+                                            setNewProperties(properties);
                                         }
                                     }
                                 }
