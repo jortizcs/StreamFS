@@ -804,8 +804,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                         String valStr = innerToks.nextToken();
                         long valLong = -1;
                         if(valStr.contains("now")){
-                            Date date = new Date();
-                            long timestamp = date.getTime()/1000;
+                            long timestamp = System.currentTimeMillis();
                             if(valStr.equalsIgnoreCase("now")){
                                 valLong = timestamp;
                             } else if(valStr.startsWith("now-")){
@@ -1203,8 +1202,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
         propsObj.put("is4_uri", URI.toString());
 
         //add timestamp
-        Date date = new Date();
-        long timestamp = date.getTime()/1000;
+        long timestamp = System.currentTimeMillis();
         propsObj.put("timestamp", timestamp);
 
         //store in mongodb repos

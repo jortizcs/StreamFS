@@ -241,8 +241,7 @@ public class GenericPublisherResource extends Resource{
 		long timestamp;
 		if(addTimestamp || !data.containsKey("ts")){
 			//add timestamp
-			Date date = new Date();
-			timestamp = date.getTime()/1000;
+			timestamp = System.currentTimeMillis();
 			data.put("ts", timestamp);
 			logger.info("adding ts: " + timestamp);
 		} else {

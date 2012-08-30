@@ -159,8 +159,7 @@ public class ModelResource extends Resource implements Runnable {
 		logger.info("Saving new script: \n\tscriptJSON:" + scriptJSON + "\n\tvalid=" + valid + "\n\tmodeHistcount=" + modelHistCount);
 		if(scriptJSON != null &&  valid && last_model_ts==0 && modelHistCount==0){
 			JSONObject scriptRecord = new JSONObject();
-			Date date = new Date();
-			long timestamp = date.getTime()/1000;
+			long timestamp = System.currentTimeMillis();
 			scriptRecord.put("is4_uri", URI);
 			scriptRecord.put("createview", createview);
 			scriptRecord.put("timestamp", timestamp);

@@ -251,8 +251,7 @@ public class PublisherResource extends Resource{
 		//Registrar registrar = Registrar.registrarInstance();
 
 		//add timestamp
-		Date date = new Date();
-		long timestamp = date.getTime()/1000;
+		long timestamp = System.currentTimeMillis();
 		data.put("timestamp", timestamp);
 		
 		String dataStr = data.toString().replace('$', '_');

@@ -93,7 +93,7 @@ public class ResyncSmapStreams extends Resource{
 			//return resync statistics
 			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 		}
-		timestamp = (new Date()).getTime()/1000;
+        timestamp = System.currentTimeMillis();
 	}
 	
 	public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
