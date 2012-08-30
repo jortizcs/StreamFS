@@ -52,8 +52,7 @@ public class TimeResource extends Resource{
 
     public void get(Request m_request, Response m_response, String path, boolean internalCall, JSONObject internalResp){
 		JSONObject response = new JSONObject();
-		Date date = new Date();
-		response.put("Now", date.getTime()/1000);
+		response.put("Now", System.currentTimeMillis());
 		sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
 	}
 
