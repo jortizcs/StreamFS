@@ -267,7 +267,10 @@ public class GenericPublisherResource extends Resource{
 		submngr.dataReceived(dataCopy);
 
         //send it to folks tapped into this publisher
-        dataCopy.remove("PubId");
+        if(data.containsKey("PubId"))
+            data.remove("PubId");
+        if(data.containsKey("ts") && data.containsKey("timestamp"))
+            data.remove("timestamp");
         this.dataReceived(dataCopy);
 
         logger.info("Called submngr.dataReceived() with the data copy");

@@ -1,0 +1,41 @@
+{
+    "operation":"save_proc",
+    "name":"test",
+    "script":{
+        "winsize":10,
+        "materialize":"false",
+        "timeout":80000,
+        "func":"function(buffer, state){ 
+            var outObj = new Object();
+            outObj.msg = 'processed';
+            if(typeof state.multibuf == 'undefined'){
+                state.multibuf = new Object();
+            }
+            for(i=0; i<buffer.length; i++){
+                var streamid = buffer[i].pubid;
+                if(typeof state.multibuf[streamid] == 'undefined'){
+                    state.multibuf[streamid] = new Array();
+                }
+                state.multibuf[streamid].push(buffer[i].value);
+            }
+            var keys = Object.keys(state.multibuf);
+            var total_sum = 0;
+            var total_vals = 0;
+            if(keys.length>2){
+                outObj.stat = 'done';
+                for(j=0; j<keys.length; j++){
+                    var thiskey = keys[j];
+                    for(k=0; k<state.multibuf[thiskey].length; k++){
+                        total_sum += state.multibuf[thiskey][k];
+                    }
+                    total_vals += state.multibuf[thiskey].length;
+                }
+                outObj.avg = total_sum/total_vals;
+                state= new Object();
+            } else {
+                outObj.stat = 'pending';
+            }
+            return outObj;
+        }"
+    }
+}

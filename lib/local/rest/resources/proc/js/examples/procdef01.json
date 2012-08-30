@@ -1,0 +1,15 @@
+{
+    "operation":"save_proc",
+    "name":"testproc",
+    "script":{
+        "winsize":10,
+        "materialize":"false",
+        "timeout":20000,
+        "func":"function(buffer, state){ 
+            var outObj = new Object();
+            outObj.msg = 'processed';
+            outObj.data = buffer;
+            return outObj;
+        }"
+    }
+}

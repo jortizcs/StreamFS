@@ -137,6 +137,9 @@ public class InfoBusResource extends GenericPublisherResource {
             return;
         if(data.containsKey("PubId"))
             data.remove("PubId");
+        if(data.containsKey("ts") && data.containsKey("timestamp"))
+            data.remove("timestamp");
+
         Iterator<Request> keys = eavesdroppers.keySet().iterator();
         boolean error = false;
         Request m_request = null;
