@@ -14,7 +14,7 @@ case $1 in
 start_verbose)
 pid=$(($$))
 echo $pid > /tmp/sfs.pid;
-exec 2>&1 `cat /home/ubuntu/StreamFS/runis4` \
+exec 2>&1 `cat /home/ubuntu/StreamFS/httpsimple/runis4` \
 1>/tmp/sfs.out 
 ;;
 # if verbose option not run on make_.sh, all output is re-direct 
@@ -22,7 +22,7 @@ exec 2>&1 `cat /home/ubuntu/StreamFS/runis4` \
 start)  
 pid=$(($$ + 1))
 echo $pid > /tmp/sfs.pid;
-exec 2>&1 nohup `cat /home/ubuntu/StreamFS/runis4` >/dev/null 2>&1 & \
+exec 2>&1 nohup `cat /home/ubuntu/StreamFS/httpsimple/runis4` >/dev/null 2>&1 & \
 1>/tmp/sfs.out 
 ;;
 stop)  

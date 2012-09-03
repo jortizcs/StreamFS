@@ -9,6 +9,7 @@ import java.util.logging.*;
 import java.io.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MongoDBDriver implements Is4Database {
 
@@ -26,6 +27,10 @@ public class MongoDBDriver implements Is4Database {
     private static boolean WATCHDOG_ACTIVE = false;
     private static int ACTIVE_CONN_CNT = 0;
     private static final Lock LOCK = new ReentrantLock();
+
+    //min stream ts's
+    private static ConcurrentHashMap<String, Long> pubidToMinTs = null;
+    private static String[] pubids_onstartup = null;
 
 	//database
 	private static String dataRepository = "is4_data_repos";
@@ -958,6 +963,87 @@ public class MongoDBDriver implements Is4Database {
             leave();
 		}
 		return count;
+	}
+
+    public long getMinStreamTs(String pubid){
+		long mints=0;
+		boolean dataReposOpen=false;
+        DB dataRepos = null;
+        enter();
+		try{
+            dataRepos = m.getDB(dataRepository);
+            if(!login.equals("") && !password.equals("")){
+                boolean auth = dataRepos.authenticate(login, password.toCharArray());
+                if(auth != true){
+                    logger.severe("Could not authenticate on DB::" + dataRepository + 
+                            " with login=" + login + ",pw=" + password);
+                    System.exit(1);
+                }
+            }
+            DBCollection mCollection  = dataRepos.getCollection(tsCollection);
+            String[] inJArrayStr=null;
+            if(pubids_onstartup==null){
+                List pubids = mCollection.distinct("pubid");
+                Object[] inJArray = pubids.toArray(new Object[0]);
+                inJArrayStr = new String[inJArray.length];
+                int j=0;
+                for(int i=0; i<inJArray.length; i++){
+                    if(inJArray[i] instanceof String){
+                        inJArrayStr[j]=(String)inJArray[i];
+                        j++;
+                    }
+                }
+                pubids_onstartup = Arrays.copyOf(inJArrayStr, inJArray.length);
+            } else {
+                inJArrayStr = Arrays.copyOf(pubids_onstartup, pubids_onstartup.length);
+            }
+
+            dataRepos.requestStart(); dataReposOpen=true;
+            String map = "function() { emit(this.pubid, this.ts); }";
+            String reduce = "function(keys, values) { return Math.min.apply(Math, values); }";
+            String mrResults = "mrResults";
+            QueryBuilder qb = new QueryBuilder();
+            DBObject query = qb.get();
+
+            if(pubidToMinTs == null){
+                pubidToMinTs = new ConcurrentHashMap<String, Long>();
+                MapReduceOutput mintsMapReduceOutput = mCollection.mapReduce(map, reduce, mrResults, query);
+                logger.info(mintsMapReduceOutput.toString());
+
+                DBCollection result = mintsMapReduceOutput.getOutputCollection();
+                if(result !=null && result.count()>0){
+                    DBCursor resultCursor = result.find();
+                    while(resultCursor.hasNext()){
+                        DBObject thisObj = resultCursor.next();
+                        logger.info(thisObj.toString());
+                        String thispubid =(String)thisObj.get("_id");
+                        Object v = thisObj.get("value");
+                        Long val = new Long(-1L);
+                        if(v instanceof Double)
+                            val = ((Double)v).longValue();
+                        else
+                            val = (Long)v;
+
+                        pubidToMinTs.put(thispubid, val);
+                        if(thispubid.equals(pubid))
+                            mints = val.longValue();
+                    }
+                }
+                mintsMapReduceOutput.drop();
+            } else {
+                if(pubidToMinTs.containsKey(pubid))
+                    mints = pubidToMinTs.get(pubid).longValue();
+            }
+            
+
+		} catch(Exception e){
+			logger.log(Level.WARNING, "",e);
+            System.exit(1);
+		} finally {
+            dataRepos.requestDone();
+            leave();
+		}
+		return mints;
 	}
 
 	public long getMaxTsProps(String uri){

@@ -38,9 +38,20 @@ public class GenericPublisherResource extends Resource{
 
 	//public static int TYPE = ResourceUtils.GENERIC_PUBLISHER_RSRC;
 	protected long last_data_ts = 0;
+    protected double start_data_ts = 0;
 
     private ObjectInputStream routerIn = null;
     private ObjectOutputStream routerOut = null;
+
+    //stream stats
+    private double num_points = 0;
+    private double inter_arrival_time_sum = 0;
+    private double inter_arrival_time_sumsqr = 0;
+    private double inter_arrival_time_avg = 0;
+    private double inter_arrival_time_var = 0;
+    private double inter_arrival_time_min = Double.MAX_VALUE;;
+    private double inter_arrival_time_max = 0;
+    private double inter_arrival_time_stddev = 0;
 
     private ConcurrentHashMap<Request, Response> listeners = new ConcurrentHashMap<Request, Response>();
 
@@ -57,6 +68,7 @@ public class GenericPublisherResource extends Resource{
 		//set type to generic_publisher
 		TYPE=ResourceUtils.GENERIC_PUBLISHER_RSRC;
 		database.setRRType(URI, ResourceUtils.translateType(TYPE).toLowerCase());
+        start_data_ts= mongoDriver.getMinStreamTs(publisherId.toString());
 	}
 
     public UUID getPubId(){
@@ -107,22 +119,19 @@ public class GenericPublisherResource extends Resource{
 			UUID assocPubid = database.isRRPublisher2(this.URI);
 			if(assocPubid != null){
 				response.put("pubid", assocPubid.toString());
-				/*logger.info("POPULATING");
-				JSONObject queryJSON = new JSONObject();
-				queryJSON.put("pubid", publisherId.toString());
-				queryJSON.put("ts", new Long(last_data_ts));
-				JSONObject sortByJSON = new JSONObject();
-				sortByJSON.put("timestamp",1);
-				JSONObject lastValuesReceived = mongoDriver.queryWithLimit(
-									queryJSON.toString(), 
-									sortByJSON.toString(), 
-									headCount);
-                JSONArray res = lastValuesReceived.optJSONArray("results");
-                if(res!=null && res.size()>0)
-                    lastValuesReceived = (JSONObject) res.get(0);
-                else
-                    lastValuesReceived = new JSONObject();*/
+                response.put("start_ts",start_data_ts);
 				response.put("head", lastValuesReceived.toString());
+
+                if(query.containsKey("stats")){
+                    JSONObject statsObj = new JSONObject();
+                    statsObj.put("inter_arrival_time_avg", new Double(inter_arrival_time_avg));
+                    statsObj.put("inter_arrival_time_var", new Double(inter_arrival_time_var));
+                    statsObj.put("inter_arrival_time_min", new Double(inter_arrival_time_min));
+                    statsObj.put("inter_arrival_time_max", new Double(inter_arrival_time_max));
+                    statsObj.put("inter_arrival_time_stddev", new Double(inter_arrival_time_stddev));
+                    statsObj.put("units", "ms");
+                    response.put("stats", statsObj);
+                }
 			}
 			response.put("properties", properties);
 			sendResponse(m_request, m_response, 200, response.toString(), internalCall, internalResp);
@@ -313,13 +322,39 @@ public class GenericPublisherResource extends Resource{
 		//put the data entry in the database
 		//database.putInDataRepository(data, publisherId, alias);
 		database.updateLastRecvTs(URI, timestamp);
-
-		//store in the mongodb repos
+       
+        //store in the mongodb repos
 		//MongoDBDriver mongod = new MongoDBDriver();
 		//mongod.putEntry(dataCopy);
 		mongoDriver.putTsEntry(data);
+
+        //calc stats
+        num_points +=1;
+        if(num_points>1){
+            double diff = timestamp-(double)last_data_ts;
+            double oldMean = inter_arrival_time_avg;
+            inter_arrival_time_avg = ((oldMean * (num_points-1))+diff)/num_points;
+            inter_arrival_time_sumsqr += (diff - oldMean)*(diff-inter_arrival_time_avg);
+            inter_arrival_time_var = inter_arrival_time_sumsqr/(num_points-1);
+            inter_arrival_time_stddev = Math.sqrt(inter_arrival_time_var);
+
+            if(diff<inter_arrival_time_min)
+                inter_arrival_time_min=diff;
+            if(diff>inter_arrival_time_max)
+                inter_arrival_time_max=diff;
+
+            logger.info("Timestamp=" + timestamp + ", last_data_ts=" + last_data_ts + ", diff=" + diff + ",sum=" + inter_arrival_time_sum +
+                            ", avg=" + inter_arrival_time_avg + ", sumsqr=" + inter_arrival_time_sumsqr + ", var=" + inter_arrival_time_sum);
+            
+        }
+
+		//update local readings
         lastValuesReceived = data;
 		last_data_ts = timestamp;
+        if(start_data_ts==0)
+            start_data_ts=timestamp;
+
+        
 	}
 
     public void setRouterCommInfo(String routerHost, int routerPort){
