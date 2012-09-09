@@ -191,7 +191,7 @@ public class ResourceUtils {
 					}*/
 					return true;
 				}
-			}
+			} 
 		} catch(Exception e){
 			logger.log(Level.WARNING, "Error adding new resource to " + parentPath, e);
 		}

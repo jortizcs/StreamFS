@@ -212,6 +212,39 @@ public class Resource implements Container{//extends Filter implements HttpHandl
         }
     }
 
+    /*private void partialSend(JSONObject data){
+        if(data==null)
+            return;
+        boolean error = false;
+        if(m_response!=null){
+            GZIPOutputStream gzipos = null; 
+            String enc = m_request.getValue("Accept-encoding");
+            boolean gzipResp = false;
+            if(enc!=null && enc.indexOf("gzip")>-1)
+                gzipResp = true;
+
+            PrintStream body = null;
+            try{
+                body = m_response.getPrintStream();
+                if(data!=null && !gzipResp)
+                    body.println(data);
+                else if(data!=null && gzipResp){
+                    m_response.set("Content-Encoding", "gzip");
+                    gzipos = new GZIPOutputStream((OutputStream)body);
+                    gzipos.write(data.toString().getBytes());
+                }
+            } catch(Exception e) {
+                error = true;
+                logger.log(Level.WARNING, "",e);
+            } finally {
+                if(body!=null && error==true)
+                    body.close();
+                else if(body!=null)
+                    body.flush();
+            }
+        }
+    }*/
+
     public void put(Request m_request, Response m_response, String path, String data, boolean internalCall, JSONObject internalResp){
         try{
             logger.info("PUT " + this.URI);
@@ -219,18 +252,76 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                 JSONObject dataObj = (JSONObject) JSONSerializer.toJSON(data);
                 String op = dataObj.optString("operation");
 
-                logger.info("op=" + op);
-
                 String resourceName = dataObj.optString("resourceName");
-                if(op.equalsIgnoreCase("create_resource") && !resourceName.equals("") &&
-                        ResourceUtils.putResource(this.URI, dataObj) ){
+                logger.info("op=" + op + ";\tdata=" + data + ";\tresourceName=" + 
+                                resourceName);
+                
+                if(op.equalsIgnoreCase("create_resource") && !resourceName.equals("")){
+                    boolean putok = ResourceUtils.putResource(this.URI, dataObj);
+                    logger.info("putok=" + putok);
+                    if(putok){
+                        String myPath = this.URI;
+                        if(!myPath.endsWith("/"))
+                            myPath += "/";
+                        metadataGraph.addNode(myPath + resourceName);
 
-                    String myPath = this.URI;
-                    if(!myPath.endsWith("/"))
-                        myPath += "/";
-                    metadataGraph.addNode(myPath + resourceName);
+                        sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
+                    }
+                }
 
-                    sendResponse(m_request, m_response, 201, null, internalCall, internalResp);
+                else if(op.equalsIgnoreCase("create_resources")){
+                    JSONArray resourceList = dataObj.getJSONArray("list");
+                    JSONObject totalResponse = new JSONObject();
+                    logger.info("op: create_resources");
+                    for(int i=0; i<resourceList.size(); i++){
+                        JSONObject spec = resourceList.getJSONObject(i);
+                        String tpath = spec.getString("path");
+                        String type = spec.getString("type");
+                        logger.info("path=" + tpath + "; type=" + type);
+                        //JSONArray dat = spec.optJSONArray("data");
+                        StringTokenizer tokenizer = new StringTokenizer(tpath, "/");
+                        StringBuffer strBuf = new StringBuffer();
+                        while(tokenizer.hasMoreTokens()){
+                            String parent = strBuf.toString();
+                            if(parent.length()==0)
+                                parent="/";
+                            String next = tokenizer.nextToken();
+                            strBuf.append("/").append(next);
+                            logger.info("parent=" + parent + "; fullpath=" + strBuf.toString());
+                            if(!database.rrPathExists(strBuf.toString())){
+                                logger.info("creating:" + strBuf.toString());
+                                JSONObject req = new JSONObject();
+                                if(type.equalsIgnoreCase("default") || 
+                                    type.equalsIgnoreCase("folder")){
+                                    req.put("operation", "create_resource");
+                                    req.put("resourceName", next);
+                                    req.put("resourceType", "default");
+                                } else if(type.equalsIgnoreCase("generic_publisher") || 
+                                            type.equalsIgnoreCase("stream")){
+                                    if(ResourceUtils.cleanPath(strBuf.toString()).equalsIgnoreCase(ResourceUtils.cleanPath(tpath))){
+                                        req.put("operation", "create_generic_publisher");
+                                        req.put("resourceName", next);
+                                    } else {
+                                        req.put("operation", "create_resource");
+                                        req.put("resourceName", next);
+                                        req.put("resourceType", "default");
+                                    }
+                                }
+                                JSONObject iresp = new JSONObject();
+                                Resource parentR = RESTServer.getResource(parent);
+                                if(parentR!=null){
+                                    parentR.put(m_request, m_response, parent, req.toString(),true, iresp);
+                                    totalResponse.put(strBuf.toString(), iresp);
+                                    logger.info("totalResponse=" + totalResponse.toString());
+                                } else {
+                                    logger.info("parent is null");
+                                }
+                            } else {
+                                logger.info(strBuf.toString() + " alread exists");
+                            }
+                        }
+                    }
+                    sendResponse(m_request, m_response, 201, totalResponse.toString(), internalCall, internalResp);
                 }
 
                 else if ((op.equalsIgnoreCase("create_generic_publisher") || 
