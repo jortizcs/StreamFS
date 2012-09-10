@@ -152,7 +152,11 @@ public class GenericPublisherResource extends Resource{
 		if(query.get("query") != null &&
 		    ((String) query.get("query")).equalsIgnoreCase("true")){
 			query_(m_request, m_response, data, internalCall, internalResp);
-		} else {
+		}  else if(query.get("bulk")!=null){
+            handleBulkDataPost(m_request, m_response, path, data, internalCall, internalResp);
+            return;
+        }
+        else {
 			JSONObject resp = new JSONObject();
 			JSONArray errors = new JSONArray();
 			try{
@@ -167,7 +171,6 @@ public class GenericPublisherResource extends Resource{
 					}
 				} else {
                     UUID pubid = null;
-					String type = (String) query.get("type");
 					String addts = (String) query.get("addts");
                     
                     try {
@@ -178,10 +181,9 @@ public class GenericPublisherResource extends Resource{
                     }
 
                     if(pubid!=null)
-				        logger.info("type: " + type +"; pubid: " + pubid.toString());
+                        logger.info("pubid: " + pubid.toString());
 					
-					if(type != null && pubid != null &&  !type.equals("") && !pubid.equals("") &&
-							type.equalsIgnoreCase("generic") && pubid.compareTo(publisherId)==0){
+					if(pubid != null &&  !pubid.equals("") && pubid.compareTo(publisherId)==0){
 
 						//store and send success
 						if(addts != null && !addts.equals("") && addts.equalsIgnoreCase("false"))
@@ -192,12 +194,8 @@ public class GenericPublisherResource extends Resource{
 						sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
 					} else {
 						resp.put("status", "fail");
-						if(type == null || type.equalsIgnoreCase(""))
-							errors.add("type parameter missing");
 						if(pubid == null || pubid.equals(""))
 							errors.add("pubid parameter missing");
-						if(type != null)
-							errors.add("Unknown type");
 						if(pubid !=null && pubid.compareTo(publisherId) != 0)
 							errors.add("pubid does not match that of this generic publisher");
 						resp.put("errors", errors);
@@ -244,6 +242,74 @@ public class GenericPublisherResource extends Resource{
 		sendResponse(m_request, m_response, 200, null, internalCall, internalResp);
 		
 	}
+
+    public void handleBulkDataPost(Request m_request, Response m_response, String path,
+                            String data, boolean internalCall, JSONObject internalResp){
+        JSONObject resp = new JSONObject();
+	    JSONArray errors = new JSONArray();
+        try{
+            JSONObject dataObject = (JSONObject) JSONSerializer.toJSON(data);
+            logger.info("bulk_request: " + dataObject.toString());
+            
+            try {
+                String path2 = dataObject.getString("path");
+                UUID pubid  = UUID.fromString(dataObject.getString("pubid"));
+                ArrayList<JSONObject> bulk = new ArrayList<JSONObject>();
+                ArrayList<Long> timestamps = new ArrayList<Long>();
+                String p1 = ResourceUtils.cleanPath(this.URI);
+                String p2 = ResourceUtils.cleanPath(path2);
+                JSONArray dataArray = dataObject.getJSONArray("data");
+                int totalpts = dataArray.size();
+                int savedpts = 0;
+                int errorpts = 0;
+                if(pubid.equals(publisherId) && p1.equals(p2)){
+                    for(int i=0; i<totalpts; i++){
+                        try {
+                            JSONObject ptObj = dataArray.getJSONObject(i);
+                            long ts = ptObj.optLong("ts", -1L);
+                            if(ts<0)
+                                ts = System.currentTimeMillis();
+                            Double val = ptObj.getDouble("value");
+
+                            JSONObject dataPt = new JSONObject();
+                            dataPt.put("pubid", pubid.toString());
+                            dataPt.put("ts", ts);
+                            dataPt.put("value", val);
+                            timestamps.add(ts);
+                            bulk.add(dataPt);
+                            savedpts+=1;
+                        } catch(Exception b){
+                            logger.warning("\"pubid\" was not set");
+                            errorpts+=1;
+                        }
+                    }
+                    mongoDriver.putTsEntries(bulk);
+
+                    //update the last_data_ts
+                    Object[] tsvals = timestamps.toArray();
+					Arrays.sort(tsvals);
+					last_data_ts = ((Long)tsvals[tsvals.length-1]).longValue();
+					logger.fine("Set last_data_ts=" + last_data_ts);
+                    resp.put("total_pts", totalpts);
+                    resp.put("pts_saved", savedpts);
+                    resp.put("pts_discarded", errorpts);
+                }
+            } catch(Exception ie){
+                logger.log(Level.WARNING, "", ie);
+                sendResponse(m_request, m_response, 500, resp.toString(), internalCall, internalResp);
+                return;
+            }
+            sendResponse(m_request, m_response, 200, resp.toString(), internalCall, internalResp);
+        }catch(Exception e){
+            logger.log(Level.WARNING, "", e);
+            if(e instanceof JSONException){
+                errors.add("Invalid JSON");
+            }
+            resp.put("status", "fail");
+            resp.put("errors", errors);
+            sendResponse(m_request, m_response, 500, resp.toString(), internalCall, internalResp);
+        }
+    }
 
 	protected void handleIncomingData(JSONObject data, boolean addTimestamp){
 
