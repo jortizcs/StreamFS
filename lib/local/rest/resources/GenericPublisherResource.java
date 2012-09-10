@@ -277,8 +277,47 @@ public class GenericPublisherResource extends Resource{
                             dataPt.put("value", val);
                             timestamps.add(ts);
                             bulk.add(dataPt);
+
+                            //forward data
+                            JSONObject dataCopy = (JSONObject)JSONSerializer.toJSON(dataPt);
+                            dataCopy.put("timestamp", ts);
+                            dataCopy.remove("ts");
+                            dataCopy.put("PubId", publisherId.toString());
+                            dataCopy.remove("pubid");
+                            dataCopy.put("is4_uri", this.URI.toString());
+                            SubMngr submngr = SubMngr.getSubMngrInstance();
+                            logger.info("SubMngr Copy: " + dataCopy.toString());
+                            submngr.dataReceived(dataCopy);
+
+                            //send it to folks tapped into this publisher
+                            dataPt.put("is4_uri", this.URI.toString());
+                            this.dataReceived(dataPt);
+
+                            //calc stats
+                            num_points +=1;
+                            if(num_points>1){
+                                double diff = ts-(double)last_data_ts;
+                                double oldMean = inter_arrival_time_avg;
+                                inter_arrival_time_avg = ((oldMean * (num_points-1))+diff)/num_points;
+                                inter_arrival_time_sumsqr += (diff - oldMean)*(diff-inter_arrival_time_avg);
+                                inter_arrival_time_var = inter_arrival_time_sumsqr/(num_points-1);
+                                inter_arrival_time_stddev = Math.sqrt(inter_arrival_time_var);
+
+                                if(diff<inter_arrival_time_min)
+                                    inter_arrival_time_min=diff;
+                                if(diff>inter_arrival_time_max)
+                                    inter_arrival_time_max=diff;
+                            }
+
+                            //update local readings
+                            dataPt.remove("is4_uri");
+                            lastValuesReceived = dataPt;
+                            last_data_ts = ts;
+                            if(start_data_ts==0)
+                                start_data_ts=ts;
+
                             savedpts+=1;
-                        } catch(Exception b){
+                            } catch(Exception b){
                             logger.warning("\"pubid\" was not set");
                             errorpts+=1;
                         }
@@ -289,7 +328,9 @@ public class GenericPublisherResource extends Resource{
                     Object[] tsvals = timestamps.toArray();
 					Arrays.sort(tsvals);
 					last_data_ts = ((Long)tsvals[tsvals.length-1]).longValue();
-					logger.fine("Set last_data_ts=" + last_data_ts);
+                    database.updateLastRecvTs(URI, last_data_ts);
+					
+                    logger.fine("Set last_data_ts=" + last_data_ts);
                     resp.put("total_pts", totalpts);
                     resp.put("pts_saved", savedpts);
                     resp.put("pts_discarded", errorpts);

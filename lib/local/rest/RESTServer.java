@@ -80,11 +80,17 @@ public class RESTServer implements Container{
 	}
 
     public static void shutdown(){
-        try { connection.close();} catch(Exception e){
+        try { 
+            if(connection!=null)
+                connection.close();
+        } catch(Exception e){
             logger.log(Level.WARNING, "", e);
         }
-        try { connectionHttps.close();} catch(Exception e){
-            logger.log(Level.WARNING, "", e);
+        try { 
+            if(connectionHttps!=null)
+                connectionHttps.close();
+        } catch(Exception e){
+                logger.log(Level.WARNING, "", e);
         }
     }
 

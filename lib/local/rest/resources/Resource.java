@@ -277,6 +277,7 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                         JSONObject spec = resourceList.getJSONObject(i);
                         String tpath = spec.getString("path");
                         String type = spec.getString("type");
+                        JSONArray dataArray = spec.optJSONArray("data");
                         logger.info("path=" + tpath + "; type=" + type);
                         //JSONArray dat = spec.optJSONArray("data");
                         StringTokenizer tokenizer = new StringTokenizer(tpath, "/");
@@ -312,6 +313,20 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                                 if(parentR!=null){
                                     parentR.put(m_request, m_response, parent, req.toString(),true, iresp);
                                     totalResponse.put(strBuf.toString(), iresp);
+                                    try{
+                                        if(iresp.containsKey("PubId") && dataArray!=null && dataArray.size()>0){
+                                            GenericPublisherResource newstreamfile = (GenericPublisherResource)RESTServer.getResource(tpath);
+                                            if(newstreamfile!=null){
+                                                spec.put("pubid", iresp.getString("PubId"));
+                                                spec.remove("type");
+                                                JSONObject iresp2 = new JSONObject();
+                                                newstreamfile.handleBulkDataPost(m_request, m_response, tpath, spec.toString(), true, iresp2);
+                                                logger.info("Bulkpost::path=" + tpath + "\nrequest=" + spec.toString() + "\nresp=" + iresp2.toString());
+                                            }
+                                        }
+                                    } catch(Exception b){
+                                        logger.log(Level.WARNING, "", b);
+                                    }
                                     logger.info("totalResponse=" + totalResponse.toString());
                                 } else {
                                     logger.info("parent is null");
