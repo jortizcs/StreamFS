@@ -313,6 +313,23 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                                 if(parentR!=null){
                                     parentR.put(m_request, m_response, parent, req.toString(),true, iresp);
                                     totalResponse.put(strBuf.toString(), iresp);
+                                   
+                                    //update the properties for this newly created file 
+                                    Resource r = RESTServer.getResource(strBuf.toString());
+                                    if(r!=null && spec.containsKey("properties")){
+                                        try {
+                                            JSONObject propsObj = spec.getJSONObject("properties");
+                                            JSONObject propsRequest = new JSONObject();
+                                            propsRequest.put("operation", "overwrite_properties");
+                                            propsRequest.put("properties", propsObj);
+                                            JSONObject propsReqRes = new JSONObject();
+                                            r.post(m_request, m_response, strBuf.toString(), propsRequest.toString(), true, propsReqRes);
+                                        } catch(Exception propsError){
+                                            logger.log(Level.WARNING, "", propsError);
+                                        }
+                                    }
+
+                                    //if this is a new publisher with specifed data, save the bulk data
                                     try{
                                         if(iresp.containsKey("PubId") && dataArray!=null && dataArray.size()>0){
                                             GenericPublisherResource newstreamfile = (GenericPublisherResource)RESTServer.getResource(tpath);
@@ -333,6 +350,21 @@ public class Resource implements Container{//extends Filter implements HttpHandl
                                 }
                             } else {
                                 logger.info(strBuf.toString() + " alread exists");
+
+                                //update the properties associated with this file that already exists
+                                Resource r = RESTServer.getResource(strBuf.toString());
+                                if(r!=null && spec.containsKey("properties")){
+                                    try {
+                                        JSONObject propsObj = spec.getJSONObject("properties");
+                                        JSONObject propsRequest = new JSONObject();
+                                        propsRequest.put("operation", "update_properties");
+                                        propsRequest.put("properties", propsObj);
+                                        JSONObject propsReqRes = new JSONObject();
+                                        r.post(m_request, m_response, strBuf.toString(), propsRequest.toString(), true, propsReqRes);
+                                    } catch(Exception propsError){
+                                        logger.log(Level.WARNING, "", propsError);
+                                    }
+                                }
                             }
                         }
                     }
