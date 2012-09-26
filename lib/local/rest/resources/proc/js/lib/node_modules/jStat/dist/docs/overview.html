@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>overview - jStat Documentation</title>
+	<link rel="stylesheet" href="assets/style.css" />
+	<link rel="stylesheet" href="assets/sh.css" />
+</head>
+<body>
+	<div id="container">
+    <header>
+      <h1>jStat Documentation</h1>
+      <div id="gtoc">
+        <p><a href="index.html">Index</a> | <a href="all.html">View on single page</a></p>
+      </div>
+      <hr />
+    </header>
+	<div id="toc"><h2>Table Of Contents</h2><ul><li><a href="#overview">Overview</a><ul><li><a href="#description">Description</a></li><li><a href="#architecture">Architecture</a></li></ul></li></ul><hr /></div>
+<h2 id="overview">Overview</h2>
+
+<h3 id="description">Description</h3>
+
+<p>jStat is a statistical library written in JavaScript that allows you to perform advanced statistical operations without the need of a dedicated statistical language (e.g. MATLAB or R).</p>
+
+<h3 id="architecture">Architecture</h3>
+
+<p>Calculations are done by <em>static methods</em>, while working with groups of numbers is handled by the <em>instance methods</em>.
+Here is a pseudo example of what is happening in <code>core.js</code>:</p>
+
+<pre><code>jStat.min = function( arr ) {
+    return Math.min.apply( null, arr );
+}
+
+jStat.prototype.min = function() {
+    var i = 0,
+        newval = [];
+    while( newval.push( jStat.min( this[i] )), ++i &lt; this.length );
+    return newval;
+}</code></pre>
+
+<p><code>jStat.min</code> does the actual calculation on the array, while <code>jStat.prototype.min</code> is a wrapper to help work with the jStat object.
+The reason for this approach is to allow for maxium flexibility to other developers who want to extend jStat, while allowing for easy creation of wrappers.
+This way extending jStat requires minimal performance overhead and allows for more unique wrappers to be created.</p>
+
+<p><strong>Remember: Static methods almost always return native JavaScript types. Instance methods always return a jStat object.</strong></p>
+
+<p>Here is a simple example on the difference in usage between the static and instance methods:</p>
+
+<pre><code>var myVect = [2,6,4,7,2,7,4],
+    jObj = jStat( myVect );
+
+// calculate the sum of the the vector
+jStat.sum( myVect ) === 32;
+jObj.sum() === 32;</code></pre>
+
+<p>Now say we want to do several operations on the vector (e.g. sum, min, max, and standard deviation).
+This can be accomplished using the static methods, but each will need to be called separately.
+By using the jStat object we can pass callback functions and chain the execution of each operation:</p>
+
+<pre><code>jObj.sum( function( val ) {
+    // val === sum
+}).min( function( val ) {
+    // val === min
+}).max( function( val ) {
+    // val === max
+}).stdev( function( val ) {
+    // val === st. dev.
+});</code></pre>
+
+<p>This method sets each calculation to be executed in an asynchronous queue.
+Very useful method of preventing blocking when working with large data sets.</p>
+
+<p>Let&#39;s look at a few chaining and shorthand examples:</p>
+
+<pre><code>jStat( 0, 1, 11 ) === jStat( jStat.seq( 0, 1, 11 ));
+jStat().rand( 4, 4 ) === jStat( jStat.rand( 4, 4 ));
+
+jStat().create( 5, function( x, y ) {
+    return ( x + Math.random()) / ( y + Math.random());
+}).min( true, function( x ) {
+    // do something with the min value
+}).beta( 0.5, 0.5 ).pdf();  // generate and return the pdf
+                            // of the beta function for all values</code></pre>
+	</div>
+	<script src="assets/sh_main.js"></script>
+	<script src="assets/sh_javascript.min.js"></script>
+	<script>highlight(undefined, undefined, 'pre');</script>
+</body>
+</html>

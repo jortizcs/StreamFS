@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>linear-algebra - jStat Documentation</title>
+	<link rel="stylesheet" href="assets/style.css" />
+	<link rel="stylesheet" href="assets/sh.css" />
+</head>
+<body>
+	<div id="container">
+    <header>
+      <h1>jStat Documentation</h1>
+      <div id="gtoc">
+        <p><a href="index.html">Index</a> | <a href="all.html">View on single page</a></p>
+      </div>
+      <hr />
+    </header>
+	<div id="toc"><h2>Table Of Contents</h2><ul><li><a href="#linear_Algebra">Linear Algebra</a></li><li><a href="#instance_Functionality">Instance Functionality</a><ul><li><a href="#add">add( arg )</a></li><li><a href="#subtract">subtract( arg )</a></li><li><a href="#divide">divide( arg )</a></li><li><a href="#multiply">multiply( arg )</a></li><li><a href="#dot">dot( arg )</a></li><li><a href="#pow">pow( arg )</a></li><li><a href="#abs">abs()</a></li><li><a href="#norm">norm()</a></li><li><a href="#angle">angle( arg )</a></li></ul></li><li><a href="#static_Functionality">Static Functionality</a><ul><li><a href="#add">add( arr, arg )</a></li><li><a href="#subtract">subtract( arr, arg )</a></li><li><a href="#divide">divide( arr, arg )</a></li><li><a href="#multiply">multiply( arr, arg )</a></li><li><a href="#dot">dot( arr1, arr2 )</a></li><li><a href="#pow">pow( arr, arg )</a></li><li><a href="#abs">abs(arr)</a></li><li><a href="#norm">norm(arr)</a></li><li><a href="#angle">angle( arr1, arr2 )</a></li><li><a href="#aug">aug(A,B)</a></li><li><a href="#det">det(A)</a></li><li><a href="#inv">inv(A)</a></li><li><a href="#gauss_elimination">gauss_elimination(A,B)</a></li><li><a href="#gauss_jordan">gauss_jordan(A,B)</a></li><li><a href="#lu">lu(A,B)</a></li><li><a href="#cholesky">cholesky(A)</a></li><li><a href="#gauss_jacobi">gauss_jacobi(A,b,x,r)</a></li><li><a href="#gauss_seidel">gauss_seidel(A,b,x,r)</a></li><li><a href="#sOR">SOR(A,b,x,r,w)</a></li><li><a href="#householder">householder(A)</a></li><li><a href="#qR">QR()</a></li><li><a href="#jacobi">jacobi()</a></li><li><a href="#rungekutta">rungekutta()</a></li><li><a href="#romberg">romberg()</a></li><li><a href="#richardson">richardson()</a></li><li><a href="#simpson">simpson()</a></li><li><a href="#hermite">hermite()</a></li><li><a href="#lagrange">lagrange()</a></li><li><a href="#cubic_spline">cubic_spline()</a></li><li><a href="#gauss_quadrature">gauss_quadrature()</a></li><li><a href="#pCA">PCA()</a></li></ul></li></ul><hr /></div>
+<h2 id="linear_Algebra">Linear Algebra</h2>
+
+<h2 id="instance_Functionality">Instance Functionality</h2>
+
+<h3 id="add">add( arg )</h3>
+
+<p>Add value to all entries.</p>
+
+<pre><code>jStat([[1,2,3]]).add( 2 ) === [[3,4,5]];</code></pre>
+
+<h3 id="subtract">subtract( arg )</h3>
+
+<p>Subtract all entries by value.</p>
+
+<pre><code>jStat([[4,5,6]]).subtract( 2 ) === [[2,3,4]];</code></pre>
+
+<h3 id="divide">divide( arg )</h3>
+
+<p>Divide all entries by value.</p>
+
+<pre><code>jStat([[2,4,6]]).divide( 2 ) === [[1,2,3]];</code></pre>
+
+<h3 id="multiply">multiply( arg )</h3>
+
+<p>Multiply all entries by value.</p>
+
+<pre><code>jStat([[1,2,3]]).multiply( 2 ) === [[2,4,6]];</code></pre>
+
+<h3 id="dot">dot( arg )</h3>
+
+<p>Take dot product.</p>
+
+<h3 id="pow">pow( arg )</h3>
+
+<p>Raise all entries by value.</p>
+
+<pre><code>jStat([[1,2,3]]).pow( 2 ) === [[1,4,9]];</code></pre>
+
+<h3 id="abs">abs()</h3>
+
+<p>Return the absolute values of all entries.</p>
+
+<pre><code>jStat([[1,-2,-3]]).abs() === [[1,2,3]];</code></pre>
+
+<h3 id="norm">norm()</h3>
+
+<p>Compulte the norm of a vector.</p>
+
+<h3 id="angle">angle( arg )</h3>
+
+<p>Compute the angle between two vectors.</p>
+
+<h2 id="static_Functionality">Static Functionality</h2>
+
+<h3 id="add">add( arr, arg )</h3>
+
+<p>Add arg to all entries of the array</p>
+
+<h3 id="subtract">subtract( arr, arg )</h3>
+
+<p>Subtract all entries of the array by arg</p>
+
+<h3 id="divide">divide( arr, arg )</h3>
+
+<p>Divide all entries of the array by arg.</p>
+
+<h3 id="multiply">multiply( arr, arg )</h3>
+
+<p>Multiply all entries of the array by arg.</p>
+
+<h3 id="dot">dot( arr1, arr2 )</h3>
+
+<p>Take dot product of array 1 and array 2.</p>
+
+<h3 id="pow">pow( arr, arg )</h3>
+
+<p>Raise all entries of the array to the power of arg</p>
+
+<h3 id="abs">abs(arr)</h3>
+
+<p>Return the absolute values of all entries in the array</p>
+
+<h3 id="norm">norm(arr)</h3>
+
+<p>Compulte the norm of a vector.</p>
+
+<h3 id="angle">angle( arr1, arr2 )</h3>
+
+<p>Compute the angle between two vectors.</p>
+
+<h3 id="aug">aug(A,B)</h3>
+
+<p>Augments matrix A by matrix B</p>
+
+<h3 id="det">det(A)</h3>
+
+<p>Calculates the determinant of matrix A.</p>
+
+<h3 id="inv">inv(A)</h3>
+
+<p>Returns the inverse of the matrix A.</p>
+
+<h3 id="gauss_elimination">gauss_elimination(A,B)</h3>
+
+<p>Performs Gaussian Elimination on matrix A augmented by matrix B.</p>
+
+<h3 id="gauss_jordan">gauss_jordan(A,B)</h3>
+
+<p>Performs Gauss-Jordan Elimination on matrix A augmented by matrix B.</p>
+
+<h3 id="lu">lu(A,B)</h3>
+
+<p>Performs the LU-Decomposition on matrix A.</p>
+
+<h3 id="cholesky">cholesky(A)</h3>
+
+<p>Performs the Cholesky decomposition on matrix A.</p>
+
+<h3 id="gauss_jacobi">gauss_jacobi(A,b,x,r)</h3>
+
+<p>Solves the linear system Ax = b using the Gauss-Jacobi method with an initial guess of r. </p>
+
+<h3 id="gauss_seidel">gauss_seidel(A,b,x,r)</h3>
+
+<p>Solves the linear system Ax = b using the Gauss-Seidel method with an initial guess of r.</p>
+
+<h3 id="sOR">SOR(A,b,x,r,w)</h3>
+
+<p>Solves the linear system Ax = b using the sucessive over-relaxation method with an initial guess of r and parameter w (omega).</p>
+
+<h3 id="householder">householder(A)</h3>
+
+<p>Performs the householder transformation on the matrix A.</p>
+
+<h3 id="qR">QR()</h3>
+
+<h3 id="jacobi">jacobi()</h3>
+
+<h3 id="rungekutta">rungekutta()</h3>
+
+<h3 id="romberg">romberg()</h3>
+
+<h3 id="richardson">richardson()</h3>
+
+<h3 id="simpson">simpson()</h3>
+
+<h3 id="hermite">hermite()</h3>
+
+<h3 id="lagrange">lagrange()</h3>
+
+<h3 id="cubic_spline">cubic_spline()</h3>
+
+<h3 id="gauss_quadrature">gauss_quadrature()</h3>
+
+<h3 id="pCA">PCA()</h3>
+	</div>
+	<script src="assets/sh_main.js"></script>
+	<script src="assets/sh_javascript.min.js"></script>
+	<script>highlight(undefined, undefined, 'pre');</script>
+</body>
+</html>

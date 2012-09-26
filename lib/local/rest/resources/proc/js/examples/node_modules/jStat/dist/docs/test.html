@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>test - jStat Documentation</title>
+	<link rel="stylesheet" href="assets/style.css" />
+	<link rel="stylesheet" href="assets/sh.css" />
+</head>
+<body>
+	<div id="container">
+    <header>
+      <h1>jStat Documentation</h1>
+      <div id="gtoc">
+        <p><a href="index.html">Index</a> | <a href="all.html">View on single page</a></p>
+      </div>
+      <hr />
+    </header>
+	<div id="toc"><h2>Table Of Contents</h2><ul><li><a href="#statistical_Tests">Statistical Tests</a></li><li><a href="#statistics_Instance_Functionality">Statistics Instance Functionality</a><ul><li><a href="#zscore">zscore( value[, flag])</a></li><li><a href="#ztest">ztest( value, sides[, flag])</a></li><li><a href="#tscore">tscore( value)</a></li><li><a href="#ttest">ttest( value, sides)</a></li><li><a href="#anovafscore">anovafscore()</a></li><li><a href="#anovaftest">anovaftest()</a></li></ul></li><li><a href="#static_Methods_">Static Methods </a></li><li><a href="#z_Statistics">Z Statistics</a><ul><li><a href="#jStat.zscore">jStat.zscore( value, mean, sd)</a></li><li><a href="#jStat.zscore">jStat.zscore( value, array[, flag])</a></li><li><a href="#jStat.ztest">jStat.ztest( value, mean, sd, sides)</a></li><li><a href="#jStat.ztest">jStat.ztest( zscore, sides)</a></li><li><a href="#jStat.ztest">jStat.ztest( value, array, sides[, flag])</a></li></ul></li><li><a href="#t_Statistics">T Statistics</a><ul><li><a href="#jStat.tscore">jStat.tscore( value, mean, sd, n)</a></li><li><a href="#jStat.tscore">jStat.tscore( value, array)</a></li><li><a href="#jStat.ttest">jStat.ttest( value, mean, sd, n, sides)</a></li><li><a href="#jStat.ttest">jStat.ttest( tscore, n, sides)</a></li><li><a href="#jStat.ttest">jStat.ttest( value, array, sides)</a></li></ul></li><li><a href="#f_Statistics">F Statistics</a><ul><li><a href="#jStat.anovafscore">jStat.anovafscore( array1, array2, ..., arrayn)</a></li><li><a href="#jStat.anovafscore">jStat.anovafscore( [array1,array2, ...,arrayn])</a></li><li><a href="#jStat.anovaftest">jStat.anovaftest( array1, array2, ...., arrayn)</a></li><li><a href="#jStat.ftest">jStat.ftest( fscore, df1, df2)</a></li></ul></li><li><a href="#confidence_Intervals">Confidence Intervals</a><ul><li><a href="#jStat.normalci">jStat.normalci( value, alpha, sd, n)</a></li><li><a href="#jStat.normalci">jStat.normalci( value, alpha, array)</a></li><li><a href="#jStat.tci">jStat.tci( value, alpha, sd, n)</a></li><li><a href="#jStat.tci">jStat.tci( value, alpha, array)</a></li></ul></li></ul><hr /></div>
+<h2 id="statistical_Tests">Statistical Tests</h2>
+
+<p>The test module includes methods that enact popular statistical tests.
+The tests that are implemented are Z tests, T tests, and F tests.
+Also included are methods for developing confidence intervals. Currently
+regression is not included but it should be included soon (once matrix
+inversion is fixed).</p>
+
+<h2 id="statistics_Instance_Functionality">Statistics Instance Functionality</h2>
+
+<h3 id="zscore">zscore( value[, flag])</h3>
+
+<p>Returns the z-score of the value taking the jStat object as the observed
+values. Flag==true denotes use of sample standard deviation.</p>
+
+<h3 id="ztest">ztest( value, sides[, flag])</h3>
+
+<p>Returns the p-value of the value taking the jStat object as the observed
+values. Sides is an integer value 1 or 2 denoting a 1 or 2 sided z-test.
+The test defaults to a 2 sided z-test if sides is not specified.Flag==true
+denotes use of sample standard devaition.</p>
+
+<h3 id="tscore">tscore( value)</h3>
+
+<p>Returns the t-score of the value taking the jStat object as the observed
+values.</p>
+
+<h3 id="ttest">ttest( value, sides)</h3>
+
+<p>Returns the p-value of the value taking the jStat object as the observed
+values. Sides is an integer value 1 or 2 denoting a 1 or 2 sided t-test.
+The test defaults to a 2 sided t-test if sides is not specified.</p>
+
+<h3 id="anovafscore">anovafscore()</h3>
+
+<p>Returns the f-score of the ANOVA test on the arrays of the jStat object.</p>
+
+<h3 id="anovaftest">anovaftest()</h3>
+
+<p>Returns the p-value of an ANOVA test on the arrays of the jStat object.</p>
+
+<h2 id="static_Methods">Static Methods</h2>
+
+<h2 id="z_Statistics">Z Statistics</h2>
+
+<h3 id="jStat.zscore">jStat.zscore( value, mean, sd)</h3>
+
+<p>Returns the z-score of value given the mean and the standard deviation
+of the test.</p>
+
+<h3 id="jStat.zscore">jStat.zscore( value, array[, flag])</h3>
+
+<p>Returns the z-score of value given the data from array. Flag==true denotes
+use of the sample standard deviation.</p>
+
+<h3 id="jStat.ztest">jStat.ztest( value, mean, sd, sides)</h3>
+
+<p>Returns the p-value of a the z-test of value given the mean and standard
+deviation of the test. Sides is an integer value 1 or 2 denoting a
+one or two sided z-test. If sides is not specified the test defaults
+to a two sided z-test.</p>
+
+<h3 id="jStat.ztest">jStat.ztest( zscore, sides)</h3>
+
+<p>Returns the p-value of the z-score. Sides is an integer value 1 or 2
+denoting a one or two sided z-test. If sides is not specified the test
+defaults to a two sided z-test</p>
+
+<h3 id="jStat.ztest">jStat.ztest( value, array, sides[, flag])</h3>
+
+<p>Returns the p-value of value given the data from the array. Sides is
+an integer value 1 or 2 denoting a one or two sided z-test. If sides
+is not specified the test defaults to a two sided z-test. flag==true
+denotes the use of the sample standard deviation.</p>
+
+<h2 id="t_Statistics">T Statistics</h2>
+
+<h3 id="jStat.tscore">jStat.tscore( value, mean, sd, n)</h3>
+
+<p>Returns the t-score of the value given the mean, standard deviation,
+and the sample size n.</p>
+
+<h3 id="jStat.tscore">jStat.tscore( value, array)</h3>
+
+<p>Returns the t-score of value given the data from the array.</p>
+
+<h3 id="jStat.ttest">jStat.ttest( value, mean, sd, n, sides)</h3>
+
+<p>Returns the p-value of value given the mean, standard deviation,
+and the sample size n. Sides is an integer value 1 or 2 denoting
+a one or two sided t-test. If sides is not specified the test
+defaults to a two sided t-test.</p>
+
+<h3 id="jStat.ttest">jStat.ttest( tscore, n, sides)</h3>
+
+<p>Returns the p-value of the t-score given the sample size n. Sides 
+is an integer value 1 or 2 denoting a one or two sided t-test. 
+If sides is not specified the test defaults to a two sided t-test. </p>
+
+<h3 id="jStat.ttest">jStat.ttest( value, array, sides)</h3>
+
+<p>Returns the p-value of the value given the data in the array.
+Sides is an integer value 1 or 2 denoting a one or two sided 
+t-test. If sides is not specified the test defaults to a two 
+sided t-test.</p>
+
+<h2 id="f_Statistics">F Statistics</h2>
+
+<h3 id="jStat.anovafscore">jStat.anovafscore( array1, array2, ..., arrayn)</h3>
+
+<p>Returns the f-score of an ANOVA on the arrays.</p>
+
+<h3 id="jStat.anovafscore">jStat.anovafscore( [array1,array2, ...,arrayn])</h3>
+
+<p>Returns the f-score of an ANOVA on the arrays.</p>
+
+<h3 id="jStat.anovaftest">jStat.anovaftest( array1, array2, ...., arrayn)</h3>
+
+<p>Returns the p-value of the f-statistic from the ANOVA
+test on the arrays.</p>
+
+<h3 id="jStat.ftest">jStat.ftest( fscore, df1, df2)</h3>
+
+<p>Returns the p-value for the fscore with a numerator degress
+of freedom df1 and the denominator degrees of freedom df2</p>
+
+<h2 id="confidence_Intervals">Confidence Intervals</h2>
+
+<h3 id="jStat.normalci">jStat.normalci( value, alpha, sd, n)</h3>
+
+<p>Returns a 1-alpha confidence interval for the value given
+a normal distribution with a standard deviation sd and a
+sample size n</p>
+
+<h3 id="jStat.normalci">jStat.normalci( value, alpha, array)</h3>
+
+<p>Returns a 1-alpha confidence interval for the value given
+a normal distribution in the data from the array.</p>
+
+<h3 id="jStat.tci">jStat.tci( value, alpha, sd, n)</h3>
+
+<p>Returns a 1-alpha confidence interval for the value given
+the standard deviation and the sample size n.</p>
+
+<h3 id="jStat.tci">jStat.tci( value, alpha, array)</h3>
+
+<p>Returns a 1-alpha confidence interval for the value given
+the data from the array.</p>
+	</div>
+	<script src="assets/sh_main.js"></script>
+	<script src="assets/sh_javascript.min.js"></script>
+	<script>highlight(undefined, undefined, 'pre');</script>
+</body>
+</html>

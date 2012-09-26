@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>distributions - jStat Documentation</title>
+	<link rel="stylesheet" href="assets/style.css" />
+	<link rel="stylesheet" href="assets/sh.css" />
+</head>
+<body>
+	<div id="container">
+    <header>
+      <h1>jStat Documentation</h1>
+      <div id="gtoc">
+        <p><a href="index.html">Index</a> | <a href="all.html">View on single page</a></p>
+      </div>
+      <hr />
+    </header>
+	<div id="toc"><h2>Table Of Contents</h2><ul><li><a href="#distributions">Distributions</a><ul><li><a href="#jStat.beta">jStat.beta( alpha, beta )</a><ul><li><a href="#jStat.beta.pdf">jStat.beta.pdf( x, alpha, beta )</a></li><li><a href="#jStat.beta.cdf">jStat.beta.cdf( x, alpha, beta )</a></li><li><a href="#jStat.beta.inv">jStat.beta.inv( p, alpha, beta )</a></li><li><a href="#jStat.beta.mean">jStat.beta.mean( alpha, beta )</a></li><li><a href="#jStat.beta.median">jStat.beta.median( alpha, beta )</a></li><li><a href="#jStat.beta.mode">jStat.beta.mode( alpha, beta )</a></li><li><a href="#jStat.beta.sample">jStat.beta.sample( alpha, beta )</a></li><li><a href="#jStat.beta.variance">jStat.beta.variance( alpha, beta )</a></li></ul></li><li><a href="#jStat.centralF">jStat.centralF( df1, df2 )</a><ul><li><a href="#jStat.centralF.pdf">jStat.centralF.pdf( x, df1, df2 )</a></li><li><a href="#jStat.centralF.cdf">jStat.centralF.cdf( x, df1, df2 )</a></li><li><a href="#jStat.centralF.inv">jStat.centralF.inv( x, df1, df2 )</a></li><li><a href="#jStat.centralF.mean">jStat.centralF.mean( df1, df2 )</a></li><li><a href="#jStat.centralF.mode">jStat.centralF.mode( df1, df2 )</a></li><li><a href="#jStat.centralF.sample">jStat.centralF.sample( df1, df2 )</a></li><li><a href="#jStat.centralF.variance">jStat.centralF.variance( df1, df2 )</a></li></ul></li><li><a href="#jStat.cauchy">jStat.cauchy( local, scale )</a><ul><li><a href="#jStat.cauchy.pdf">jStat.cauchy.pdf( x, local, scale )</a></li><li><a href="#jStat.cauchy.cdf">jStat.cauchy.cdf( x, local, scale )</a></li><li><a href="#jStat.cauchy.inv">jStat.cauchy.inv( p, local, scale )</a></li><li><a href="#jStat.cauchy.median">jStat.cauchy.median( local, scale )</a></li><li><a href="#jStat.cauchy.mode">jStat.cauchy.mode( local, scale )</a></li><li><a href="#jStat.cauchy.sample">jStat.cauchy.sample( local, scale )</a></li><li><a href="#jStat.cauchy.variance">jStat.cauchy.variance( local, scale )</a></li></ul></li><li><a href="#jStat.chisquare">jStat.chisquare( dof )</a><ul><li><a href="#jStat.chisquare.pdf">jStat.chisquare.pdf( x, dof )</a></li><li><a href="#jStat.chisquare.cdf">jStat.chisquare.cdf( x, dof )</a></li><li><a href="#jStat.chisquare.inv">jStat.chisquare.inv( p, dof )</a></li><li><a href="#jStat.chisquare.mean">jStat.chisquare.mean( dof )</a></li><li><a href="#jStat.chisquare.median">jStat.chisquare.median( dof )</a></li><li><a href="#jStat.chisquare.mode">jStat.chisquare.mode( dof )</a></li><li><a href="#jStat.chisquare.sample">jStat.chisquare.sample( dof )</a></li><li><a href="#jStat.chisquare.variance">jStat.chisquare.variance( dof )</a></li></ul></li><li><a href="#jStat.exponential">jStat.exponential( rate )</a><ul><li><a href="#jStat.exponential.pdf">jStat.exponential.pdf( x, rate )</a></li><li><a href="#jStat.exponential.cdf">jStat.exponential.cdf( x, rate )</a></li><li><a href="#jStat.exponential.inv">jStat.exponential.inv( rate )</a></li><li><a href="#jStat.exponential.mean">jStat.exponential.mean( rate )</a></li><li><a href="#jStat.exponential.median">jStat.exponential.median( rate )</a></li><li><a href="#jStat.exponential.mode">jStat.exponential.mode( rate )</a></li><li><a href="#jStat.exponential.sample">jStat.exponential.sample( rate )</a></li><li><a href="#jStat.exponential.variance">jStat.exponential.variance( rate )</a></li></ul></li><li><a href="#jStat.gamma">jStat.gamma( shape, scale )</a><ul><li><a href="#jStat.gamma.pdf">jStat.gamma.pdf( x, shape, scale )</a></li><li><a href="#jStat.gamma.cdf">jStat.gamma.cdf( x, shape, scale )</a></li><li><a href="#jStat.gamma.inv">jStat.gamma.inv( p, shape, scale )</a></li><li><a href="#jStat.gamma.mean">jStat.gamma.mean( shape, scale )</a></li><li><a href="#jStat.gamma.mode">jStat.gamma.mode( shape, scale )</a></li><li><a href="#jStat.gamma.sample">jStat.gamma.sample( shape, scale )</a></li><li><a href="#jStat.gamma.variance">jStat.gamma.variance( shape, scale )</a></li></ul></li><li><a href="#jStat.invgamma">jStat.invgamma( shape, scale )</a><ul><li><a href="#jStat.invgamma.pdf">jStat.invgamma.pdf( x, shape, scale )</a></li><li><a href="#jStat.invgamma.cdf">jStat.invgamma.cdf( x, shape, scale )</a></li><li><a href="#jStat.invgamma.inv">jStat.invgamma.inv( p, shape, scale )</a></li><li><a href="#jStat.invgamma.mean">jStat.invgamma.mean( shape, scale )</a></li><li><a href="#jStat.invgamma.mode">jStat.invgamma.mode( shape, scale )</a></li><li><a href="#jStat.invgamma.sample">jStat.invgamma.sample( shape, scale )</a></li><li><a href="#jStat.invgamma.variance">jStat.invgamma.variance( shape, scale )</a></li></ul></li><li><a href="#jStat.kumaraswamy">jStat.kumaraswamy( alpha, beta )</a><ul><li><a href="#jStat.kumaraswamy.pdf">jStat.kumaraswamy.pdf( x, a, b )</a></li><li><a href="#jStat.kumaraswamy.cdf">jStat.kumaraswamy.cdf( x, alpha, beta )</a></li><li><a href="#jStat.kumaraswamy.mean">jStat.kumaraswamy.mean( alpha, beta )</a></li><li><a href="#jStat.kumaraswamy.median">jStat.kumaraswamy.median( alpha, beta )</a></li><li><a href="#jStat.kumaraswamy.mode">jStat.kumaraswamy.mode( alpha, beta )</a></li><li><a href="#jStat.kumaraswamy.variance">jStat.kumaraswamy.variance( alpha, beta )</a></li></ul></li><li><a href="#jStat.lognormal">jStat.lognormal( mu, sigma )</a><ul><li><a href="#jStat.lognormal.pdf">jStat.lognormal.pdf( x, mu, sigma )</a></li><li><a href="#jStat.lognormal.cdf">jStat.lognormal.cdf( x, mu, sigma )</a></li><li><a href="#jStat.lognormal.inv">jStat.lognormal.inv( p, mu, sigma )</a></li><li><a href="#jStat.lognormal.mean">jStat.lognormal.mean( mu, sigma )</a></li><li><a href="#jStat.lognormal.median">jStat.lognormal.median( mu, sigma )</a></li><li><a href="#jStat.lognormal.mode">jStat.lognormal.mode( mu, sigma )</a></li><li><a href="#jStat.lognormal.sample">jStat.lognormal.sample( mu, sigma )</a></li><li><a href="#jStat.lognormal.variance">jStat.lognormal.variance( mu, sigma )</a></li></ul></li><li><a href="#jStat.normal">jStat.normal( mean, std )</a><ul><li><a href="#jStat.normal.pdf">jStat.normal.pdf( x, mean, std )</a></li><li><a href="#jStat.normal.cdf">jStat.normal.cdf( x, mean, std )</a></li><li><a href="#jStat.normal.inv">jStat.normal.inv( p, mean, std )</a></li><li><a href="#jStat.normal.mean">jStat.normal.mean( mean, std )</a></li><li><a href="#jStat.normal.median">jStat.normal.median( mean, std )</a></li><li><a href="#jStat.normal.mode">jStat.normal.mode( mean, std )</a></li><li><a href="#jStat.normal.sample">jStat.normal.sample( mean, std )</a></li><li><a href="#jStat.normal.variance">jStat.normal.variance( mean, std )</a></li></ul></li><li><a href="#jStat.pareto">jStat.pareto( scale, shape )</a><ul><li><a href="#jStat.pareto.pdf">jStat.pareto.pdf( x, scale, shape )</a></li><li><a href="#jStat.pareto.cdf">jStat.pareto.cdf( x, scale, shape )</a></li><li><a href="#jStat.pareto.mean">jStat.pareto.mean( scale, shape )</a></li><li><a href="#jStat.pareto.median">jStat.pareto.median( scale, shape )</a></li><li><a href="#jStat.pareto.mode">jStat.pareto.mode( scale, shape )</a></li><li><a href="#jStat.pareto.variance">jStat.pareto.variance( scale, shape )</a></li></ul></li><li><a href="#jStat.studentt">jStat.studentt( dof )</a><ul><li><a href="#jStat.studentt.pdf">jStat.studentt.pdf( x, dof )</a></li><li><a href="#jStat.studentt.cdf">jStat.studentt.cdf( x, dof )</a></li><li><a href="#jStat.studentt.inv">jStat.studentt.inv( p, dof )</a></li><li><a href="#jStat.studentt.mean">jStat.studentt.mean( dof )</a></li><li><a href="#jStat.studentt.median">jStat.studentt.median( dof )</a></li><li><a href="#jStat.studentt.mode">jStat.studentt.mode( dof )</a></li><li><a href="#jStat.studentt.sample">jStat.studentt.sample( dof )</a></li><li><a href="#jStat.studentt.variance">jStat.studentt.variance( dof )</a></li></ul></li><li><a href="#jStat.weibull">jStat.weibull( scale, shape )</a><ul><li><a href="#jStat.weibull.pdf">jStat.weibull.pdf( x, scale, shape )</a></li><li><a href="#jStat.weibull.cdf">jStat.weibull.cdf( x, scale, shape )</a></li><li><a href="#jStat.weibull.inv">jStat.weibull.inv( p, scale, shape )</a></li><li><a href="#jStat.weibull.mean">jStat.weibull.mean( scale, shape )</a></li><li><a href="#jStat.weibull.median">jStat.weibull.median( scale, shape )</a></li><li><a href="#jStat.weibull.mode">jStat.weibull.mode( scale, shape )</a></li><li><a href="#jStat.weibull.sample">jStat.weibull.sample( scale, shape )</a></li><li><a href="#jStat.weibull.variance">jStat.weibull.variance( scale, shape )</a></li></ul></li><li><a href="#jStat.uniform">jStat.uniform( a, b )</a><ul><li><a href="#jStat.uniform.pdf">jStat.uniform.pdf( x, a, b )</a></li><li><a href="#jStat.uniform.cdf">jStat.uniform.cdf( x, a, b )</a></li><li><a href="#jStat.uniform.mean">jStat.uniform.mean( a, b )</a></li><li><a href="#jStat.uniform.median">jStat.uniform.median( a, b )</a></li><li><a href="#jStat.uniform.mode">jStat.uniform.mode( a, b )</a></li><li><a href="#jStat.uniform.sample">jStat.uniform.sample( a, b )</a></li><li><a href="#jStat.uniform.variance">jStat.uniform.variance( a, b )</a></li></ul></li><li><a href="#jStat.binomial">jStat.binomial</a><ul><li><a href="#jStat.binomial.pdf">jStat.binomial.pdf( k, n, p )</a></li><li><a href="#jStat.binomial.cdf">jStat.binomial.cdf( k, n, p )</a></li></ul></li><li><a href="#jStat.negbin">jStat.negbin</a><ul><li><a href="#jStat.negbin.pdf">jStat.negbin.pdf( k, r, p )</a></li><li><a href="#jStat.negbin.cdf">jStat.negbin.cdf( x, r, p )</a></li></ul></li><li><a href="#jStat.hypgeom">jStat.hypgeom</a><ul><li><a href="#jStat.hypgeom.pdf">jStat.hypgeom.pdf( k, N, m, n )</a></li><li><a href="#jStat.hypgeom.cdf">jStat.hypgeom.cdf( x, N, m, n )</a></li></ul></li><li><a href="#jStat.poisson">jStat.poisson</a><ul><li><a href="#jStat.poisson.pdf">jStat.poisson.pdf( k, l )</a></li><li><a href="#jStat.poisson.cdf">jStat.poisson.cdf( x, l )</a></li></ul></li><li><a href="#jStat.triangular">jStat.triangular</a><ul><li><a href="#jStat.triangular.pdf">jStat.triangular.pdf( x, a, b, c )</a></li><li><a href="#jStat.triangular.cdf">jStat.triangular.cdf( x, a, b, c )</a></li><li><a href="#jStat.triangular.mean">jStat.triangular.mean( a, b, c )</a></li><li><a href="#jStat.triangular.median">jStat.triangular.median( a, b, c )</a></li><li><a href="#jStat.triangular.mode">jStat.triangular.mode( a, b, c )</a></li><li><a href="#jStat.triangular.variance">jStat.triangular.variance( a, b, c )</a></li></ul></li></ul></li></ul><hr /></div>
+<h2 id="distributions">Distributions</h2>
+
+<h3 id="jStat.beta">jStat.beta( alpha, beta )</h3>
+
+<h4 id="jStat.beta.pdf">jStat.beta.pdf( x, alpha, beta )</h4>
+
+<p>Returns the value of x in the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.cdf">jStat.beta.cdf( x, alpha, beta )</h4>
+
+<p>Returns the value of x in the cdf for the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.inv">jStat.beta.inv( p, alpha, beta )</h4>
+
+<p>Returns the value of p in the inverse of the cdf for the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.mean">jStat.beta.mean( alpha, beta )</h4>
+
+<p>Returns the mean of the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.median">jStat.beta.median( alpha, beta )</h4>
+
+<p>Returns the median of the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.mode">jStat.beta.mode( alpha, beta )</h4>
+
+<p>Returns the mode of the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.sample">jStat.beta.sample( alpha, beta )</h4>
+
+<p>Returns a random number whose distribution is the Beta distribution with parameters alpha and beta.</p>
+
+<h4 id="jStat.beta.variance">jStat.beta.variance( alpha, beta )</h4>
+
+<p>Returns the variance of the Beta distribution with parameters alpha and beta.</p>
+
+<h3 id="jStat.centralF">jStat.centralF( df1, df2 )</h3>
+
+<h4 id="jStat.centralF.pdf">jStat.centralF.pdf( x, df1, df2 )</h4>
+
+<p>Returns the value of x in the pdf of the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.cdf">jStat.centralF.cdf( x, df1, df2 )</h4>
+
+<p>Returns the value of x in the cdf of the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.inv">jStat.centralF.inv( x, df1, df2 )</h4>
+
+<p>Returns the value of x in the inverse of the cdf for the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.mean">jStat.centralF.mean( df1, df2 )</h4>
+
+<p>Returns the mean of the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.mode">jStat.centralF.mode( df1, df2 )</h4>
+
+<p>Returns the mode of the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.sample">jStat.centralF.sample( df1, df2 )</h4>
+
+<p>Returns a random number whose distribution is the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h4 id="jStat.centralF.variance">jStat.centralF.variance( df1, df2 )</h4>
+
+<p>Returns the variance of the (Central) F distribution with numerator degrees of freedom df1 and denominator degrees of freedom df2.</p>
+
+<h3 id="jStat.cauchy">jStat.cauchy( local, scale )</h3>
+
+<h4 id="jStat.cauchy.pdf">jStat.cauchy.pdf( x, local, scale )</h4>
+
+<p>Returns the value of x in the pdf of the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.cdf">jStat.cauchy.cdf( x, local, scale )</h4>
+
+<p>Returns the value of x in the cdf of the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.inv">jStat.cauchy.inv( p, local, scale )</h4>
+
+<p>Returns the value of p in the inverse of the cdf for the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.median">jStat.cauchy.median( local, scale )</h4>
+
+<p>Returns the value of the median for the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.mode">jStat.cauchy.mode( local, scale )</h4>
+
+<p>Returns the value of the mode for the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.sample">jStat.cauchy.sample( local, scale )</h4>
+
+<p>Returns a random number whose distribution is the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h4 id="jStat.cauchy.variance">jStat.cauchy.variance( local, scale )</h4>
+
+<p>Returns the value of the variance for the Cauchy distribution with a location (median) of local and scale factor of scale.</p>
+
+<h3 id="jStat.chisquare">jStat.chisquare( dof )</h3>
+
+<h4 id="jStat.chisquare.pdf">jStat.chisquare.pdf( x, dof )</h4>
+
+<p>Returns the value of x in the pdf of the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.cdf">jStat.chisquare.cdf( x, dof )</h4>
+
+<p>Returns the value of x in the cdf of the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.inv">jStat.chisquare.inv( p, dof )</h4>
+
+<p>Returns the value of x in the inverse of the cdf for the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.mean">jStat.chisquare.mean( dof )</h4>
+
+<p>Returns the value of the mean for the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.median">jStat.chisquare.median( dof )</h4>
+
+<p>Returns the value of the median for the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.mode">jStat.chisquare.mode( dof )</h4>
+
+<p>Returns the value of the mode for the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.sample">jStat.chisquare.sample( dof )</h4>
+
+<p>Returns a random number whose distribution is the Chi Square distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.chisquare.variance">jStat.chisquare.variance( dof )</h4>
+
+<p>Returns the value of the variance for the Chi Square distribution with degrees of freedom dof.</p>
+
+<h3 id="jStat.exponential">jStat.exponential( rate )</h3>
+
+<h4 id="jStat.exponential.pdf">jStat.exponential.pdf( x, rate )</h4>
+
+<p>Returns the value of x in the pdf of the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.cdf">jStat.exponential.cdf( x, rate )</h4>
+
+<p>Returns the value of x in the cdf of the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.inv">jStat.exponential.inv( rate )</h4>
+
+<p>Returns the value of x in the inverse of the cdf for the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.mean">jStat.exponential.mean( rate )</h4>
+
+<p>Returns the value of the mean for the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.median">jStat.exponential.median( rate )</h4>
+
+<p>Returns the value of the median for the Exponential distribution with the parameter rate (lambda)</p>
+
+<h4 id="jStat.exponential.mode">jStat.exponential.mode( rate )</h4>
+
+<p>Returns the value of the mode for the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.sample">jStat.exponential.sample( rate )</h4>
+
+<p>Returns a random number whose distribution is the Exponential distribution with the parameter rate (lambda).</p>
+
+<h4 id="jStat.exponential.variance">jStat.exponential.variance( rate )</h4>
+
+<p>Returns the value of the variance for the Exponential distribution with the parameter rate (lambda).</p>
+
+<h3 id="jStat.gamma">jStat.gamma( shape, scale )</h3>
+
+<h4 id="jStat.gamma.pdf">jStat.gamma.pdf( x, shape, scale )</h4>
+
+<p>Returns the value of x in the pdf of the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.cdf">jStat.gamma.cdf( x, shape, scale )</h4>
+
+<p>Returns the value of x in the cdf of the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.inv">jStat.gamma.inv( p, shape, scale )</h4>
+
+<p>Returns the value of p in the inverse of the cdf for the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.mean">jStat.gamma.mean( shape, scale )</h4>
+
+<p>Returns the value of the mean for the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.mode">jStat.gamma.mode( shape, scale )</h4>
+
+<p>Returns the value of the mode for the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.sample">jStat.gamma.sample( shape, scale )</h4>
+
+<p>Returns a random number whose distribution is the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h4 id="jStat.gamma.variance">jStat.gamma.variance( shape, scale )</h4>
+
+<p>Returns the value of the variance for the Gamma distribution with the parameters shape (k) and scale (theta). Notice that if using the alpha beta convention, scale = 1/beta.</p>
+
+<h3 id="jStat.invgamma">jStat.invgamma( shape, scale )</h3>
+
+<h4 id="jStat.invgamma.pdf">jStat.invgamma.pdf( x, shape, scale )</h4>
+
+<p>Returns the value of x in the pdf of the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.cdf">jStat.invgamma.cdf( x, shape, scale )</h4>
+
+<p>Returns the value of x in the cdf of the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.inv">jStat.invgamma.inv( p, shape, scale )</h4>
+
+<p>Returns the value of p in the inverse of the cdf for the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.mean">jStat.invgamma.mean( shape, scale )</h4>
+
+<p>Returns the value of the mean for the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.mode">jStat.invgamma.mode( shape, scale )</h4>
+
+<p>Returns the value of the mode for the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.sample">jStat.invgamma.sample( shape, scale )</h4>
+
+<p>Returns a random number whose distribution is the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h4 id="jStat.invgamma.variance">jStat.invgamma.variance( shape, scale )</h4>
+
+<p>Returns the value of the variance for the Inverse-Gamma distribution with parametres shape (alpha) and scale (beta).</p>
+
+<h3 id="jStat.kumaraswamy">jStat.kumaraswamy( alpha, beta )</h3>
+
+<h4 id="jStat.kumaraswamy.pdf">jStat.kumaraswamy.pdf( x, a, b )</h4>
+
+<p>Returns the value of x in the pdf of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h4 id="jStat.kumaraswamy.cdf">jStat.kumaraswamy.cdf( x, alpha, beta )</h4>
+
+<p>Returns the value of x in the cdf of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h4 id="jStat.kumaraswamy.mean">jStat.kumaraswamy.mean( alpha, beta )</h4>
+
+<p>Returns the value of the mean of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h4 id="jStat.kumaraswamy.median">jStat.kumaraswamy.median( alpha, beta )</h4>
+
+<p>Returns the value of the median of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h4 id="jStat.kumaraswamy.mode">jStat.kumaraswamy.mode( alpha, beta )</h4>
+
+<p>Returns the value of the mode of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h4 id="jStat.kumaraswamy.variance">jStat.kumaraswamy.variance( alpha, beta )</h4>
+
+<p>Returns the value of the variance of the Kumaraswamy distribution with parameters a and b.</p>
+
+<h3 id="jStat.lognormal">jStat.lognormal( mu, sigma )</h3>
+
+<h4 id="jStat.lognormal.pdf">jStat.lognormal.pdf( x, mu, sigma )</h4>
+
+<p>Returns the value of x in the pdf of the Log-normal distribution with paramters mu (mean) and sigma (standard deviation).</p>
+
+<h4 id="jStat.lognormal.cdf">jStat.lognormal.cdf( x, mu, sigma )</h4>
+
+<p>Returns the value of x in the cdf of the Log-normal distribution with paramters mu (mean) and sigma (standard deviation).</p>
+
+<h4 id="jStat.lognormal.inv">jStat.lognormal.inv( p, mu, sigma )</h4>
+
+<p>Returns the value of x in the inverse of the cdf for the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h4 id="jStat.lognormal.mean">jStat.lognormal.mean( mu, sigma )</h4>
+
+<p>Returns the value of the mean for the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h4 id="jStat.lognormal.median">jStat.lognormal.median( mu, sigma )</h4>
+
+<p>Returns the value of the median for the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h4 id="jStat.lognormal.mode">jStat.lognormal.mode( mu, sigma )</h4>
+
+<p>Returns the value of the mode for the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h4 id="jStat.lognormal.sample">jStat.lognormal.sample( mu, sigma )</h4>
+
+<p>Returns a random number whose distribution is the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h4 id="jStat.lognormal.variance">jStat.lognormal.variance( mu, sigma )</h4>
+
+<p>Returns the value of the variance for the Log-normal distribution with paramters mu (mean of the Normal distribution) and sigma (standard deviation of the Normal distribution).</p>
+
+<h3 id="jStat.normal">jStat.normal( mean, std )</h3>
+
+<h4 id="jStat.normal.pdf">jStat.normal.pdf( x, mean, std )</h4>
+
+<p>Returns the value of x in the pdf of the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.cdf">jStat.normal.cdf( x, mean, std )</h4>
+
+<p>Returns the value of x in the cdf of the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.inv">jStat.normal.inv( p, mean, std )</h4>
+
+<p>Returns the value of p in the inverse cdf for the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.mean">jStat.normal.mean( mean, std )</h4>
+
+<p>Returns the value of the mean for the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.median">jStat.normal.median( mean, std )</h4>
+
+<p>Returns the value of the median for the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.mode">jStat.normal.mode( mean, std )</h4>
+
+<p>Returns the value of the mode for the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.sample">jStat.normal.sample( mean, std )</h4>
+
+<p>Returns a random number whose distribution is the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h4 id="jStat.normal.variance">jStat.normal.variance( mean, std )</h4>
+
+<p>Returns the value of the variance for the Normal distribution with parameters mean and std (standard deviation).</p>
+
+<h3 id="jStat.pareto">jStat.pareto( scale, shape )</h3>
+
+<h4 id="jStat.pareto.pdf">jStat.pareto.pdf( x, scale, shape )</h4>
+
+<p>Returns the value of x in the pdf of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h4 id="jStat.pareto.cdf">jStat.pareto.cdf( x, scale, shape )</h4>
+
+<p>Returns the value of x in the cdf of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h4 id="jStat.pareto.mean">jStat.pareto.mean( scale, shape )</h4>
+
+<p>Returns the value of the mean of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h4 id="jStat.pareto.median">jStat.pareto.median( scale, shape )</h4>
+
+<p>Returns the value of the median of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h4 id="jStat.pareto.mode">jStat.pareto.mode( scale, shape )</h4>
+
+<p>Returns the value of the mode of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h4 id="jStat.pareto.variance">jStat.pareto.variance( scale, shape )</h4>
+
+<p>Returns the value of the variance of the Pareto distribution with parameters scale (x_m) and shape (alpha).</p>
+
+<h3 id="jStat.studentt">jStat.studentt( dof )</h3>
+
+<h4 id="jStat.studentt.pdf">jStat.studentt.pdf( x, dof )</h4>
+
+<p>Returns the value of x in the pdf of the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.cdf">jStat.studentt.cdf( x, dof )</h4>
+
+<p>Returns the value of x in the cdf of the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.inv">jStat.studentt.inv( p, dof )</h4>
+
+<p>Returns the value of p in the inverse of the cdf for the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.mean">jStat.studentt.mean( dof )</h4>
+
+<p>Returns the value of the mean of the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.median">jStat.studentt.median( dof )</h4>
+
+<p>Returns the value of the median of the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.mode">jStat.studentt.mode( dof )</h4>
+
+<p>Returns the value of the mode of the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.sample">jStat.studentt.sample( dof )</h4>
+
+<p>Returns a random number whose distribution is the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h4 id="jStat.studentt.variance">jStat.studentt.variance( dof )</h4>
+
+<p>Returns the value of the variance for the Student&#39;s T distribution with degrees of freedom dof.</p>
+
+<h3 id="jStat.weibull">jStat.weibull( scale, shape )</h3>
+
+<h4 id="jStat.weibull.pdf">jStat.weibull.pdf( x, scale, shape )</h4>
+
+<p>Returns the value x in the pdf for the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.cdf">jStat.weibull.cdf( x, scale, shape )</h4>
+
+<p>Returns the value x in the cdf for the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.inv">jStat.weibull.inv( p, scale, shape )</h4>
+
+<p>Returns the value of x in the inverse of the cdf for the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.mean">jStat.weibull.mean( scale, shape )</h4>
+
+<p>Returns the value of the mean of the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.median">jStat.weibull.median( scale, shape )</h4>
+
+<p>Returns the value of the median of the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.mode">jStat.weibull.mode( scale, shape )</h4>
+
+<p>Returns the mode of the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.sample">jStat.weibull.sample( scale, shape )</h4>
+
+<p>Returns a random number whose distribution is the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h4 id="jStat.weibull.variance">jStat.weibull.variance( scale, shape )</h4>
+
+<p>Returns the variance of the Weibull distribution with parameters scale (lambda) and shape (k).</p>
+
+<h3 id="jStat.uniform">jStat.uniform( a, b )</h3>
+
+<h4 id="jStat.uniform.pdf">jStat.uniform.pdf( x, a, b )</h4>
+
+<p>Returns the value of x in the pdf of the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.cdf">jStat.uniform.cdf( x, a, b )</h4>
+
+<p>Returns the value of x in the cdf of the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.mean">jStat.uniform.mean( a, b )</h4>
+
+<p>Returns the value of the mean of the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.median">jStat.uniform.median( a, b )</h4>
+
+<p>Returns the value of the median of the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.mode">jStat.uniform.mode( a, b )</h4>
+
+<p>Returns the value of the mode of the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.sample">jStat.uniform.sample( a, b )</h4>
+
+<p>Returns a random number whose distribution is the Uniform distribution from a to b.</p>
+
+<h4 id="jStat.uniform.variance">jStat.uniform.variance( a, b )</h4>
+
+<p>Returns the variance of the Uniform distribution from a to b.</p>
+
+<h3 id="jStat.binomial">jStat.binomial</h3>
+
+<h4 id="jStat.binomial.pdf">jStat.binomial.pdf( k, n, p )</h4>
+
+<p>Returns the value of k in the pdf of the Binomial distribution with parameters n and p.</p>
+
+<h4 id="jStat.binomial.cdf">jStat.binomial.cdf( k, n, p )</h4>
+
+<p>Returns the value of k in the cdf of the Binomial distribution with parameters n and p.</p>
+
+<h3 id="jStat.negbin">jStat.negbin</h3>
+
+<h4 id="jStat.negbin.pdf">jStat.negbin.pdf( k, r, p )</h4>
+
+<p>Returns the value of k in the pdf of the Negative Binomial distribution with parameters n and p.</p>
+
+<h4 id="jStat.negbin.cdf">jStat.negbin.cdf( x, r, p )</h4>
+
+<p>Returns the value of x in the cdf of the Negative Binomial distribution with parameters n and p.</p>
+
+<h3 id="jStat.hypgeom">jStat.hypgeom</h3>
+
+<h4 id="jStat.hypgeom.pdf">jStat.hypgeom.pdf( k, N, m, n )</h4>
+
+<p>Returns the value of k in the pdf of the Hypergeometric distribution with parameters N (the population size), m (the success rate), and n (the number of draws).
+#### jStat.hypgeom.cdf( x, N, m, n )</p>
+
+<p>Returns the value of k in the pdf of the Hypergeometric distribution with parameters N (the population size), m (the success rate), and n (the number of draws).</p>
+
+<h3 id="jStat.poisson">jStat.poisson</h3>
+
+<h4 id="jStat.poisson.pdf">jStat.poisson.pdf( k, l )</h4>
+
+<p>Returns the value of k in the pdf of the Poisson distribution with parameter l (lambda).</p>
+
+<h4 id="jStat.poisson.cdf">jStat.poisson.cdf( x, l )</h4>
+
+<p>Returns the value of x in the cdf of the Poisson distribution with parameter l (lambda).</p>
+
+<h3 id="jStat.triangular">jStat.triangular</h3>
+
+<h4 id="jStat.triangular.pdf">jStat.triangular.pdf( x, a, b, c )</h4>
+
+<p>Returns the value of x in the pdf of the Triangular distribution with the parameters a, b, and c.</p>
+
+<h4 id="jStat.triangular.cdf">jStat.triangular.cdf( x, a, b, c )</h4>
+
+<p>Returns the value of x in the cdf of the Triangular distribution with the parameters a, b, and c.</p>
+
+<h4 id="jStat.triangular.mean">jStat.triangular.mean( a, b, c )</h4>
+
+<p>Returns the value of the mean of the Triangular distribution with the parameters a, b, and c.</p>
+
+<h4 id="jStat.triangular.median">jStat.triangular.median( a, b, c )</h4>
+
+<p>Returns the value of the median of the Triangular distribution with the parameters a, b, and c.</p>
+
+<h4 id="jStat.triangular.mode">jStat.triangular.mode( a, b, c )</h4>
+
+<p>Returns the value of the mode of the Triangular distribution with the parameters a, b, and c.</p>
+
+<h4 id="jStat.triangular.variance">jStat.triangular.variance( a, b, c )</h4>
+
+<p>Returns the value of the variance of the Triangular distribution with the parameters a, b, and c.</p>
+	</div>
+	<script src="assets/sh_main.js"></script>
+	<script src="assets/sh_javascript.min.js"></script>
+	<script>highlight(undefined, undefined, 'pre');</script>
+</body>
+</html>
