@@ -1586,6 +1586,35 @@ public class MySqlDriver implements Is4Database {
 		return null;
 	}
 
+    public void changeToExtProc(String path){
+        Connection conn = null;
+		try{
+			if(path != null){
+				conn = openConnLocal();
+				PreparedStatement ps = conn.prepareStatement("UPDATE `rest_resources` set `type`= \"extproc\" WHERE path= ? or path=?");
+				String withoutSlash=null;
+				String withSlash=null;
+				if(!path.endsWith("/")){
+					withSlash = path + "/";
+					withoutSlash = path;
+				} else {
+					withSlash = path;
+					withoutSlash = path.substring(0,path.length()-1);
+				}
+				ps.setString(1, withoutSlash);
+				ps.setString(2, withSlash);
+				int count = ps.executeUpdate ();
+				ps.close();
+			}
+		} catch(Exception e){
+			logger.log(Level.WARNING, "", e);
+		}
+
+		finally {
+			closeConn(conn);
+		}
+    }
+
 	public void rrPutProperties(String path, JSONObject props){
 		Connection conn = null;
 		try{
@@ -2027,7 +2056,8 @@ public class MySqlDriver implements Is4Database {
 			if(
 				(destUrl!=null && destUri==null) || 
 				(destUrl==null && destUri!=null && ((r=RESTServer.getResource(destUri)) != null)) 
-				&& (r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC || r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC)){
+				&& (r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC || r.TYPE == ResourceUtils.PROCESS_PUBLISHER_RSRC ||
+                    r.TYPE==ResourceUtils.GENERIC_PUBLISHER_RSRC)){
 					
 				String query = "INSERT INTO `subscriptions` (`subid`, `alias`, `uri`, `dest_url`, `dest_uri`,`src_pubid`, `wildcardPath`) ";
 				query = query + "values (?, ?, ?, ?, ?, ?, ?)";

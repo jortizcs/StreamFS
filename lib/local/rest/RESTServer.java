@@ -70,6 +70,8 @@ public class RESTServer implements Container{
     protected static Connection connection = null;
     protected static Connection connectionHttps = null;
     public static ExecutorService executor=null;
+
+    protected static ExtProcessManager extProcMngr = null;
     
 	public RESTServer(){}
 
@@ -340,6 +342,9 @@ public class RESTServer implements Container{
             connectionHttps.connect(address2, sslContext);
             logger.info("Listening for connection on " + bindAddress + ":" + (port+1));
 			System.out.println("Server is listening on port " + (port+1) );
+
+            //start the external process manager
+            extProcMngr = ExtProcessManager.getInstance();
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "", e);
@@ -347,6 +352,10 @@ public class RESTServer implements Container{
             System.exit(1);
 		}
 	}
+
+    public ExtProcessManager getExtProcessManager(){
+        return extProcMngr;
+    }
 
 	/*public static HttpServer getHttpServer(){
 		return httpServer;
@@ -490,6 +499,11 @@ public class RESTServer implements Container{
 					case ResourceUtils.DEFAULT_RSRC:
 						logger.info("Loading default resource: " + thisPath);
 						resource = new Resource(thisPath);
+						break;
+                    case ResourceUtils.EXTPROC_RSRC:
+						logger.info("Loading default resource as extproc type: " + thisPath);
+						resource = new Resource(thisPath);
+                        resource.setAsExtProc();
 						break;
 					case ResourceUtils.PUBLISHER_RSRC:
 						logger.info("Loading publisher resource: " + thisPath);
@@ -779,9 +793,7 @@ public class RESTServer implements Container{
                     Resource thisResource = resourceTree.get(paths.get(j));
                     if(thisResource!=null){
                         matchRes=thisResource;
-                        break;
-                    }
-                }
+                        break; } }
             }
             return matchRes;
         }
@@ -809,6 +821,30 @@ public class RESTServer implements Container{
                     Resource root = resourceTree.get(rootPath);
                     root.handle(request, response);
                 } else {
+
+                    //allow it if the request contains the right id.
+                    if(r.getType() == ResourceUtils.EXTPROC_RSRC){
+                        /*if(query.containsKey("_id") && 
+                            ((String)query.get("_id")).equals(ExtProcessManager.getKeyId())){*/
+                        String requestMethod = request.getMethod();
+                        if(requestMethod.equalsIgnoreCase("delete"))
+                            extProcMngr.remove(r.getURI(), true);
+                        /*}
+                        else{
+                            Resource.sendResponse(request, response, 
+                                    500, null, false, null);
+                            return;
+                        }*/
+                    } else if (r.getType() == ResourceUtils.GENERIC_PUBLISHER_RSRC){
+                        Resource pr = getResource(ResourceUtils.getParent(r.getURI()));
+                        System.out.println("Operation to be performed on stream: "  + r.getURI());
+                        if(pr.getType() == ResourceUtils.EXTPROC_RSRC){
+                            String requestMethod = request.getMethod();
+                            System.out.println("Parent IS AN EXTPROC_RSRC: method=" + requestMethod);
+                            if(requestMethod.equalsIgnoreCase("delete"))
+                                extProcMngr.remove(r.getURI(), false);
+                        }
+                    }
                     logger.info("Invoking handler: " + r.getURI());
                     r.handle(request, response);
                 }

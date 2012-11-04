@@ -1,26 +1,3 @@
-/*
- * "Copyright (c) 2010-11 The Regents of the University  of California. 
- * All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose, without fee, and without written agreement is
- * hereby granted, provided that the above copyright notice, the following
- * two paragraphs and the author appear in all copies of this software.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
- *
- * Author:  Jorge Ortiz (jortiz@cs.berkeley.edu)
- * IS4 release version 1.0
- */
 package local.rest.resources.util;
 
 import local.rest.*;
@@ -52,6 +29,7 @@ public class ResourceUtils {
 	public static final String MODEL_GENERIC_PUBLISHER_RSRC_STR ="MODEL_GENERIC_PUBLISHER";
     public static final String PROCESS_PUBLISHER_RSRC_STR = "PROCESS";
     public static final String PROCESS_RSRC_STR = "PROCESS_CODE";
+    public static final String EXTPROC_RSRC_STR = "EXTPROC";
 
 	//resource type ints
 	public static final int DEFAULT_RSRC = 0;
@@ -66,6 +44,7 @@ public class ResourceUtils {
 	public static final int MODEL_GENERIC_PUBLISHER_RSRC = 10;
     public static final int PROCESS_PUBLISHER_RSRC = 11;
     public static final int PROCESS_RSRC = 12;
+    public static final int EXTPROC_RSRC = 13;
 
 	//methods
 	public static boolean isValidType(String type){
@@ -94,6 +73,8 @@ public class ResourceUtils {
             case PROCESS_PUBLISHER_RSRC:
 				return true;
             case PROCESS_RSRC:
+				return true;
+            case EXTPROC_RSRC:
 				return true;
 			default:
 				return false;
@@ -127,6 +108,8 @@ public class ResourceUtils {
 				return PROCESS_PUBLISHER_RSRC;
             else if(type.equalsIgnoreCase(PROCESS_RSRC_STR))
 				return PROCESS_RSRC;
+            else if(type.equalsIgnoreCase(EXTPROC_RSRC_STR))
+				return EXTPROC_RSRC;
 		}
 		return -1;
 	}
@@ -157,6 +140,8 @@ public class ResourceUtils {
 				return PROCESS_PUBLISHER_RSRC_STR;
             case PROCESS_RSRC:
 				return PROCESS_RSRC_STR;
+            case EXTPROC_RSRC:
+				return EXTPROC_RSRC_STR;
 			default:
 				return null;
 		}
@@ -232,9 +217,9 @@ public class ResourceUtils {
         if(tokens.size()==1){
             buf.append("/");
         } else {
-            for(int i=0; i<tokens.size(); i++)
+            for(int i=0; i<tokens.size()-1; i++)
                 buf.append("/").append(tokens.elementAt(i));
         }
-        return buf.toString();
+        return cleanPath(buf.toString());
     }
 }

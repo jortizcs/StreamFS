@@ -42,6 +42,7 @@ public class SubMngr {
 	
 	protected static MySqlDriver database = (MySqlDriver) DBAbstractionLayer.database;
 
+
 	//subscription identifer associated with a pipe that writes to the model thread 
 	//private static ConcurrentHashMap<UUID, Pipe> activePipes = new ConcurrentHashMap<UUID, Pipe>();
 
@@ -52,6 +53,8 @@ public class SubMngr {
 	//subscription source may be a wildcard
 	private static ConcurrentHashMap<UUID, Pipe> activePipesByPubId = new ConcurrentHashMap<UUID, Pipe>();
 	private static ConcurrentHashMap<UUID, Semaphore> readSemaphoresByPubId = new ConcurrentHashMap<UUID, Semaphore>();
+
+    private static ExtProcessManager extProcMngr = ExtProcessManager.getInstance();
 
     public static void main(String[] args){
     }
@@ -264,12 +267,21 @@ public class SubMngr {
                 response.put("errors", errors);
                 return response;
 			}
-			
+		
 			if(target.startsWith("/")){
 				//the target uri/path; try to create a model thread and pipe
 				Resource r = RESTServer.getResource(target);
+                boolean externProc = false;
+                if(r.TYPE==ResourceUtils.EXTPROC_RSRC)
+                    externProc=true;
+                else if(r.TYPE==ResourceUtils.GENERIC_PUBLISHER_RSRC){
+                    Resource p = RESTServer.getResource(ResourceUtils.getParent(target));
+                    if(p!=null && p.TYPE==ResourceUtils.EXTPROC_RSRC)
+                        externProc=true;
+                }
+
 				if(r != null && (r.TYPE==ResourceUtils.MODEL_RSRC || r.TYPE==ResourceUtils.MODEL_GENERIC_PUBLISHER_RSRC ||
-                                r.TYPE==ResourceUtils.PROCESS_RSRC || r.TYPE==ResourceUtils.PROCESS_PUBLISHER_RSRC)){
+                                r.TYPE==ResourceUtils.PROCESS_RSRC || r.TYPE==ResourceUtils.PROCESS_PUBLISHER_RSRC) || externProc){
                     logger.info("path:" + target + "; type=" + ResourceUtils.translateType(r.TYPE));
 					
 					if(r.TYPE==ResourceUtils.MODEL_RSRC){
@@ -378,6 +390,77 @@ public class SubMngr {
                             errors.add("Error while fetching subid associated with " + target);
                             response.clear();
                             response.put("errors", errors);
+                        }
+                    }
+
+                    else if(r.TYPE == ResourceUtils.EXTPROC_RSRC){
+                        target = ResourceUtils.cleanPath(target);
+                        //create a new publisher, get the path to it and set the target to that path
+                        logger.info("Installing subscription and creating publisher for associated process for target (" + target + ")");
+                        
+                        //generate a name for the publisher and ask this resource to create it
+                        String randomName = UUID.randomUUID().toString().substring(0,8);
+                        Resource r2 = RESTServer.getResource(target + randomName);
+                        while( r2 != null && ResourceUtils.cleanPath(r2.getURI()).equals(ResourceUtils.cleanPath(target+ randomName)) ){
+                            randomName = UUID.randomUUID().toString().substring(0,8);
+                            r2 = RESTServer.getResource(target + randomName);
+                        }
+
+                        JSONObject pubCreateRequest = new JSONObject();
+                        pubCreateRequest.put("operation", "create_stream");
+                        pubCreateRequest.put("resourceName", randomName);
+                        r.put(null, null, r.getURI(), pubCreateRequest.toString(), true, null);
+                        
+                        Resource rpub = RESTServer.getResource(target + randomName);
+                        
+                        boolean addsub= false;
+                        System.out.println("rpub=" + rpub);
+                        System.out.println("ResourceUtils.cleanPath(rpub.getURI()).equals(ResourceUtils.cleanPath(target+ randomName))?" + 
+                                ResourceUtils.cleanPath(rpub.getURI()).equals(ResourceUtils.cleanPath(target+ randomName)) + "\n" +
+                                ResourceUtils.cleanPath(rpub.getURI()) + "=?" + ResourceUtils.cleanPath(target+ randomName) + "\nadd_Extsub=?" + addsub);
+                        if(rpub!=null && ResourceUtils.cleanPath(rpub.getURI()).equals(ResourceUtils.cleanPath(target+ randomName)) &&
+                                (addsub=extProcMngr.addSub(UUID.fromString(newId), rpub.getURI()))   ){
+                            try {
+                                UUID pid = ((GenericPublisherResource)rpub).getPubId();
+                                String path = ResourceUtils.cleanPath(target+randomName);
+                                database.insertNewSubEntry(UUID.fromString(newId), null, null, null, path, pid, null);
+                                response.put("subid", newId);
+                                return response;
+                            } catch(Exception e){
+                                logger.log(Level.WARNING, "", e);
+                                response.clear();
+                                errors.add("Exception thrown while creating process publisher during subscription installation");
+                                response.put("errors", errors);
+                            }
+                        }
+                        else {
+                            logger.info("rpub=" + rpub);
+                            logger.info("ResourceUtils.cleanPath(rpub.getURI()).equals(ResourceUtils.cleanPath(target+ randomName))?" + 
+                                    ResourceUtils.cleanPath(rpub.getURI()).equals(ResourceUtils.cleanPath(target+ randomName)) + "\n" +
+                                    ResourceUtils.cleanPath(rpub.getURI()) + "=?" + ResourceUtils.cleanPath(target+ randomName) + "\nadd_Extsub=?" + addsub);
+                        }
+                    }
+                
+                    else if(r.TYPE == ResourceUtils.GENERIC_PUBLISHER_RSRC){
+                        target = ResourceUtils.cleanPath(target);
+                        //add this publisher to the subscription for this resource
+                        logger.info("Installing subscription and creating publisher for associated process for target (" + target + ")");
+
+                        JSONArray sids = database.getSubIdsByPubId(((GenericPublisherResource)r).getPubId());
+                        if(sids.size()>0){
+                            if(extProcMngr.addSub(UUID.fromString(sids.getString(0)), target)){
+                                try {
+                                    database.insertNewSubEntry(UUID.fromString(sids.getString(0)), null, null, null, target, pubid, null);
+                                    response.put("subid", sids.getString(0));
+                                    response.put("add_to_existing", true);
+                                    return response;
+                                } catch(Exception e){
+                                    logger.log(Level.WARNING, "", e);
+                                    response.clear();
+                                    errors.add("Exception thrown while creating process publisher during subscription installation");
+                                    response.put("errors", errors);
+                                }
+                            }
                         }
                     }
                     
@@ -633,6 +716,13 @@ public class SubMngr {
                                         RESTServer.getResource(thisSubUriStr).getType()==ResourceUtils.PROCESS_PUBLISHER_RSRC){
                                     ProcessManagerResource.dataReceived(usid.toString(), dataObject);
                             }
+
+                            else if(thisSubUriStr != null && 
+                                        (RESTServer.getResource(thisSubUriStr).getType()==ResourceUtils.EXTPROC_RSRC 
+                                         || RESTServer.getResource(thisSubUriStr).getType()==ResourceUtils.GENERIC_PUBLISHER_RSRC)){
+                                System.out.println("usid:"+usid + "; data=" + dataObject.toString());
+                                extProcMngr.dataReceived(usid.toString(), dataObject);
+                            }
 							
 							//this target is a model, lets see which instance to model thread to forward the data to
 							else if(thisSubUriStr != null && 
@@ -850,7 +940,17 @@ public class SubMngr {
 					
 					//remove from internal graph
 					Resource.removeFromMetadataGraph(r.getURI());
-				}
+				} else if(mpubid!=null){
+                    destStr = ResourceUtils.cleanPath(destStr);
+                    Resource r = RESTServer.getResource(destStr);
+                    if(r!=null && ResourceUtils.cleanPath(r.getURI()).equals(destStr)){
+
+                        //delete the publisher
+                        r.delete(null, null, r.getURI(), true, new JSONObject());
+                        //it's an external process -- send the kill command and delete the resource
+                        extProcMngr.remove(r.getURI(), true);
+                    }
+                }
 			} else if (destStr != null && destStr.startsWith("/proc")){
                 UUID mpubid = database.isRRPublisher2(destStr);
                 if(mpubid!=null){

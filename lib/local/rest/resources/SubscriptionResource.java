@@ -3,6 +3,7 @@ package local.rest.resources;
 import local.db.*;
 import local.rest.*;
 import local.rest.resources.util.*;
+import local.rest.resources.proc.*;
 import local.rest.interfaces.*;
 import is4.*;
 
@@ -20,7 +21,6 @@ import org.simpleframework.http.core.Container;
 import org.simpleframework.http.Response;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Query;
-
 
 
 public class SubscriptionResource extends Resource{
@@ -222,6 +222,10 @@ public class SubscriptionResource extends Resource{
 
 			//remove from internal graph
 			this.metadataGraph.removeNode(this.URI);
+
+            //remove the associated external process if it is one
+            ExtProcessManager extProcMngr = ExtProcessManager.getInstance();
+            extProcMngr.removeSub(SUBID);
 		}
 		JSONObject response = new JSONObject();
 		response.put("status", "success");

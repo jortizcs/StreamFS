@@ -1,0 +1,31 @@
+package sfs.proc.msg;
+
+option java_outer_classname = "DataMessageProto";
+
+message DataMessage{
+    optional string srcpath                 =1;
+    repeated TimeValSet data                =2;
+    optional PropertyMessage properties     =3;
+
+    enum DataMessageType {
+        DATA_IN     =1;
+        DATA_OUT    =2;
+    }
+
+    required DataMessageType type = 9;
+}
+
+message TimeValSet{
+    optional uint64 ts      =1;
+    repeated uint64 val     =2 [packed=true];
+}
+
+message PropertyMessage {
+    optional string description     =1;
+    repeated PropertyMap pmap       =2;
+}
+
+message PropertyMap{
+    required uint32 idx             =1;
+    required string label           =2;
+}

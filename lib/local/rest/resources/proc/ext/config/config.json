@@ -1,0 +1,14 @@
+{
+    "sfshost":"localhost",
+    "processes":[
+        {
+            "name":"identity",
+            "description":"Simple test that consumes data, but never produces any",
+            "path":"/proclib/pure_consumer",
+            "working_dir":"/Users/jortiz/StreamFS/httpsimple/lib/local/rest/resources/proc/ext/sfs/proc/examples",
+            "command":"java",
+            "arguments":["-classpath", ".:$CLASSPATH:../../../:./../../../lib/protobuf-2.4.1/java/src/main/java/", "ProcessingElement"],
+            "env":[]
+        }
+    ]
+}

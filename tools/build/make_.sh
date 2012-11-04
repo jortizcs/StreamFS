@@ -91,6 +91,22 @@ jar ufv ../is4app.jar local/rest/resources/proc/ProcessResource.class
 jar ufv ../is4app.jar local/rest/RESTServer\$ShutdownProc.class
 jar ufv ../is4app.jar local/db/MongoDBDriver\$ShutdownHook.class
 
+cd local/rest/resources/proc/ext
+
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$1.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$ProcessMessage\$Builder.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$ProcessMessage\$ProcessMessageType\$1.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$ProcessMessage\$ProcessMessageType.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$ProcessMessage.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto\$ProcessMessageOrBuilder.class
+jar ufv ../../../../../../is4app.jar sfs/proc/msg/ProcessMessageProto.class
+
+cd $IS4HOME
+cd lib
+jar ufv ../is4app.jar local/rest/resources/proc/ExtProcessManager.class
+jar ufv ../is4app.jar local/rest/resources/proc/ExtProcessManager\$1.class
+jar ufv ../is4app.jar local/rest/resources/proc/ExtProcessManager\$ProcIOHandlerThread.class
+
 cd ../
 jar tf is4app.jar
 

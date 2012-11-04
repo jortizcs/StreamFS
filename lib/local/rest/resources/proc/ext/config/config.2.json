@@ -1,0 +1,14 @@
+{
+    "sfshost":"localhost",
+    "processes":[
+        {
+            "name":"ad_gaussian",
+            "description":"Gaussian model-based anomaly detector",
+            "path":"/proclib/ad_gaussian",
+            "working_dir":"/Users/jortiz/StreamFS/httpsimple/lib/local/rest/resources/proc/js/",
+            "command":"node",
+            "arguments":["readit.js"],
+            "env":[]
+        }
+    ]
+}

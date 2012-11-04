@@ -122,7 +122,7 @@ public class TSDataset{
 				double vs = vArray.getDouble(0);
 				return vs;
 			} else {
-				double vs = (double)values;
+				double vs = ((Double)values).doubleValue();
 				return vs;
 			}
 		} catch(Exception e){

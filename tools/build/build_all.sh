@@ -70,3 +70,7 @@ javac lib/local/analytics/util/BiHashtable.java
 javac lib/local/rest/resources/proc/ProcessManagerResource.java
 javac lib/local/rest/resources/proc/ProcessPublisherResource.java
 javac lib/local/rest/resources/proc/ProcessResource.java
+
+#external process manager
+javac lib/local/rest/resources/proc/ExtProcessManager.java
+javac lib/local/rest/resources/proc/ext/sfs/proc/msg/ProcessMessageProto.java
