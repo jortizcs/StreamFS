@@ -49,13 +49,15 @@ public class SfsExtProcMngr {
         boolean registered = false;
         while(active){
             try {
-                if(connectionSocket==null || connectionSocket.isClosed()){
+                if(connectionSocket==null || connectionSocket.isClosed() || 
+                        !connectionSocket.isConnected()){
                     System.out.println("connection socket is null");
                     connectionSocket = null;
                     InetAddress addr = InetAddress.getByName(sfsproc_host);
                     connectionSocket = new Socket(addr, sfsproc_port);
                     input = connectionSocket.getInputStream();
                     output = connectionSocket.getOutputStream();
+                    registered = false;
                 }
 
                 //fetch the registration key from streamfs
@@ -108,7 +110,7 @@ public class SfsExtProcMngr {
                         break;
                 }
             } catch(Exception e){
-                e.printStackTrace();
+                //e.printStackTrace();
                 try {
                     Thread.sleep(10*1000);
                 } catch(Exception e2){
@@ -502,7 +504,7 @@ public class SfsExtProcMngr {
         
         public ProcessCommThread(String path, Process p){
             proc = p;
-            procpath = path;
+            procpath = cleanPath(path);
         }
 
         public void run(){
@@ -545,7 +547,28 @@ public class SfsExtProcMngr {
                 } catch(Exception e){
                     e.printStackTrace();
                     //do some cleanup here, if there's some kind of ioexception
-                    return;
+                    processMap.remove(procpath);
+
+                    //send a remove to streamfs
+                    try {
+                        ProcessMessage pm = ProcessMessage.newBuilder()
+                            .setPath(procpath)
+                            .setType(ProcessMessage.ProcessMessageType.DESTROY)
+                            .build();
+                        OutputStream out = connectionSocket.getOutputStream();
+                        pm.writeDelimitedTo(out);
+                        out.flush();
+                    } catch(Exception e2){
+                        e2.printStackTrace();
+                    }
+
+                    //call destroy on the process for cleanup
+                    try {
+                        if(isRunning(proc))
+                            proc.destroy();
+                    } catch(Exception e3){
+                        e3.printStackTrace();
+                    }
                 }
             }
         }

@@ -512,7 +512,8 @@ public class RESTServer implements Container{
 							resource = new PublisherResource(thisPath, pubid);
 						else
 							resource = new Resource(thisPath);
-						break;
+                        extProcMngr.saveInfo(thisPath, false/*isStream?*/);
+                        break;
 					case ResourceUtils.GENERIC_PUBLISHER_RSRC:
 						logger.info("Loading publisher resource: " + thisPath);
 						pubid = database.isRRPublisher2(thisPath);
@@ -522,6 +523,16 @@ public class RESTServer implements Container{
 						} else if(!modelstream){
 							resource = new Resource(thisPath);
 						}
+
+                        thisPath = ResourceUtils.getParent(thisPath);
+                        Resource parentr = getResource(thisPath);
+                        String p1 = null;
+                        if(parentr !=null && (p1=ResourceUtils.cleanPath(parentr.getURI()))!=null
+                                    && p1.equals(thisPath) 
+                                    && parentr.getType()==ResourceUtils.EXTPROC_RSRC)
+                        {
+                            extProcMngr.saveInfo(thisPath, true/*isStream?*/);
+                        }
 						break;
 					case ResourceUtils.SUBSCRIPTION_RSRC:
 						logger.info("Loading subscription resource: " + thisPath);

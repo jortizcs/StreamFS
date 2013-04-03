@@ -68,6 +68,15 @@ public class ExtProcessManager extends Thread{
     //maps subid to the syncPath (publisher associated with the instance of the running
     //external process)
     private static ConcurrentHashMap<UUID, String> subToProcMap = null;
+
+    //placeholder for known external process clients that haven't come online yet
+    //this occurrs after an un/intentional streamfs re-start
+    private static ArrayList<String> phParentPaths = new ArrayList<String>();
+    private static ArrayList<String> phChildPaths = new ArrayList<String>();
+
+    //Buffers
+    //private static ConcurrentHashMap<String, Date> downList=null;
+    //private static ConcurrentHashMap<String, ArrayList<ProcessMessage>> bufferList=null;
     /******************************/
 
     public static void main(String[] args){
@@ -141,7 +150,7 @@ public class ExtProcessManager extends Thread{
                         }
                     }
 
-                    //remove from streamfs
+                    //remove the associated file and child paths from streamfs
                     thisResource = RESTServer.getResource(path);
                     String p1 = ResourceUtils.cleanPath(thisResource.getURI());
                     if(thisResource!=null && p1.equals(path))
@@ -362,6 +371,14 @@ public class ExtProcessManager extends Thread{
             }
         }
     }
+    
+    public void saveInfo(String path, boolean isStream){
+        path = ResourceUtils.cleanPath(path);
+        if(isStream)
+            phChildPaths.add(path);
+        else
+            phParentPaths.add(path);
+    }
 
 	private ExtProcessManager() {
         subToProcMap = new ConcurrentHashMap<UUID, String>();
@@ -468,6 +485,8 @@ public class ExtProcessManager extends Thread{
         public void handlePing(Socket s, ProcessMessage msg){
         }
 
+        
+
         public void handleInstall(Socket s, ProcessMessage msg){
             try {
                 String name = msg.getProcname();
@@ -502,15 +521,34 @@ public class ExtProcessManager extends Thread{
                         //add it to list of parent paths
                         String ppath = ResourceUtils.cleanPath(r.getURI());
                         if(!parentPaths.contains(ppath)){
+
                             synchronized(parentPaths){
                                 parentPaths.add(ppath);
                             }
-                        }
+                            
+                        } 
 
                         //add it to socket mapping
                         logger.info("Adding " + ppath);
                         if(!assocProcSocket.containsKey(ppath))
                             assocProcSocket.put(ppath, s);
+
+
+                        //add the subscription and take it off the place-holder maps
+                        //adding each associated subscription also starts the process on the client
+                        if(!phParentPaths.contains(ppath)){
+                            phParentPaths.remove(ppath);
+                            for(int i=0; i<phChildPaths.size(); i++){
+                                String thisChildPath = phChildPaths.get(i);
+                                if(thisChildPath.startsWith(ppath)){
+                                    phChildPaths.remove(thisChildPath);
+                                    childPaths.add(thisChildPath);
+                                    JSONArray subids = database.getSubIdByDstPubPath(thisChildPath);
+                                    for(int j=0; j<subids.size(); j++)
+                                        addSub(UUID.fromString((String)subids.get(i)), thisChildPath);
+                                }
+                            }
+                        }
 
                         //update the resource properties and set type
                         System.out.print(homePath + " created");
@@ -608,6 +646,19 @@ public class ExtProcessManager extends Thread{
         public void handleDestroy(Socket s, ProcessMessage msg){
             try {
                 logger.info("Data received: " + msg);
+                String path = ResourceUtils.cleanPath(msg.getPath());
+                Resource r = RESTServer.getResource(path);
+                String p2 = ResourceUtils.cleanPath(r.getURI());
+                if(r !=null && p2.equals(path)){
+                    logger.info("Deleting: " + path);
+                    r.delete(null, null, path, true, new JSONObject());
+                }
+
+                //remove the associated file
+                if(r instanceof GenericPublisherResource)
+                    childPaths.remove(path);
+                else
+                    parentPaths.remove(path);
             } catch(Exception e){
                 e.printStackTrace();
             }

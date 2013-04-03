@@ -1,5 +1,0 @@
-check process sfs pidfile /tmp/sfs.pid
-  start program = "/bin/bash -c 'cd /home/ubuntu/StreamFS; source /home/ubuntu/.bashrc; source /home/ubuntu/StreamFS/tools/build/is4Setup.sh.monit; /home/ubuntu/StreamFS/sfs start'"
-  stop program = "/bin/bash -c '/home/ubuntu/StreamFS/sfs stop'"
-if failed host 10.171.47.100 port 8080 protocol http with timeout 20 seconds for 1 cycle then restart
-if cpu is greater than 50% for 5 cycles then restart
