@@ -1,8 +1,0 @@
-{
-	"type":"mysql",
-	"address":"localhost",
-	"port":3306,
-	"dbname":"sfs_state",
-	"login":"root",
-	"password":"root"
-}
